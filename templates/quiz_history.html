@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Quiz History — AI Learning Platform{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <div class="welcome-section mb-4">
+        <div class="welcome-text">
+            <h3 class="fw-bold mb-1">📝 Quiz History</h3>
+            <p class="mb-0 opacity-90">All your quiz attempts</p>
+        </div>
+    </div>
+
+    <div class="dashboard-section">
+        <div class="section-header">
+            <h5>
+                <i class="fas fa-clipboard-check me-2 text-success"></i>
+                Quiz Results
+            </h5>
+            <span class="badge bg-success">{{ quizzes|length }} attempts</span>
+        </div>
+
+        {% if quizzes %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Topic</th>
+                        <th>Video</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for quiz in quizzes %}
+                    {% if quiz.attempted %}
+                    {% set percentage = (quiz.score / quiz.total * 100)|int if quiz.total > 0 else 0 %}
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ quiz.topic }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {{ quiz.video_title[:40] if quiz.video_title else 'N/A' }}...
+                            </small>
+                        </td>
+                        <td>
+                            <span class="fw-bold">{{ quiz.score }}/{{ quiz.total }}</span>
+                        </td>
+                        <td>
+                            <div class="progress" style="height:6px; width:80px;">
+                                <div class="progress-bar
+                                    {% if percentage >= 70 %}bg-success
+                                    {% elif percentage >= 40 %}bg-warning
+                                    {% else %}bg-danger{% endif %}"
+                                     style="width:{{ percentage }}%">
+                                </div>
+                            </div>
+                            <small>{{ percentage }}%</small>
+                        </td>
+                        <td>
+                            {% if percentage >= 70 %}
+                            <span class="badge bg-success">✅ Good</span>
+                            {% elif percentage >= 40 %}
+                            <span class="badge bg-warning text-dark">⚠️ Average</span>
+                            {% else %}
+                            <span class="badge bg-danger">❌ Weak</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {{ quiz.created_at.strftime('%d %b %Y') if quiz.created_at else 'N/A' }}
+                            </small>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard fa-4x text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">No quizzes attempted yet!</h5>
+            <a href="/dashboard" class="btn btn-primary mt-3">
+                <i class="fas fa-search me-1"></i>Find Videos & Take Quiz
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

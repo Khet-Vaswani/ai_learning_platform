@@ -1,0 +1,635 @@
+{% extends 'base.html' %}
+{% block title %}Cognitive Assessment — AI Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.cog-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg,#0f172a,#1e1b4b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.cog-wrap {
+    width: 100%;
+    max-width: 700px;
+}
+
+.cog-header {
+    text-align: center;
+    color: white;
+    margin-bottom: 28px;
+}
+
+.cog-header h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.cog-header p {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.88rem;
+    margin: 0;
+}
+
+.cog-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+
+.cog-top {
+    background: linear-gradient(135deg,#1e1b4b,#2d1b69);
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.cog-progress-info {
+    color: white;
+}
+
+.cog-q-num {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cog-q-of {
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    margin-top: 2px;
+}
+
+.cog-cat-badge {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.cog-prog-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    overflow: hidden;
+}
+
+.cog-prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg,#60a5fa,#a78bfa);
+    transition: width 0.5s ease;
+}
+
+.cog-body {
+    padding: 32px 28px;
+}
+
+.cog-question {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.cog-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+}
+
+.cog-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    font-size: 0.88rem;
+    color: #334155;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+}
+
+.cog-option:hover {
+    border-color: #7c3aed;
+    background: #faf5ff;
+    color: #5b21b6;
+}
+
+.cog-option.selected {
+    border-color: #7c3aed;
+    background: #faf5ff;
+    color: #5b21b6;
+    font-weight: 600;
+}
+
+.cog-opt-key {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.cog-option.selected .cog-opt-key {
+    background: #7c3aed;
+    color: white;
+}
+
+.cog-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 28px;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.cog-btn {
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.cog-btn-prev {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.cog-btn-prev:hover { background: #e2e8f0; }
+.cog-btn-prev:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.cog-btn-next {
+    background: linear-gradient(135deg,#7c3aed,#6d28d9);
+    color: white;
+    box-shadow: 0 4px 15px rgba(124,58,237,0.3);
+}
+
+.cog-btn-next:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(124,58,237,0.4);
+}
+
+.cog-btn-next:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.cog-btn-submit {
+    background: linear-gradient(135deg,#059669,#047857);
+    color: white;
+    box-shadow: 0 4px 15px rgba(5,150,105,0.3);
+}
+
+.cog-btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(5,150,105,0.4);
+}
+
+.cog-nav-dots {
+    display: flex;
+    gap: 6px;
+}
+
+.cog-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.cog-dot.answered { background: #7c3aed; }
+.cog-dot.current  { background: #60a5fa; transform: scale(1.3); }
+
+.loading-wrap {
+    text-align: center;
+    padding: 60px 20px;
+    color: white;
+}
+
+.loading-wrap .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: #a78bfa;
+}
+
+.result-wrap {
+    padding: 40px 28px;
+    text-align: center;
+}
+
+.result-score-big {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #7c3aed;
+    line-height: 1;
+}
+
+.result-style {
+    background: linear-gradient(135deg,#7c3aed,#2563eb);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-block;
+    margin: 12px 0 20px;
+}
+
+.result-bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.result-bar-item {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+}
+
+.result-bar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.result-bar-track {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.result-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+}
+
+.result-bar-score {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cog-page">
+    <div class="cog-wrap">
+
+        <!-- Header -->
+        <div class="cog-header">
+            <h2>🧠 Cognitive Assessment</h2>
+            <p>AI-generated questions — new every time!</p>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingWrap" class="loading-wrap">
+            <div class="spinner-border mb-3"></div>
+            <h5 style="color:white; font-weight:700;">
+                AI is generating your questions...
+            </h5>
+            <p style="color:rgba(255,255,255,0.5); font-size:0.85rem;">
+                This takes a few seconds
+            </p>
+        </div>
+
+        <!-- Quiz Card -->
+        <div class="cog-card" id="cogCard" style="display:none;">
+
+            <!-- Top Bar -->
+            <div class="cog-top">
+                <div class="cog-progress-info">
+                    <div class="cog-q-num">Question</div>
+                    <div class="cog-q-of">
+                        <span id="qNum">1</span>
+                        <span style="opacity:0.5;"> / </span>
+                        <span id="qTotal">10</span>
+                    </div>
+                </div>
+                <span class="cog-cat-badge" id="qCategory"
+                      style="background:rgba(124,58,237,0.2);
+                             color:#c4b5fd;">
+                    Loading...
+                </span>
+            </div>
+
+            <!-- Progress -->
+            <div class="cog-prog-bar">
+                <div class="cog-prog-fill" id="progFill"
+                     style="width:10%;"></div>
+            </div>
+
+            <!-- Body -->
+            <div class="cog-body">
+                <div class="cog-question" id="qText"></div>
+                <div class="cog-options" id="qOptions"></div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="cog-nav">
+                <button class="cog-btn cog-btn-prev"
+                        id="prevBtn"
+                        onclick="prevQuestion()"
+                        disabled>
+                    ← Previous
+                </button>
+
+                <div class="cog-nav-dots" id="navDots"></div>
+
+                <button class="cog-btn cog-btn-next"
+                        id="nextBtn"
+                        onclick="nextQuestion()">
+                    Next →
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Result Card -->
+        <div class="cog-card" id="resultCard" style="display:none;">
+            <div class="result-wrap">
+                <div style="font-size:3rem; margin-bottom:10px;">🎉</div>
+                <div class="result-score-big" id="resultScore">0/10</div>
+                <div class="result-style" id="resultStyle">
+                    Balanced Learner
+                </div>
+                <p style="color:#64748b; font-size:0.88rem; margin:0 0 20px;">
+                    Assessment complete! Dashboard pe redirect ho rahe ho...
+                </p>
+
+                <div class="result-bars" id="resultBars"></div>
+
+                <a href="/dashboard"
+                   style="display:inline-flex; align-items:center;
+                          gap:8px; background:linear-gradient(135deg,#7c3aed,#2563eb);
+                          color:white; padding:12px 28px; border-radius:12px;
+                          text-decoration:none; font-weight:700;
+                          font-size:0.88rem; margin-top:8px;">
+                    <i class="fas fa-home"></i>
+                    Go to Dashboard
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let questions  = [];
+let answers    = {};
+let currentQ   = 0;
+
+// Category colors
+const catColors = {
+    'Logical Reasoning': {bg:'rgba(37,99,235,0.15)',  color:'#93c5fd'},
+    'Numerical Ability' : {bg:'rgba(5,150,105,0.15)',  color:'#6ee7b7'},
+    'Verbal Ability'    : {bg:'rgba(217,119,6,0.15)',  color:'#fcd34d'},
+    'Problem Solving'   : {bg:'rgba(220,38,38,0.15)',  color:'#fca5a5'},
+};
+
+// ── Load Questions from AI ────────────────────────────────
+async function loadQuestions() {
+    try {
+        const res  = await fetch('/cognitive/get-questions');
+        const data = await res.json();
+
+        if (data.success && data.questions) {
+            questions = data.questions;
+            document.getElementById('loadingWrap').style.display = 'none';
+            document.getElementById('cogCard').style.display     = 'block';
+            document.getElementById('qTotal').textContent = questions.length;
+            buildDots();
+            showQuestion(0);
+        } else {
+            document.getElementById('loadingWrap').innerHTML = `
+                <div style="color:#fca5a5; font-size:0.88rem;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Failed to load questions. 
+                    <a href="/cognitive-test" style="color:#93c5fd;">
+                        Try again
+                    </a>
+                </div>`;
+        }
+    } catch(e) {
+        console.log('Load error:', e);
+    }
+}
+
+// ── Build Navigation Dots ─────────────────────────────────
+function buildDots() {
+    const dots = document.getElementById('navDots');
+    dots.innerHTML = questions.map((_, i) => `
+        <div class="cog-dot ${i === 0 ? 'current' : ''}"
+             id="dot-${i}"
+             onclick="goTo(${i})">
+        </div>
+    `).join('');
+}
+
+// ── Show Question ─────────────────────────────────────────
+function showQuestion(idx) {
+    currentQ     = idx;
+    const q      = questions[idx];
+    const total  = questions.length;
+
+    // Update progress
+    const pct = ((idx + 1) / total) * 100;
+    document.getElementById('progFill').style.width = pct + '%';
+    document.getElementById('qNum').textContent     = idx + 1;
+
+    // Category badge
+    const cat    = q.category || 'Logical Reasoning';
+    const colors = catColors[cat] || catColors['Logical Reasoning'];
+    const catEl  = document.getElementById('qCategory');
+    catEl.textContent       = cat;
+    catEl.style.background  = colors.bg;
+    catEl.style.color       = colors.color;
+
+    // Question text
+    document.getElementById('qText').textContent = q.question;
+
+    // Options
+    const optEl = document.getElementById('qOptions');
+    optEl.innerHTML = Object.entries(q.options).map(([key, val]) => `
+        <button class="cog-option ${answers[idx] === key ? 'selected' : ''}"
+                id="opt-${idx}-${key}"
+                onclick="selectAnswer(${idx}, '${key}')">
+            <span class="cog-opt-key">${key}</span>
+            <span>${val}</span>
+        </button>
+    `).join('');
+
+    // Navigation buttons
+    document.getElementById('prevBtn').disabled = idx === 0;
+
+    const nextBtn = document.getElementById('nextBtn');
+    if (idx === total - 1) {
+        nextBtn.className   = 'cog-btn cog-btn-submit';
+        nextBtn.textContent = '✓ Submit Test';
+        nextBtn.onclick     = submitTest;
+    } else {
+        nextBtn.className   = 'cog-btn cog-btn-next';
+        nextBtn.textContent = 'Next →';
+        nextBtn.onclick     = nextQuestion;
+    }
+
+    // Update dots
+    document.querySelectorAll('.cog-dot').forEach((d, i) => {
+        d.className = 'cog-dot';
+        if (i === idx)          d.classList.add('current');
+        if (answers[i] !== undefined) d.classList.add('answered');
+    });
+}
+
+// ── Select Answer ─────────────────────────────────────────
+function selectAnswer(qIdx, key) {
+    answers[qIdx] = key;
+
+    document.querySelectorAll(`[id^="opt-${qIdx}-"]`)
+        .forEach(b => b.classList.remove('selected'));
+    document.getElementById(`opt-${qIdx}-${key}`)
+        ?.classList.add('selected');
+
+    // Update dot
+    const dot = document.getElementById(`dot-${qIdx}`);
+    if (dot) dot.classList.add('answered');
+}
+
+// ── Navigation ────────────────────────────────────────────
+function nextQuestion() {
+    if (currentQ < questions.length - 1) {
+        showQuestion(currentQ + 1);
+    }
+}
+
+function prevQuestion() {
+    if (currentQ > 0) {
+        showQuestion(currentQ - 1);
+    }
+}
+
+function goTo(idx) {
+    showQuestion(idx);
+}
+
+// ── Submit Test ───────────────────────────────────────────
+async function submitTest() {
+    const unanswered = questions.length - Object.keys(answers).length;
+
+    if (unanswered > 0) {
+        const go = confirm(
+            `${unanswered} question(s) unanswered. Submit anyway?`
+        );
+        if (!go) return;
+    }
+
+    const nextBtn = document.getElementById('nextBtn');
+    nextBtn.disabled    = true;
+    nextBtn.textContent = 'Submitting...';
+
+    try {
+        const res = await fetch('/cognitive/submit', {
+            method : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body   : JSON.stringify({
+                answers  : answers,
+                questions: questions
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            showResult(data);
+        } else {
+            alert('Submission failed: ' + data.message);
+            nextBtn.disabled    = false;
+            nextBtn.textContent = '✓ Submit Test';
+        }
+    } catch(e) {
+        alert('Error. Try again.');
+        nextBtn.disabled    = false;
+        nextBtn.textContent = '✓ Submit Test';
+    }
+}
+
+// ── Show Result ───────────────────────────────────────────
+function showResult(data) {
+    document.getElementById('cogCard').style.display    = 'none';
+    document.getElementById('resultCard').style.display = 'block';
+
+    const s = data.scores;
+    document.getElementById('resultScore').textContent =
+        s.total + '/10';
+    document.getElementById('resultStyle').textContent =
+        '🧠 ' + data.learning_style;
+
+    // Bars
+    const bars = [
+        {label:'🔷 Logical',   score:s.logical,   max:3, color:'#2563eb'},
+        {label:'🔢 Numerical', score:s.numerical, max:3, color:'#059669'},
+        {label:'📝 Verbal',    score:s.verbal,    max:2, color:'#d97706'},
+        {label:'💡 Problem',   score:s.problem,   max:2, color:'#7c3aed'},
+    ];
+
+    document.getElementById('resultBars').innerHTML = bars.map(b => `
+        <div class="result-bar-item">
+            <div class="result-bar-label">${b.label}</div>
+            <div class="result-bar-track">
+                <div class="result-bar-fill"
+                     style="width:${(b.score/b.max*100)|0}%;
+                            background:${b.color};">
+                </div>
+            </div>
+            <div class="result-bar-score">${b.score}/${b.max}</div>
+        </div>
+    `).join('');
+
+    // Auto redirect
+    setTimeout(() => {
+        window.location.href = '/dashboard';
+    }, 4000);
+}
+
+// ── Init ──────────────────────────────────────────────────
+loadQuestions();
+</script>
+{% endblock %}
+s   

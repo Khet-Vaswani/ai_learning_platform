@@ -1,0 +1,898 @@
+{% extends 'base.html' %}
+{% block title %}Progress Report — AI Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.progress-banner {
+    background: linear-gradient(135deg,#0f172a,#1e1b4b);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+}
+.progress-banner::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: rgba(37,99,235,0.15);
+    border-radius: 50%;
+    filter: blur(40px);
+}
+.progress-banner h3 {
+    color: white; font-weight: 800;
+    margin: 0 0 4px; font-size: 1.3rem;
+}
+.progress-banner p {
+    color: rgba(255,255,255,0.5);
+    margin: 0; font-size: 0.85rem;
+}
+.stat-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    transition: all 0.25s;
+    height: 100%;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+.chart-card {
+    background: white;
+    border-radius: 14px;
+    padding: 22px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    height: 100%;
+}
+.chart-card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.topic-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.topic-row:last-child { border-bottom: none; }
+.weak-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fef9c3;
+    border: 1px solid #fef08a;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.weak-chip:hover {
+    background: #fef08a;
+    transform: translateX(4px);
+}
+.quiz-table th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 8px 12px;
+}
+.quiz-table td {
+    padding: 10px 12px;
+    border-color: #f1f5f9;
+    vertical-align: middle;
+}
+.score-pill {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+.lc-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.25s;
+}
+.lc-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+.lc-stage-badge {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 8px;
+}
+.lc-bars {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 50px;
+    margin: 10px 0 6px;
+    padding: 0 2px;
+}
+.lc-bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.6s ease;
+    cursor: pointer;
+}
+.lc-predicted {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    border: 2px dashed;
+    background: transparent;
+}
+.lc-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+.lc-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="progress-page">
+
+    <!-- Banner -->
+    <div class="progress-banner mb-4">
+        <div class="d-flex justify-content-between
+                    align-items-center flex-wrap gap-3">
+            <div>
+                <h3>📊 Progress Report</h3>
+                <p>Detailed analysis of your learning journey</p>
+            </div>
+            <div style="position:relative;z-index:1;">
+                <a href="/dashboard"
+                   style="background:rgba(255,255,255,0.1);
+                          border:1px solid rgba(255,255,255,0.15);
+                          color:white;border-radius:8px;
+                          padding:7px 16px;font-size:0.82rem;
+                          font-weight:600;text-decoration:none;">
+                    <i class="fas fa-home me-1"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div style="width:46px;height:46px;border-radius:12px;
+                            background:#eff6ff;display:flex;
+                            align-items:center;justify-content:center;
+                            font-size:1.2rem;margin-bottom:12px;">
+                    <i class="fas fa-clipboard-check"
+                       style="color:#2563eb;"></i>
+                </div>
+                <div style="font-size:2rem;font-weight:800;
+                            line-height:1;color:#0f172a;">
+                    {{ total_quizzes }}
+                </div>
+                <div style="font-size:0.78rem;color:#94a3b8;
+                            margin-top:4px;font-weight:500;">
+                    Quizzes Taken
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div style="width:46px;height:46px;border-radius:12px;
+                            background:#f0fdf4;display:flex;
+                            align-items:center;justify-content:center;
+                            font-size:1.2rem;margin-bottom:12px;">
+                    <i class="fas fa-chart-line"
+                       style="color:#059669;"></i>
+                </div>
+                <div style="font-size:2rem;font-weight:800;
+                            line-height:1;color:#0f172a;">
+                    {{ avg_score }}%
+                </div>
+                <div style="font-size:0.78rem;color:#94a3b8;
+                            margin-top:4px;font-weight:500;">
+                    Average Score
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div style="width:46px;height:46px;border-radius:12px;
+                            background:#fef9c3;display:flex;
+                            align-items:center;justify-content:center;
+                            font-size:1.2rem;margin-bottom:12px;">
+                    <i class="fas fa-trophy"
+                       style="color:#d97706;"></i>
+                </div>
+                <div style="font-size:2rem;font-weight:800;
+                            line-height:1;color:#0f172a;">
+                    {{ best_score }}%
+                </div>
+                <div style="font-size:0.78rem;color:#94a3b8;
+                            margin-top:4px;font-weight:500;">
+                    Best Score
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card">
+                <div style="width:46px;height:46px;border-radius:12px;
+                            background:#faf5ff;display:flex;
+                            align-items:center;justify-content:center;
+                            font-size:1.2rem;margin-bottom:12px;">
+                    <i class="fas fa-play-circle"
+                       style="color:#7c3aed;"></i>
+                </div>
+                <div style="font-size:2rem;font-weight:800;
+                            line-height:1;color:#0f172a;">
+                    {{ watched_count }}
+                </div>
+                <div style="font-size:0.78rem;color:#94a3b8;
+                            margin-top:4px;font-weight:500;">
+                    Videos Watched
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-8">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="fas fa-chart-line"
+                       style="color:#2563eb;"></i>
+                    Quiz Performance Over Time
+                </div>
+                {% if chart_scores %}
+                <canvas id="performanceChart"
+                        style="max-height:280px;"></canvas>
+                {% else %}
+                <div class="empty-state">
+                    <span style="font-size:3rem;display:block;
+                                 margin-bottom:12px;">📈</span>
+                    <p>No quiz data yet. Take quizzes!</p>
+                    <a href="/dashboard"
+                       class="btn btn-primary btn-sm mt-2">
+                        Start Learning
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="fas fa-chart-pie"
+                       style="color:#7c3aed;"></i>
+                    Score Distribution
+                </div>
+                {% if total_quizzes > 0 %}
+                <canvas id="distributionChart"
+                        style="max-height:280px;"></canvas>
+                {% else %}
+                <div class="empty-state">
+                    <span style="font-size:2rem;">🥧</span>
+                    <p>No data yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Learning Curves -->
+    <div class="chart-card mb-4">
+        <div class="chart-card-title">
+            <i class="fas fa-chart-area"
+               style="color:#7c3aed;"></i>
+            Learning Curves Per Topic
+            <span style="background:#faf5ff;color:#7c3aed;
+                         padding:2px 10px;border-radius:12px;
+                         font-size:0.72rem;font-weight:700;
+                         margin-left:8px;">
+                MoE Analysis
+            </span>
+            <span style="margin-left:auto;font-size:0.72rem;
+                         color:#94a3b8;font-weight:400;">
+                Dashed = Predicted next score
+            </span>
+        </div>
+
+        <!-- Legend -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;
+                    margin-bottom:16px;padding:10px 14px;
+                    background:#f8fafc;border-radius:10px;">
+            {% for stage, color, icon in [
+                ('Mastery',        '#059669', '🏆'),
+                ('Rapid Growth',   '#2563eb', '📈'),
+                ('Steady Progress','#d97706', '📊'),
+                ('Plateau',        '#7c3aed', '⏸️'),
+                ('Struggling',     '#dc2626', '😔'),
+                ('Initial Stage',  '#94a3b8', '🆕')
+            ] %}
+            <div style="display:flex;align-items:center;gap:5px;">
+                <div style="width:10px;height:10px;
+                            border-radius:3px;
+                            background:{{ color }};"></div>
+                <span style="font-size:0.72rem;color:#64748b;
+                             font-weight:500;">
+                    {{ icon }} {{ stage }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="learningCurveSection">
+            <div style="text-align:center;padding:30px;">
+                <div class="spinner-border spinner-border-sm
+                            text-secondary"></div>
+                <span style="margin-left:8px;color:#94a3b8;
+                             font-size:0.82rem;">
+                    Loading learning curves...
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Performance + Weak Topics -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="fas fa-layer-group"
+                       style="color:#059669;"></i>
+                    Performance by Topic
+                </div>
+                {% if topics_perf %}
+                    {% for t in topics_perf %}
+                    {% set pct = t.avg_score|float %}
+                    {% if pct >= 70 %}
+                        {% set bar_color = '#059669' %}
+                    {% elif pct >= 40 %}
+                        {% set bar_color = '#d97706' %}
+                    {% else %}
+                        {% set bar_color = '#dc2626' %}
+                    {% endif %}
+                    <div class="topic-row">
+                        <div style="font-size:0.82rem;font-weight:600;
+                                    color:#475569;min-width:100px;flex:1;">
+                            {{ t.topic[:18] if t.topic else 'General' }}
+                        </div>
+                        <div style="flex:2;height:8px;
+                                    background:#f1f5f9;
+                                    border-radius:4px;overflow:hidden;">
+                            <div style="width:{{ pct }}%;height:100%;
+                                        border-radius:4px;
+                                        transition:width 1s ease;
+                                        background:{{ bar_color }};">
+                            </div>
+                        </div>
+                        <div style="font-size:0.8rem;font-weight:700;
+                                    min-width:45px;text-align:right;
+                                    color:{{ bar_color }};">
+                            {{ pct }}%
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <span style="font-size:2.5rem;display:block;
+                                 margin-bottom:10px;">📚</span>
+                    <p>No topics data yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="chart-card">
+                <div class="chart-card-title">
+                    <i class="fas fa-exclamation-triangle"
+                       style="color:#d97706;"></i>
+                    Weak Topics
+                    <span style="background:#fef3c7;color:#92400e;
+                                 padding:2px 8px;border-radius:8px;
+                                 font-size:0.7rem;font-weight:700;
+                                 margin-left:auto;">
+                        {{ weak_topics|length }} topics
+                    </span>
+                </div>
+                {% if weak_topics %}
+                    {% for w in weak_topics %}
+                    <div class="weak-chip"
+                         onclick="window.location.href=
+                         '/dashboard?search={{ w.topic }}'">
+                        <div>
+                            <div style="font-size:0.82rem;
+                                        font-weight:600;color:#92400e;">
+                                ⚠️ {{ w.topic }}
+                            </div>
+                            <small style="color:#a16207;font-size:0.7rem;">
+                                Click to find videos
+                            </small>
+                        </div>
+                        <span style="background:#dc2626;color:white;
+                                     padding:2px 8px;border-radius:10px;
+                                     font-size:0.7rem;font-weight:700;">
+                            {{ w.fail_count }}x failed
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-state" style="padding:20px;">
+                    <span style="font-size:2rem;">🎉</span>
+                    <p class="mt-2" style="font-size:0.82rem;">
+                        No weak topics! Great job!
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz History -->
+    <div class="chart-card">
+        <div class="chart-card-title">
+            <i class="fas fa-history" style="color:#2563eb;"></i>
+            Complete Quiz History
+        </div>
+        {% if quizzes %}
+        <div class="table-responsive">
+            <table class="table quiz-table table-hover">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Topic</th>
+                        <th>Video</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in quizzes|reverse %}
+                    {% set pct = q.percentage|float %}
+                    {% if pct >= 70 %}
+                        {% set qcolor  = '#059669' %}
+                        {% set qbg     = '#f0fdf4' %}
+                        {% set qstatus = '✅ Good' %}
+                    {% elif pct >= 40 %}
+                        {% set qcolor  = '#d97706' %}
+                        {% set qbg     = '#fffbeb' %}
+                        {% set qstatus = '⚠️ Average' %}
+                    {% else %}
+                        {% set qcolor  = '#dc2626' %}
+                        {% set qbg     = '#fef2f2' %}
+                        {% set qstatus = '❌ Weak' %}
+                    {% endif %}
+                    <tr>
+                        <td style="color:#94a3b8;">
+                            {{ loop.index }}
+                        </td>
+                        <td>
+                            <span style="font-weight:600;">
+                                {{ q.topic or 'General' }}
+                            </span>
+                        </td>
+                        <td style="color:#64748b;">
+                            {{ q.video_title[:35]
+                               if q.video_title else 'N/A' }}...
+                        </td>
+                        <td>
+                            <strong>{{ q.score }}/{{ q.total }}</strong>
+                        </td>
+                        <td>
+                            <div style="display:flex;
+                                        align-items:center;gap:8px;">
+                                <div style="width:60px;height:5px;
+                                            background:#f1f5f9;
+                                            border-radius:3px;
+                                            overflow:hidden;">
+                                    <div style="width:{{ pct }}%;
+                                                height:100%;
+                                                border-radius:3px;
+                                                background:{{ qcolor }};">
+                                    </div>
+                                </div>
+                                <span style="font-size:0.8rem;
+                                             font-weight:600;
+                                             color:{{ qcolor }};">
+                                    {{ pct }}%
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="score-pill"
+                                  style="background:{{ qbg }};
+                                         color:{{ qcolor }};">
+                                {{ qstatus }}
+                            </span>
+                        </td>
+                        <td style="color:#94a3b8;">
+                            {{ q.created_at.strftime('%d %b %Y')
+                               if q.created_at else 'N/A' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span style="font-size:3rem;display:block;
+                         margin-bottom:12px;">📋</span>
+            <h5 style="color:#64748b;">No quizzes yet!</h5>
+            <p style="font-size:0.85rem;">
+                Watch videos and take quizzes.
+            </p>
+            <a href="/dashboard" class="btn btn-primary mt-2">
+                <i class="fas fa-search me-1"></i>Find Videos
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// ── Safe data from Jinja ──────────────────────────────────
+var CHART_LABELS = {{ chart_labels | tojson | safe }};
+var CHART_SCORES = {{ chart_scores | tojson | safe }};
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ── Performance Line Chart ────────────────────────────
+    var perfCanvas = document.getElementById('performanceChart');
+    if (perfCanvas && CHART_SCORES.length > 0) {
+        new Chart(perfCanvas, {
+            type: 'line',
+            data: {
+                labels: CHART_LABELS,
+                datasets: [{
+                    label: 'Quiz Score (%)',
+                    data: CHART_SCORES,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,0.08)',
+                    borderWidth: 2.5,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#2563eb',
+                    pointBorderColor: 'white',
+                    pointBorderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' Score: ' + ctx.raw + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: {
+                            callback: function(v) {
+                                return v + '%';
+                            },
+                            color: '#94a3b8',
+                            font: { size: 11 }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 10 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── Score Distribution ────────────────────────────────
+    var distCanvas = document.getElementById('distributionChart');
+    if (distCanvas && CHART_SCORES.length > 0) {
+        var good = 0, avg = 0, weak = 0;
+        CHART_SCORES.forEach(function(s) {
+            if (s >= 70) good++;
+            else if (s >= 40) avg++;
+            else weak++;
+        });
+
+        new Chart(distCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Good (70%+)', 'Average (40-69%)', 'Weak (<40%)'],
+                datasets: [{
+                    data: [good, avg, weak],
+                    backgroundColor: ['#059669', '#d97706', '#dc2626'],
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '68%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 11 },
+                            color: '#64748b',
+                            boxWidth: 10
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' ' + ctx.label + ': ' +
+                                       ctx.raw + ' quiz(es)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Load learning curves
+    loadLearningCurves();
+});
+
+// ── Learning Curves ───────────────────────────────────────
+function loadLearningCurves() {
+    var section = document.getElementById('learningCurveSection');
+    if (!section) return;
+
+    fetch('/learning-curve/all')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+
+            if (!data.success || !data.curves ||
+                data.curves.length === 0) {
+                section.innerHTML =
+                    '<div class="lc-empty">' +
+                    '<div style="font-size:3rem;margin-bottom:12px;">📊</div>' +
+                    '<h6 style="color:#475569;font-weight:700;">' +
+                    'No Learning Curve Data Yet</h6>' +
+                    '<p style="font-size:0.82rem;">' +
+                    'Take quizzes on the same topic multiple times!' +
+                    '</p>' +
+                    '<a href="/dashboard" style="background:#7c3aed;' +
+                    'color:white;padding:8px 20px;border-radius:10px;' +
+                    'text-decoration:none;font-size:0.82rem;' +
+                    'font-weight:600;display:inline-block;margin-top:10px;">' +
+                    'Start Learning</a></div>';
+                return;
+            }
+
+            var stageColors = {
+                'Mastery'        : '#059669',
+                'Rapid Growth'   : '#2563eb',
+                'Steady Progress': '#d97706',
+                'Plateau'        : '#7c3aed',
+                'Struggling'     : '#dc2626',
+                'Initial Stage'  : '#94a3b8',
+                'Not Started'    : '#94a3b8'
+            };
+
+            var stageIcons = {
+                'Mastery'        : '🏆',
+                'Rapid Growth'   : '📈',
+                'Steady Progress': '📊',
+                'Plateau'        : '⏸',
+                'Struggling'     : '😔',
+                'Initial Stage'  : '🆕',
+                'Not Started'    : '🆕'
+            };
+
+            var html = '<div class="row g-3">';
+
+            data.curves.forEach(function(c) {
+                var color = stageColors[c.curve_stage] || '#94a3b8';
+                var icon  = stageIcons[c.curve_stage]  || '📊';
+                var scores = c.scores || [];
+                var masteryPct = Math.min(c.current_score, 100);
+
+                // Build bars
+                var barsHtml = '';
+                if (scores.length > 0) {
+                    scores.forEach(function(s, i) {
+                        var h  = Math.max((s / 100) * 50, 4);
+                        var bg = (i === scores.length - 1) ?
+                                 color : color + '55';
+                        barsHtml +=
+                            '<div class="lc-bar" ' +
+                            'style="height:' + h + 'px;' +
+                            'background:' + bg + ';" ' +
+                            'title="Attempt ' + (i+1) + ': ' +
+                            s + '%"></div>';
+                    });
+                    var predH = Math.max(
+                        (c.predicted_next / 100) * 50, 4
+                    );
+                    barsHtml +=
+                        '<div class="lc-predicted" ' +
+                        'style="height:' + predH + 'px;' +
+                        'border-color:' + color + ';" ' +
+                        'title="Predicted: ' +
+                        c.predicted_next + '%"></div>';
+                } else {
+                    barsHtml =
+                        '<div style="width:100%;display:flex;' +
+                        'align-items:center;justify-content:center;' +
+                        'height:50px;color:#94a3b8;font-size:0.75rem;">' +
+                        'No attempts yet</div>';
+                }
+
+                // Bar labels
+                var labelsHtml = '';
+                if (scores.length > 0) {
+                    labelsHtml = '<div style="display:flex;gap:3px;' +
+                                 'margin-bottom:10px;">';
+                    scores.forEach(function(s, i) {
+                        labelsHtml +=
+                            '<div style="flex:1;font-size:0.55rem;' +
+                            'text-align:center;color:#94a3b8;">' +
+                            'A' + (i+1) + '</div>';
+                    });
+                    labelsHtml +=
+                        '<div style="flex:1;font-size:0.55rem;' +
+                        'text-align:center;color:' + color + ';' +
+                        'font-weight:700;">Next</div></div>';
+                }
+
+                var rateColor = c.learning_rate >= 0 ?
+                                '#059669' : '#dc2626';
+                var rateText  = (c.learning_rate >= 0 ? '+' : '') +
+                                c.learning_rate + '%';
+
+                html +=
+                    '<div class="col-md-6">' +
+                    '<div class="lc-card">' +
+
+                    '<div style="display:flex;align-items:flex-start;' +
+                    'justify-content:space-between;margin-bottom:8px;">' +
+                    '<div>' +
+                    '<div style="font-size:0.9rem;font-weight:700;' +
+                    'color:#1e293b;">' + c.topic + '</div>' +
+                    '<span class="lc-stage-badge" ' +
+                    'style="background:' + color + '18;color:' + color + ';' +
+                    'border:1px solid ' + color + '33;">' +
+                    icon + ' ' + c.curve_stage + '</span>' +
+                    '</div>' +
+                    '<div style="text-align:right;">' +
+                    '<div style="font-size:1.4rem;font-weight:800;' +
+                    'color:' + color + ';line-height:1;">' +
+                    c.current_score + '%</div>' +
+                    '<div style="font-size:0.68rem;color:#94a3b8;">' +
+                    'Current Score</div>' +
+                    '</div></div>' +
+
+                    '<div class="lc-bars">' + barsHtml + '</div>' +
+                    labelsHtml +
+
+                    '<div style="display:grid;' +
+                    'grid-template-columns:1fr 1fr 1fr;' +
+                    'gap:8px;margin-bottom:12px;">' +
+
+                    '<div style="background:#f8fafc;border-radius:8px;' +
+                    'padding:8px;text-align:center;">' +
+                    '<div style="font-size:0.85rem;font-weight:700;' +
+                    'color:#1e293b;">' + c.attempts + '</div>' +
+                    '<div style="font-size:0.65rem;color:#94a3b8;">' +
+                    'Attempts</div></div>' +
+
+                    '<div style="background:#f8fafc;border-radius:8px;' +
+                    'padding:8px;text-align:center;' +
+                    'border:1px dashed ' + color + '55;">' +
+                    '<div style="font-size:0.85rem;font-weight:700;' +
+                    'color:' + color + ';">' +
+                    c.predicted_next + '%</div>' +
+                    '<div style="font-size:0.65rem;color:#94a3b8;">' +
+                    'Predicted</div></div>' +
+
+                    '<div style="background:#f8fafc;border-radius:8px;' +
+                    'padding:8px;text-align:center;">' +
+                    '<div style="font-size:0.85rem;font-weight:700;' +
+                    'color:' + rateColor + ';">' + rateText + '</div>' +
+                    '<div style="font-size:0.65rem;color:#94a3b8;">' +
+                    'Rate/Attempt</div></div>' +
+
+                    '</div>' +
+
+                    '<div style="margin-bottom:8px;">' +
+                    '<div style="display:flex;' +
+                    'justify-content:space-between;margin-bottom:4px;">' +
+                    '<span style="font-size:0.72rem;color:#64748b;' +
+                    'font-weight:600;">Mastery Progress</span>' +
+                    '<span style="font-size:0.72rem;font-weight:700;' +
+                    'color:' + color + ';">' +
+                    masteryPct + '% / 80%</span></div>' +
+                    '<div style="height:6px;background:#f1f5f9;' +
+                    'border-radius:3px;overflow:hidden;">' +
+                    '<div style="width:' + masteryPct + '%;height:100%;' +
+                    'background:' + color + ';border-radius:3px;' +
+                    'transition:width 1s ease;"></div></div>' +
+                    '<div style="font-size:0.65rem;color:#94a3b8;' +
+                    'margin-top:3px;">Need 80% to reach mastery</div>' +
+                    '</div>' +
+
+                    '<div class="lc-footer">' +
+                    '<div style="font-size:0.72rem;color:#94a3b8;">' +
+                    c.difficulty_level + ' difficulty</div>' +
+                    '<div style="font-size:0.72rem;font-weight:600;' +
+                    'color:' + color + ';">🎯 ' +
+                    c.mastery_eta + '</div>' +
+                    '</div>' +
+
+                    '</div></div>';
+            });
+
+            html += '</div>';
+            section.innerHTML = html;
+        })
+        .catch(function(e) {
+            console.log('Learning curve error:', e);
+            var section = document.getElementById('learningCurveSection');
+            if (section) {
+                section.innerHTML =
+                    '<div class="lc-empty">' +
+                    '<p style="color:#94a3b8;font-size:0.82rem;">' +
+                    '<i class="fas fa-info-circle me-1"></i>' +
+                    'Take quizzes to see your learning curves!' +
+                    '</p></div>';
+            }
+        });
+}
+</script>
+{% endblock %}

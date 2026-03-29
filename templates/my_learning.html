@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+{% block title %}My Learning — AI Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+.ml-card {
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    height: 100%;
+}
+.ml-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+.ml-thumb {
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+.ml-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+.ml-card:hover .ml-thumb img {
+    transform: scale(1.04);
+}
+.ml-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15,23,42,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+.ml-card:hover .ml-overlay {
+    opacity: 1;
+}
+.ml-play {
+    width: 44px;
+    height: 44px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #2563eb;
+}
+.ml-info {
+    padding: 12px;
+}
+.ml-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+}
+.ml-tag {
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.ml-modal-content {
+    border-radius: 16px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+.ml-modal-header {
+    background: #0f172a;
+    border: none;
+    padding: 14px 20px;
+}
+.ml-btn {
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.ml-btn-notes {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1.5px solid #bfdbfe;
+}
+.ml-btn-quiz {
+    background: #f0fdf4;
+    color: #059669;
+    border: 1.5px solid #bbf7d0;
+}
+.ml-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+
+    <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:16px;padding:24px 28px;margin-bottom:20px;color:white;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h3 style="font-weight:800;margin:0 0 4px;">📚 My Learning</h3>
+                <p style="color:rgba(255,255,255,0.5);margin:0;font-size:0.85rem;">All your watched videos</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;">
+                    {{ videos|length }} Videos
+                </span>
+                <a href="/dashboard" style="background:rgba(37,99,235,0.3);border:1px solid rgba(37,99,235,0.4);color:#93c5fd;padding:5px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;text-decoration:none;">
+                    <i class="fas fa-search me-1"></i>Find More
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if videos %}
+    <div class="row g-3">
+        {% for video in videos %}
+        <div class="col-md-3 col-sm-6">
+            <div class="ml-card"
+                data-vid="{{ video.video_id }}"
+                data-title="{{ video.video_title|replace('"', '&quot;')|replace("'", '&#39;') }}"
+                data-topic="{{ video.topic|replace("'", '&#39;') }}"
+                onclick="mlOpenVideo(this.dataset.vid, this.dataset.title, this.dataset.topic)">
+                <div class="ml-thumb">
+                    <img src="https://img.youtube.com/vi/{{ video.video_id }}/mqdefault.jpg" alt="video" onerror="this.src='https://via.placeholder.com/320x180'">
+                    <div class="ml-overlay">
+                        <div class="ml-play">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                    <div style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.75);color:white;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:600;">
+                        ▶ Continue
+                    </div>
+                </div>
+                <div class="ml-info">
+                    <p class="ml-title">{{ video.video_title[:60] if video.video_title else 'Video' }}</p>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span class="ml-tag">{{ video.topic }}</span>
+                        <small style="font-size:0.7rem;color:#94a3b8;">
+                            {% if video.watched_at %}{{ video.watched_at.strftime('%d %b') }}{% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:white;border-radius:16px;padding:60px 30px;text-align:center;border:1px solid #e2e8f0;">
+        <div style="font-size:4rem;margin-bottom:16px;">📺</div>
+        <h4 style="color:#1e293b;font-weight:700;">No Videos Yet!</h4>
+        <p style="color:#94a3b8;font-size:0.9rem;margin:8px 0 20px;">Start watching videos to track your learning</p>
+        <a href="/dashboard" style="background:#2563eb;color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-size:0.85rem;font-weight:600;">
+            <i class="fas fa-search me-1"></i> Find Videos
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- VIDEO MODAL -->
+<div class="modal fade" id="mlVideoModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content ml-modal-content">
+
+            <div class="modal-header ml-modal-header">
+                <h5 class="modal-title" id="mlModalTitle" style="color:white;font-size:0.88rem;font-weight:600;margin:0;">
+                    Loading...
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="mlStopVideo()"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <div class="row g-0">
+
+                    <!-- Left: Player -->
+                    <div class="col-lg-8" style="border-right:1px solid #f1f5f9;">
+
+                        <div style="position:relative;padding-bottom:56.25%;height:0;background:#000;">
+                            <iframe id="mlPlayer" src="" frameborder="0" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;"></iframe>
+                        </div>
+
+                        <!-- Info -->
+                        <div style="padding:14px 16px;background:white;border-bottom:1px solid #f1f5f9;">
+
+                            <h6 id="mlVideoTitle" style="font-size:0.92rem;font-weight:700;color:#0f172a;margin:0 0 10px;line-height:1.4;"></h6>
+
+                            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #f8fafc;">
+                                <div style="display:flex;gap:14px;flex:1;">
+                                    <span style="font-size:0.78rem;color:#64748b;display:flex;align-items:center;gap:4px;">
+                                        <i class="fas fa-eye" style="color:#94a3b8;"></i>
+                                        <span id="mlViews">—</span>
+                                    </span>
+                                    <span style="font-size:0.78rem;color:#64748b;display:flex;align-items:center;gap:4px;">
+                                        <i class="fas fa-thumbs-up" style="color:#94a3b8;"></i>
+                                        <span id="mlLikes">—</span>
+                                    </span>
+                                    <span style="font-size:0.78rem;color:#64748b;display:flex;align-items:center;gap:4px;">
+                                        <i class="fas fa-comment" style="color:#94a3b8;"></i>
+                                        <span id="mlComments">—</span>
+                                    </span>
+                                </div>
+                                <div style="display:flex;gap:8px;">
+                                    <button onclick="mlGenerateNotes()" id="mlNotesBtn" class="ml-btn ml-btn-notes">
+                                        <i class="fas fa-sticky-note me-1"></i>Notes
+                                    </button>
+                                    <button id="mlQuizBtn" class="ml-btn ml-btn-quiz" disabled onclick="mlGenerateQuiz()">
+                                        <i class="fas fa-lock me-1"></i>Unlock Quiz
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="mlWatchProgress" style="display:none;padding:8px 0 0;"></div>
+
+                            <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #f8fafc;">
+                                <div id="mlChannelAvatar" style="width:34px;height:34px;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:0.82rem;font-weight:700;flex-shrink:0;">YT</div>
+                                <div>
+                                    <div id="mlChannelName" style="font-size:0.82rem;font-weight:700;color:#1e293b;"></div>
+                                    <div id="mlPublishDate" style="font-size:0.7rem;color:#94a3b8;"></div>
+                                </div>
+                            </div>
+
+                            <div id="mlDescription" style="margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;font-size:0.78rem;color:#475569;line-height:1.6;max-height:70px;overflow:hidden;cursor:pointer;border:1px solid #f1f5f9;" onclick="mlToggleDesc()"></div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div id="mlNotesSection" style="display:none;">
+                            <div style="margin:12px 16px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+                                <div style="background:#0f172a;color:white;padding:9px 14px;font-weight:600;font-size:0.82rem;">
+                                    <i class="fas fa-sticky-note me-2"></i>AI Generated Notes
+                                </div>
+                                <div id="mlNotesContent" style="padding:14px;font-size:0.82rem;max-height:200px;overflow-y:auto;line-height:1.7;"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right: Related + Quiz -->
+                    <div class="col-lg-4">
+                        <div style="height:100%;background:#f8fafc;overflow-y:auto;max-height:620px;">
+
+                            <div style="padding:14px 14px 8px;">
+                                <div style="font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+                                    <i class="fas fa-film" style="color:#7c3aed;"></i>
+                                    Related Videos
+                                </div>
+                                <div id="mlRelated">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-secondary"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="padding:0 14px 14px;border-top:1px solid #e2e8f0;margin-top:4px;">
+                                <div style="font-size:0.8rem;font-weight:700;color:#1e293b;margin:12px 0 8px;display:flex;align-items:center;gap:6px;">
+                                    <i class="fas fa-clipboard-check" style="color:#059669;"></i>
+                                    Quiz
+                                </div>
+                                <div id="mlQuizPlaceholder" style="text-align:center;padding:16px;background:white;border-radius:10px;border:1px dashed #e2e8f0;color:#94a3b8;">
+                                    <div style="font-size:1.8rem;margin-bottom:6px;">📝</div>
+                                    <div style="font-size:0.78rem;font-weight:600;color:#64748b;">Auto Quiz</div>
+                                    <div style="font-size:0.72rem;margin-top:3px;">Watch video to unlock</div>
+                                </div>
+                                <div id="mlQuizContainer" style="display:none;"></div>
+                                <div id="mlQuizResult" style="display:none;"></div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/youtube.js') }}"></script>
+<script src="{{ url_for('static', filename='js/gemini.js') }}"></script>
+<script src="{{ url_for('static', filename='js/recommend.js') }}"></script>
+<script>
+// ── My Learning Page Variables ────────────────────────────
+var mlCurrentVideo  = {id: '', title: '', topic: ''};
+var mlWatched       = false;
+var mlTimer         = null;
+var mlDescExpanded  = false;
+var mlQuizId        = null;
+var mlAnswers       = {};
+var mlQuestions     = [];
+
+// ── Open Video ────────────────────────────────────────────
+function mlOpenVideo(videoId, title, topic) {
+    mlCurrentVideo = {id: videoId, title: title, topic: topic};
+    mlWatched      = false;
+    mlDescExpanded = false;
+    mlQuizId       = null;
+    mlAnswers      = {};
+    mlQuestions    = [];
+
+    if (mlTimer) { clearInterval(mlTimer); mlTimer = null; }
+
+    // Set player
+    var player = document.getElementById('mlPlayer');
+    if (player) {
+        player.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0';
+    }
+
+    // Set title
+    var titleEl = document.getElementById('mlModalTitle');
+    var titleEl2= document.getElementById('mlVideoTitle');
+    if (titleEl)  titleEl.textContent  = title;
+    if (titleEl2) titleEl2.textContent = title;
+
+    // Reset
+    mlReset();
+
+    // Show modal
+    var modalEl = document.getElementById('mlVideoModal');
+    if (modalEl) {
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    // Load details
+    mlLoadDetails(videoId);
+    mlLoadRelated(topic);
+
+    // Save to history
+    fetch('/youtube/watched', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({video_id: videoId, title: title, topic: topic})
+    });
+
+    // Start timer
+    mlStartTimer();
+}
+
+// ── Reset ─────────────────────────────────────────────────
+function mlReset() {
+    var ids = ['mlNotesSection', 'mlQuizContainer', 'mlQuizResult', 'mlWatchProgress'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    var ph = document.getElementById('mlQuizPlaceholder');
+    if (ph) ph.style.display = 'block';
+
+    var notesBtn = document.getElementById('mlNotesBtn');
+    if (notesBtn) {
+        notesBtn.disabled   = false;
+        notesBtn.innerHTML  = '<i class="fas fa-sticky-note me-1"></i>Notes';
+    }
+
+    var quizBtn = document.getElementById('mlQuizBtn');
+    if (quizBtn) {
+        quizBtn.disabled    = true;
+        quizBtn.innerHTML   = '<i class="fas fa-lock me-1"></i>Unlock Quiz';
+        quizBtn.style.opacity = '0.6';
+        quizBtn.onclick     = null;
+    }
+
+    var stats = ['mlViews', 'mlLikes', 'mlComments', 'mlChannelName', 'mlPublishDate', 'mlDescription'];
+    stats.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = '—';
+    });
+
+    var rel = document.getElementById('mlRelated');
+    if (rel) {
+        rel.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
+    }
+}
+
+// ── Load Video Details ────────────────────────────────────
+async function mlLoadDetails(videoId) {
+    try {
+        var res  = await fetch('/youtube/video-details?video_id=' + videoId);
+        var data = await res.json();
+
+        if (data.success && data.video) {
+            var v = data.video;
+
+            function fmt(n) {
+                if (!n) return '0';
+                n = parseInt(n);
+                if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+                if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
+                return n.toString();
+            }
+
+            var vEl = document.getElementById('mlViews');
+            var lEl = document.getElementById('mlLikes');
+            var cEl = document.getElementById('mlComments');
+            var chEl= document.getElementById('mlChannelName');
+            var avEl= document.getElementById('mlChannelAvatar');
+            var dEl = document.getElementById('mlPublishDate');
+            var dsEl= document.getElementById('mlDescription');
+
+            if (vEl)  vEl.textContent  = fmt(v.view_count) + ' views';
+            if (lEl)  lEl.textContent  = fmt(v.like_count)  + ' likes';
+            if (cEl)  cEl.textContent  = fmt(v.comment_count) + ' comments';
+            if (chEl) chEl.textContent = v.channel_title || '';
+            if (avEl) avEl.textContent = v.channel_title ? v.channel_title[0] : 'YT';
+            if (dEl && v.published_at) {
+                var d = new Date(v.published_at);
+                dEl.textContent = d.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+            }
+            if (dsEl && v.description) {
+                dsEl.textContent = v.description.substring(0, 300) + '...';
+            }
+        }
+    } catch(e) {
+        console.log('Details error:', e);
+    }
+}
+
+// ── Load Related Videos ───────────────────────────────────
+async function mlLoadRelated(topic) {
+    var container = document.getElementById('mlRelated');
+    if (!container) return;
+
+    try {
+        var res  = await fetch('/youtube/search?q=' + encodeURIComponent(topic) + '&limit=5');
+        var data = await res.json();
+
+        if (!data.success || !data.videos || !data.videos.length) {
+            container.innerHTML = '<p style="font-size:0.75rem;color:#94a3b8;text-align:center;padding:10px;">No related videos</p>';
+            return;
+        }
+
+        var videos = data.videos.filter(function(v) { return v.video_id !== mlCurrentVideo.id; }).slice(0, 4);
+
+        container.innerHTML = videos.map(function(v) {
+            var t = JSON.stringify(v.title);
+            var tp= JSON.stringify(topic);
+            return '<div onclick=\'mlOpenVideo("' + v.video_id + '",' + t + ',' + tp + ')\' style="display:flex;gap:8px;padding:6px;border-radius:8px;cursor:pointer;transition:background 0.2s;margin-bottom:8px;" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'transparent\'">'
+                + '<div style="width:90px;height:54px;border-radius:6px;overflow:hidden;flex-shrink:0;">'
+                + '<img src="' + v.thumbnail + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'https://via.placeholder.com/90x54\'">'
+                + '</div>'
+                + '<div style="flex:1;min-width:0;">'
+                + '<div style="font-size:0.75rem;font-weight:600;color:#1e293b;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + v.title + '</div>'
+                + '<div style="font-size:0.68rem;color:#94a3b8;margin-top:3px;">' + v.channel + '</div>'
+                + '</div></div>';
+        }).join('');
+
+    } catch(e) {
+        container.innerHTML = '';
+    }
+}
+
+// ── Toggle Description ────────────────────────────────────
+function mlToggleDesc() {
+    mlDescExpanded = !mlDescExpanded;
+    var el = document.getElementById('mlDescription');
+    if (el) {
+        el.style.maxHeight = mlDescExpanded ? 'none' : '70px';
+        el.style.overflow  = mlDescExpanded ? 'visible' : 'hidden';
+    }
+}
+
+// ── Watch Timer ───────────────────────────────────────────
+function mlStartTimer() {
+    var secs   = 0;
+    var needed = 60;
+
+    mlTimer = setInterval(function() {
+        secs++;
+        var pct = Math.min((secs / needed) * 100, 100);
+
+        var progEl = document.getElementById('mlWatchProgress');
+        if (progEl) {
+            progEl.style.display = 'block';
+            progEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
+                + '<small style="font-size:0.7rem;color:#64748b;font-weight:600;"><i class="fas fa-eye me-1"></i>Watch Progress</small>'
+                + '<small style="font-size:0.7rem;color:#2563eb;font-weight:700;">' + Math.round(pct) + '%</small>'
+                + '</div>'
+                + '<div style="height:4px;background:#e2e8f0;border-radius:3px;overflow:hidden;">'
+                + '<div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:3px;transition:width 1s ease;"></div>'
+                + '</div>'
+                + '<small style="font-size:0.68rem;color:#94a3b8;margin-top:2px;display:block;">'
+                + (pct < 100 ? Math.round(100 - pct) + '% more to unlock' : 'Quiz unlocked!')
+                + '</small>';
+        }
+
+        if (secs >= needed && !mlWatched) {
+            clearInterval(mlTimer);
+            mlUnlockQuiz();
+        }
+    }, 1000);
+}
+
+// ── Unlock Quiz ───────────────────────────────────────────
+function mlUnlockQuiz() {
+    mlWatched = true;
+
+    var btn = document.getElementById('mlQuizBtn');
+    if (btn) {
+        btn.disabled        = false;
+        btn.innerHTML       = '<i class="fas fa-clipboard-check me-1"></i>Take Quiz';
+        btn.style.opacity   = '1';
+        btn.style.background= '#f0fdf4';
+        btn.style.color     = '#059669';
+        btn.onclick         = mlGenerateQuiz;
+    }
+
+    var prog = document.getElementById('mlWatchProgress');
+    if (prog) prog.style.display = 'none';
+
+    // Notification
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;bottom:30px;right:30px;background:linear-gradient(135deg,#059669,#047857);color:white;padding:14px 20px;border-radius:12px;font-size:0.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 25px rgba(5,150,105,0.4);display:flex;align-items:center;gap:10px;';
+    notif.innerHTML = '<i class="fas fa-unlock"></i> Quiz unlocked! Test your knowledge now.';
+    document.body.appendChild(notif);
+    setTimeout(function() {
+        notif.style.opacity   = '0';
+        notif.style.transition= 'opacity 0.3s';
+        setTimeout(function() { notif.remove(); }, 300);
+    }, 3000);
+}
+
+// ── Generate Notes ────────────────────────────────────────
+async function mlGenerateNotes() {
+    var btn = document.getElementById('mlNotesBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...'; }
+
+    try {
+        var res  = await fetch('/gemini/generate-notes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                video_id   : mlCurrentVideo.id,
+                video_title: mlCurrentVideo.title,
+                topic      : mlCurrentVideo.topic
+            })
+        });
+        var data = await res.json();
+
+        if (data.success) {
+            var html = data.notes
+                .replace(/## (.*)/g, '<h6 class="fw-bold mt-3 mb-1" style="color:#2563eb;">$1</h6>')
+                .replace(/- (.*)/g,  '<li style="margin-left:15px;font-size:0.83rem;">$1</li>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            var notesContent = document.getElementById('mlNotesContent');
+            var notesSection = document.getElementById('mlNotesSection');
+            if (notesContent) notesContent.innerHTML = html;
+            if (notesSection) notesSection.style.display = 'block';
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Notes Ready'; }
+        } else {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Notes'; }
+            alert(data.message || 'Notes failed. Try again.');
+        }
+    } catch(e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Notes'; }
+    }
+}
+
+// ── Generate Quiz ─────────────────────────────────────────
+async function mlGenerateQuiz() {
+    var btn = document.getElementById('mlQuizBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...'; }
+
+    try {
+        var res  = await fetch('/gemini/generate-quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                video_id   : mlCurrentVideo.id,
+                video_title: mlCurrentVideo.title,
+                topic      : mlCurrentVideo.topic
+            })
+        });
+        var data = await res.json();
+
+        if (data.success) {
+            mlQuizId    = data.quiz_id;
+            mlQuestions = data.questions;
+            mlAnswers   = {};
+
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Quiz Ready'; }
+
+            setTimeout(function() {
+                window.open('/quiz/page/' + data.quiz_id, '_blank');
+            }, 500);
+        } else {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-clipboard-check me-1"></i>Take Quiz'; }
+            alert(data.message || 'Quiz failed. Try again.');
+        }
+    } catch(e) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-clipboard-check me-1"></i>Take Quiz'; }
+    }
+}
+
+// ── Stop Video ────────────────────────────────────────────
+function mlStopVideo() {
+    var player = document.getElementById('mlPlayer');
+    if (player) player.src = '';
+    if (mlTimer) { clearInterval(mlTimer); mlTimer = null; }
+    mlWatched = false;
+}
+
+// ── Modal Close ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById('mlVideoModal');
+    if (modal) {
+        modal.addEventListener('hidden.bs.modal', mlStopVideo);
+    }
+});
+</script>
+{% endblock %}
