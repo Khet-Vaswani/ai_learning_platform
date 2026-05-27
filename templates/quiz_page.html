@@ -356,7 +356,7 @@
 <input type="hidden" id="quizTopic" value="{{ quiz_topic }}">
 <input type="hidden" id="totalQ"    value="{{ total }}">
 <script>
-    const QUESTIONS = {{ questions|tojson }};
+    const QUESTIONS = {{ questions|default([])|tojson }};
 </script>
 {% endblock %}
 
@@ -378,16 +378,16 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Quiz State ────────────────────────────────────────────
-const questions   = QUESTIONS;
-const totalQ      = questions.length;
-const answers     = {};
-let   currentQ    = 0;
-let   submitted   = false;
+const quizQuestions = QUESTIONS;
+const totalQ        = quizQuestions.length;
+const answers       = {};
+let   currentQ      = 0;
+let   submitted     = false;
 
 // ── Build Navigator ───────────────────────────────────────
 function buildNavigator() {
     const nav = document.getElementById('qNavigator');
-    nav.innerHTML = questions.map((_, i) => `
+    nav.innerHTML = quizQuestions.map((_, i) => `
         <button class="q-nav-btn ${i === 0 ? 'current' : ''}"
                 id="navBtn-${i}"
                 onclick="goToQuestion(${i})">
@@ -399,7 +399,7 @@ function buildNavigator() {
 // ── Show Question ─────────────────────────────────────────
 function showQuestion(idx) {
     currentQ = idx;
-    const q  = questions[idx];
+    const q  = quizQuestions[idx];
 
     // Update progress
     const pct = ((idx + 1) / totalQ) * 100;

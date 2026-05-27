@@ -9,6 +9,7 @@ from flask import (Blueprint, request, jsonify,
                    url_for)
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
+
 import os, json, time
 
 gemini_bp = Blueprint('gemini', __name__)
@@ -17,14 +18,15 @@ gemini_bp = Blueprint('gemini', __name__)
 from groq import Groq
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
+# Best models ordered by reliability
 GROQ_MODELS = [
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',
-    'gemma2-9b-it',
-    'mixtral-8x7b-32768',
+    'llama-3.1-8b-instant',       # Fastest, most reliable
+    'llama-3.3-70b-versatile',    # More powerful
+    'gemma2-9b-it',               # Google's model
+    'mixtral-8x7b-32768',         # Mixtral fallback
 ]
 
-# ── Gemini Fallback ───────────────────────────────────────
+# # ── Gemini Fallback ───────────────────────────────────────
 try:
     from google import genai
     gemini_client    = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
@@ -32,60 +34,95 @@ try:
 except:
     GEMINI_AVAILABLE = False
 
+# Updated models — more stable for free tier
 GEMINI_MODELS = [
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-flash',
+    'gemini-1.5-flash',           # Most reliable free tier
+    'gemini-1.5-flash-8b',        # Smaller, faster
+    'gemini-2.0-flash-lite',      # Newest but rate limited
 ]
 
 
 # ============================================================
-# AI GENERATE FUNCTION
+# AI GENERATE FUNCTION — Fixed with better retry logic
 # ============================================================
 def generate(prompt, max_tokens=1000):
+    last_error = None
+
     # ── Try Groq First ────────────────────────────────────
     for model in GROQ_MODELS:
         try:
             response = groq_client.chat.completions.create(
-                model      = model,
-                messages   = [{"role":"user","content":prompt}],
-                max_tokens = max_tokens,
-                temperature= 0.7
+                model       = model,
+                messages    = [{"role": "user", "content": prompt}],
+                max_tokens  = max_tokens,
+                temperature = 0.7
             )
             result = response.choices[0].message.content.strip()
-            print(f"✅ Groq: {model}")
+            print(f"✅ Groq success: {model}")
             return result
 
         except Exception as e:
             err = str(e)
+            last_error = err
+
+            # Rate limit — wait and try next model
             if '429' in err or 'rate' in err.lower():
-                print(f"⚠️ Groq rate limit: {model}")
-                time.sleep(2)
+                print(f"⚠️ Groq rate limit: {model} — trying next")
+                time.sleep(1)
                 continue
+
+            # Invalid API key — skip all Groq models
+            elif '401' in err or 'invalid_api_key' in err.lower() or 'Invalid API Key' in err:
+                print(f"❌ Groq API key invalid — switching to Gemini")
+                break
+
+            # Token limit — try smaller model
+            elif 'token' in err.lower() or 'context' in err.lower():
+                print(f"⚠️ Groq token limit: {model} — trying next")
+                continue
+
+            # Other error — try next model
             else:
                 print(f"❌ Groq error {model}: {e}")
-                break
+                continue
 
     # ── Fallback to Gemini ────────────────────────────────
     if GEMINI_AVAILABLE:
         for model in GEMINI_MODELS:
             try:
                 response = gemini_client.models.generate_content(
-                    model   = model,
-                    contents= prompt
+                    model    = model,
+                    contents = prompt
                 )
-                print(f"✅ Gemini fallback: {model}")
-                return response.text.strip()
+                text = response.text.strip()
+                print(f"✅ Gemini success: {model}")
+                return text
+
             except Exception as e:
                 err = str(e)
-                if '429' in err or 'quota' in err.lower():
-                    print(f"⚠️ Gemini rate limit: {model}")
-                    time.sleep(3)
+                last_error = err
+
+                # Rate limit — wait longer and try next
+                if '429' in err or 'quota' in err.lower() or 'rate' in err.lower():
+                    print(f"⚠️ Gemini rate limit: {model} — waiting 5s")
+                    time.sleep(5)
                     continue
-                else:
+
+                # Invalid key
+                elif '401' in err or 'API_KEY' in err:
+                    print(f"❌ Gemini API key invalid")
                     break
 
-    raise Exception("All AI models unavailable. Please try again.")
+                # Model not found — try next
+                elif '404' in err or 'not found' in err.lower():
+                    print(f"⚠️ Gemini model not found: {model}")
+                    continue
+
+                else:
+                    print(f"❌ Gemini error {model}: {e}")
+                    continue
+
+    raise Exception(f"All AI models unavailable. Last error: {last_error}")
 
 
 # ============================================================
@@ -150,7 +187,7 @@ def generate_quiz():
         attempts   = 0
         last_score = 0.0
 
-    # ── Also check learning curve stage ───────────────────
+    # ── Check learning curve stage ────────────────────────
     curve = execute_query(
         """SELECT curve_stage, predicted_next
            FROM learning_curves
@@ -158,10 +195,8 @@ def generate_quiz():
         (user_id, topic), fetch=True
     )
 
-    curve_stage = curve[0]['curve_stage'] \
-                  if curve else 'Not Started'
+    curve_stage = curve[0]['curve_stage'] if curve else 'Not Started'
 
-    # Adjust difficulty based on curve stage
     if curve_stage == 'Struggling' and difficulty != 'Easy':
         difficulty = 'Easy'
     elif curve_stage == 'Mastery' and difficulty != 'Hard':
@@ -195,7 +230,7 @@ Return ONLY valid JSON array, no other text:
 
     try:
         raw   = generate(prompt, max_tokens=3000)
-        raw   = raw.replace('```json','').replace('```','').strip()
+        raw   = raw.replace('```json', '').replace('```', '').strip()
         start = raw.find('[')
         end   = raw.rfind(']') + 1
         if start != -1 and end > start:
@@ -286,6 +321,125 @@ Keep it educational and comprehensive. Around 400-500 words."""
     except Exception as e:
         print(f"❌ Notes error: {e}")
         return jsonify({'success': False, 'message': str(e)})
+# ============================================================
+# DIFFICULTY-BASED VIDEO RECOMMENDATIONS
+# Called after quiz submission
+# ============================================================
+def get_difficulty_based_recommendations(topic, percentage, user_id):
+    """
+    Post-quiz: recommend videos based on score.
+    Weak  (<60%) → simpler foundational videos
+    Good  (60-80%) → intermediate practice
+    Strong (>80%) → advanced + next topic
+    """
+    from app.routes.recommend import (
+        get_yt, is_quota_err, search_youtube,
+        get_db_cache, save_db_cache,
+        fallback_for_query, _cache, set_cache, get_cache
+    )
+
+    if percentage < 60:
+        difficulty = 'beginner'
+        reason     = f"⚠️ Weak in {topic} — simpler videos to strengthen basics"
+        queries    = [
+            f"{topic} absolute beginners tutorial from zero",
+            f"{topic} basics explained simply step by step",
+            f"learn {topic} from scratch complete guide",
+        ]
+    elif percentage < 80:
+        difficulty = 'intermediate'
+        reason     = f"📚 Good progress in {topic} — going deeper"
+        queries    = [
+            f"{topic} intermediate tutorial practice exercises",
+            f"{topic} concepts explained with examples",
+            f"{topic} in depth complete course",
+        ]
+    else:
+        difficulty = 'advanced'
+        reason     = f"🚀 Excellent in {topic} — next level content"
+        queries    = [
+            f"{topic} advanced expert tutorial projects",
+            f"{topic} professional level deep dive",
+            f"advanced {topic} complete masterclass",
+        ]
+
+    watched_ids = {
+        w['video_id'] for w in
+        (execute_query(
+            "SELECT video_id FROM watched_videos WHERE user_id=%s",
+            (user_id,), fetch=True
+        ) or [])
+    }
+
+    videos         = []
+    quota_exceeded = False
+
+    try:
+        yt = get_yt()
+    except Exception:
+        quota_exceeded = True
+        yt = None
+
+    for q in queries:
+        if len(videos) >= 3:
+            break
+
+        if quota_exceeded or yt is None:
+            fb = fallback_for_query(q, reason, 'post_quiz', percentage)
+            if fb['video_id'] not in watched_ids:
+                fb['difficulty'] = difficulty
+                videos.append(fb)
+            continue
+
+        # DB cache
+        db_videos = get_db_cache(q)
+        if db_videos:
+            for v in db_videos[:2]:
+                if v['video_id'] not in watched_ids and len(videos) < 3:
+                    videos.append({
+                        **v,
+                        'reason'    : reason,
+                        'difficulty': difficulty,
+                        'expert'    : 'post_quiz',
+                    })
+            continue
+
+        try:
+            yt_videos = search_youtube(yt, q, 3)
+            save_db_cache(q, yt_videos)
+            for v in yt_videos:
+                if v['video_id'] not in watched_ids and len(videos) < 3:
+                    videos.append({
+                        **v,
+                        'reason'    : reason,
+                        'difficulty': difficulty,
+                        'expert'    : 'post_quiz',
+                    })
+        except Exception as e:
+            if is_quota_err(e):
+                quota_exceeded = True
+                fb = fallback_for_query(q, reason, 'post_quiz', percentage)
+                if fb['video_id'] not in watched_ids and len(videos) < 3:
+                    fb['difficulty'] = difficulty
+                    videos.append(fb)
+
+    # Clear MoE cache so dashboard refreshes
+    cache_key = f"rec_{user_id}"
+    if cache_key in _cache:
+        del _cache[cache_key]
+    pref_cache_pattern = f"pref_{user_id}"
+    keys_to_delete = [k for k in _cache if k.startswith(pref_cache_pattern)]
+    for k in keys_to_delete:
+        del _cache[k]
+
+    return {
+        'recommendations' : videos[:3],
+        'difficulty_level': difficulty,
+        'reason'          : reason,
+        'count'           : len(videos),
+    }
+
+
 
 
 # ============================================================
@@ -306,7 +460,7 @@ def submit_quiz():
     )
 
     if not quizzes:
-        return jsonify({'success':False, 'message':'Quiz not found'})
+        return jsonify({'success': False, 'message': 'Quiz not found'})
 
     questions  = json.loads(quizzes[0]['questions'])
     score      = 0
@@ -378,36 +532,55 @@ def submit_quiz():
         lc         = LearningCurveModel(user_id)
         curve      = lc.save_curve(topic)
         curve_data = {
-            'curve_stage'  : curve['curve_stage'],
+            'curve_stage'   : curve['curve_stage'],
             'predicted_next': curve['predicted_next'],
-            'mastery_eta'  : curve['mastery_eta'],
-            'learning_rate': curve['learning_rate']
+            'mastery_eta'   : curve['mastery_eta'],
+            'learning_rate' : curve['learning_rate']
         }
-        print(f"📈 Learning Curve: {topic}")
-        print(f"   Stage     : {curve['curve_stage']}")
-        print(f"   Difficulty: {curve['difficulty_level']}")
-        print(f"   Predicted : {curve['predicted_next']}%")
-        print(f"   Mastery   : {curve['mastery_eta']}")
+        print(f"📈 Learning Curve updated: {topic} → {curve['curve_stage']}")
 
     except Exception as e:
         print(f"⚠️ Learning curve error: {e}")
 
+    # ── Get Difficulty-Based Video Recommendations ────────
+# ── Get post-quiz video suggestions ───────────────────
+    video_suggestions = {}
+    try:
+        video_suggestions = get_difficulty_based_recommendations(
+            topic, percentage, user_id
+        )
+        print(f"🎥 Post-quiz recs: {video_suggestions.get('difficulty_level')} "
+              f"({video_suggestions.get('count', 0)} videos)")
+    except Exception as e:
+        print(f"⚠️ Post-quiz rec error: {e}")
+        import traceback
+        traceback.print_exc()
+        video_suggestions = {
+            'recommendations' : [],
+            'difficulty_level': 'unknown',
+            'reason'          : '',
+            'count'           : 0,
+        }
+
     return jsonify({
-        'success'        : True,
-        'score'          : score,
-        'total'          : total,
-        'percentage'     : percentage,
-        'results'        : results,
-        'is_weak'        : is_weak,
-        'topic'          : topic,
-        'new_difficulty' : new_difficulty,
-        'difficulty_msg' : difficulty_msg,
-        'related_search' : related_search,
-        # Learning Curve
-        'curve_stage'    : curve_data.get('curve_stage', ''),
-        'predicted_next' : curve_data.get('predicted_next', 0),
-        'mastery_eta'    : curve_data.get('mastery_eta', ''),
-        'learning_rate'  : curve_data.get('learning_rate', 0)
+        'success'              : True,
+        'score'                : score,
+        'total'                : total,
+        'percentage'           : percentage,
+        'results'              : results,
+        'is_weak'              : is_weak,
+        'topic'                : topic,
+        'new_difficulty'       : new_difficulty,
+        'difficulty_msg'       : difficulty_msg,
+        'related_search'       : related_search,
+        'curve_stage'          : curve_data.get('curve_stage', ''),
+        'predicted_next'       : curve_data.get('predicted_next', 0),
+        'mastery_eta'          : curve_data.get('mastery_eta', ''),
+        'learning_rate'        : curve_data.get('learning_rate', 0),
+        'video_suggestions'    : video_suggestions.get('recommendations', []),
+        'suggestion_reason'    : video_suggestions.get('reason', ''),
+        'suggestion_difficulty': video_suggestions.get('difficulty_level', ''),
+        'suggestion_count'     : video_suggestions.get('count', 0),
     })
 
 
@@ -417,13 +590,13 @@ def submit_quiz():
 @gemini_bp.route('/chatbot/ask', methods=['POST'])
 @login_required
 def chatbot_ask():
-    data     = request.get_json()
-    message  = data.get('message', '')
-    history  = data.get('history', [])
-    file_data= data.get('file_data', None)
-    file_type= data.get('file_type', '')
-    file_name= data.get('file_name', '')
-    user_id  = session['user_id']
+    data      = request.get_json()
+    message   = data.get('message', '')
+    history   = data.get('history', [])
+    file_data = data.get('file_data', None)
+    file_type = data.get('file_type', '')
+    file_name = data.get('file_name', '')
+    user_id   = session['user_id']
 
     cognitive = execute_query(
         "SELECT learning_style FROM cognitive_results WHERE user_id=%s",
@@ -438,12 +611,11 @@ def chatbot_ask():
             img_bytes = base64.b64decode(file_data)
 
             if file_type.startswith('image/'):
-                # Gemini Vision for images
                 if GEMINI_AVAILABLE:
                     from google.genai import types
                     img_part = types.Part.from_bytes(
-                        data       = img_bytes,
-                        mime_type  = file_type
+                        data      = img_bytes,
+                        mime_type = file_type
                     )
                     txt_part = types.Part.from_text(
                         text = message or
@@ -452,8 +624,8 @@ def chatbot_ask():
                                'If it contains a problem, solve it.'
                     )
                     response = gemini_client.models.generate_content(
-                        model   = 'gemini-2.0-flash-lite',
-                        contents= [img_part, txt_part]
+                        model    = 'gemini-1.5-flash',
+                        contents = [img_part, txt_part]
                     )
                     return jsonify({
                         'success': True,
@@ -461,7 +633,6 @@ def chatbot_ask():
                     })
 
             elif file_type == 'application/pdf':
-                # PDF analysis
                 try:
                     import io
                     import PyPDF2
@@ -481,24 +652,22 @@ Student Question: {message or 'Summarize this PDF and explain key points'}
 Provide a clear, educational response."""
 
                         reply = generate(prompt, max_tokens=1500)
-                        return jsonify({'success':True, 'reply':reply})
+                        return jsonify({'success': True, 'reply': reply})
 
                 except ImportError:
                     pass
 
-                # Fallback
                 prompt = f"""A student uploaded a PDF file named '{file_name}'.
 They ask: {message or 'Please analyze this document'}
 Since I cannot read the PDF directly, ask them to copy-paste the text."""
 
                 reply = generate(prompt, max_tokens=500)
-                return jsonify({'success':True, 'reply':reply})
+                return jsonify({'success': True, 'reply': reply})
 
         except Exception as e:
             print(f"File analysis error: {e}")
 
     # ── Regular Chat with History ─────────────────────────
-    # Build conversation
     history_text = ''
     if history:
         for h in history[-6:]:
@@ -523,10 +692,11 @@ Instructions:
 
     try:
         reply = generate(prompt, max_tokens=1200)
-        return jsonify({'success':True, 'reply':reply})
+        return jsonify({'success': True, 'reply': reply})
     except Exception as e:
         print(f"Chatbot error: {e}")
-        return jsonify({'success':False, 'message':str(e)})
+        return jsonify({'success': False, 'message': str(e)})
+
 
 # ============================================================
 # GET DIFFICULTY
@@ -537,7 +707,6 @@ def get_difficulty():
     user_id = session['user_id']
     topic   = request.args.get('topic', '')
 
-    # Check learning curve first
     curve = execute_query(
         """SELECT difficulty_level, curve_stage,
                   current_score, predicted_next
@@ -555,7 +724,6 @@ def get_difficulty():
             'predicted_next': float(curve[0]['predicted_next'])
         })
 
-    # Fallback to topic_difficulty
     topic_diff = execute_query(
         """SELECT difficulty_level, last_score, attempts
            FROM topic_difficulty
@@ -599,7 +767,6 @@ def quiz_page(quiz_id):
     q         = quiz[0]
     questions = json.loads(q['questions'])
 
-    # Get difficulty from learning curve
     curve = execute_query(
         """SELECT difficulty_level, curve_stage
            FROM learning_curves

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Your Learning — AI Learn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0fdf4 100%);
+        min-height: 100vh;
+    }
+
+    .ob-wrap {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 32px 16px 80px;
+    }
+
+    /* ── Logo ── */
+    .ob-logo {
+        display: flex; align-items: center; gap: 10px;
+        margin-bottom: 28px; text-decoration: none;
+    }
+    .ob-logo-icon {
+        width: 42px; height: 42px; border-radius: 12px;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 1.1rem;
+        box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+    }
+    .ob-logo-text {
+        font-size: 1.15rem; font-weight: 800; color: #0f172a;
+        letter-spacing: -0.02em;
+    }
+
+    /* ── Card ── */
+    .ob-card {
+        background: white;
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+        width: 100%; max-width: 860px;
+        padding: 36px 40px;
+    }
+
+    /* ── Progress ── */
+    .ob-progress {
+        height: 4px; background: #f1f5f9;
+        border-radius: 4px; margin-bottom: 28px; overflow: hidden;
+    }
+    .ob-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #2563eb, #7c3aed);
+        border-radius: 4px;
+        transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ── Step dots ── */
+    .step-dots {
+        display: flex; align-items: center; gap: 6px;
+        justify-content: center; margin-bottom: 28px;
+    }
+    .dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: #e2e8f0; transition: all 0.35s;
+    }
+    .dot.active { background: #7c3aed; width: 24px; border-radius: 4px; }
+    .dot.done   { background: #059669; }
+
+    /* ── Header text ── */
+    .ob-eyebrow {
+        text-align: center; font-size: 0.72rem; font-weight: 700;
+        color: #94a3b8; text-transform: uppercase;
+        letter-spacing: 0.12em; margin-bottom: 6px;
+    }
+    .ob-title {
+        text-align: center; font-size: 1.55rem; font-weight: 800;
+        color: #0f172a; letter-spacing: -0.03em;
+        line-height: 1.2; margin-bottom: 6px;
+    }
+    .ob-subtitle {
+        text-align: center; font-size: 0.84rem;
+        color: #94a3b8; margin-bottom: 28px; line-height: 1.5;
+    }
+
+    /* ── Step panels ── */
+    .step-panel { display: none; }
+    .step-panel.active { display: block; animation: fadeSlide 0.3s ease; }
+    @keyframes fadeSlide {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Field grid ── */
+    .field-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+        gap: 10px;
+        margin-bottom: 24px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .field-grid::-webkit-scrollbar { width: 4px; }
+    .field-grid::-webkit-scrollbar-thumb {
+        background: #e2e8f0; border-radius: 4px;
+    }
+
+    .field-card {
+        border: 2px solid #f1f5f9;
+        border-radius: 14px;
+        padding: 16px 12px;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        text-align: center;
+        background: #fafafa;
+        position: relative;
+    }
+    .field-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        border-color: #e2e8f0;
+        background: white;
+    }
+    .field-card.selected {
+        border-width: 2px;
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .field-icon-wrap {
+        width: 44px; height: 44px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem; margin: 0 auto 8px;
+        transition: all 0.2s;
+    }
+    .field-label {
+        font-size: 0.72rem; font-weight: 700; color: #1e293b;
+        line-height: 1.3;
+    }
+    .field-check {
+        position: absolute; top: 6px; right: 6px;
+        width: 18px; height: 18px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.55rem; color: white;
+        opacity: 0; transform: scale(0);
+        transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .field-card.selected .field-check { opacity: 1; transform: scale(1); }
+
+    /* ── Level grid ── */
+    .level-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 28px;
+    }
+    .level-card {
+        border: 2px solid #f1f5f9;
+        border-radius: 16px;
+        padding: 24px 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        background: #fafafa;
+        position: relative;
+    }
+    .level-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        background: white;
+    }
+    .level-card.selected {
+        background: white;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .level-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+    .level-name { font-size: 0.92rem; font-weight: 800; color: #0f172a; margin-bottom: 5px; }
+    .level-desc { font-size: 0.68rem; color: #94a3b8; line-height: 1.5; }
+    .level-check {
+        position: absolute; top: 10px; right: 10px;
+        width: 20px; height: 20px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.6rem; color: white;
+        opacity: 0; transform: scale(0); transition: all 0.2s;
+    }
+    .level-card.selected .level-check { opacity: 1; transform: scale(1); }
+
+    /* ── Buttons ── */
+    .ob-btn-row {
+        display: flex; gap: 10px;
+        justify-content: flex-end; align-items: center;
+    }
+    .ob-btn-next {
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: white; border: none;
+        padding: 11px 28px; border-radius: 12px;
+        font-size: 0.86rem; font-weight: 700;
+        cursor: pointer; font-family: inherit;
+        box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+        transition: all 0.2s;
+        display: flex; align-items: center; gap: 7px;
+    }
+    .ob-btn-next:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(37,99,235,0.4);
+    }
+    .ob-btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .ob-btn-back {
+        background: none; border: 1.5px solid #e2e8f0;
+        color: #64748b; padding: 11px 20px; border-radius: 12px;
+        font-size: 0.84rem; font-weight: 600;
+        cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .ob-btn-back:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .ob-btn-skip {
+        background: none; border: none; color: #94a3b8;
+        font-size: 0.78rem; cursor: pointer;
+        font-family: inherit; margin-right: auto;
+        text-decoration: underline; padding: 0;
+    }
+    .ob-btn-skip:hover { color: #64748b; }
+
+    /* ── Success ── */
+    .success-screen { text-align: center; padding: 24px 0; }
+    .success-icon {
+        width: 80px; height: 80px; border-radius: 50%;
+        background: linear-gradient(135deg, #059669, #0891b2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; color: white;
+        margin: 0 auto 20px;
+        animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        box-shadow: 0 8px 24px rgba(5,150,105,0.3);
+    }
+    @keyframes popIn {
+        from { transform: scale(0); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+    }
+    .success-tags {
+        display: flex; gap: 8px;
+        justify-content: center; flex-wrap: wrap;
+        margin: 16px 0 24px;
+    }
+    .stag {
+        padding: 5px 14px; border-radius: 20px;
+        font-size: 0.75rem; font-weight: 700;
+        background: #f1f5f9; color: #475569;
+    }
+
+    /* ── Search filter ── */
+    .field-search {
+        width: 100%; padding: 9px 14px;
+        border: 1.5px solid #e2e8f0; border-radius: 10px;
+        font-size: 0.82rem; font-family: inherit;
+        outline: none; margin-bottom: 12px;
+        transition: border-color 0.2s;
+        background: #fafafa;
+    }
+    .field-search:focus { border-color: #7c3aed; background: white; }
+
+    @media (max-width: 600px) {
+        .ob-card { padding: 24px 18px; }
+        .field-grid { grid-template-columns: repeat(2,1fr); }
+        .level-grid { grid-template-columns: 1fr; }
+        .ob-title { font-size: 1.25rem; }
+    }
+    </style>
+</head>
+<body>
+<div class="ob-wrap">
+
+    <a href="/" class="ob-logo">
+        <div class="ob-logo-icon"><i class="fas fa-brain"></i></div>
+        <span class="ob-logo-text">AI Learn</span>
+    </a>
+
+    <div class="ob-card">
+
+        <div class="ob-progress">
+            <div class="ob-progress-fill" id="progressFill"
+                 style="width:33%;"></div>
+        </div>
+
+        <div class="step-dots">
+            <div class="dot active" id="dot0"></div>
+            <div class="dot"        id="dot1"></div>
+            <div class="dot"        id="dot2"></div>
+        </div>
+
+        <!-- ══ STEP 1 — Field ══ -->
+        <div class="step-panel active" id="step1">
+            <p class="ob-eyebrow">Welcome, {{ user_name }}! 👋</p>
+            <h1 class="ob-title">What field would you like to study?</h1>
+            <p class="ob-subtitle">
+                Law, BBA, CSS, IT, Medical — any field you like.<br>
+                We'll recommend videos based on that.
+            </p>
+
+            <input type="text" class="field-search"
+                   id="fieldSearch"
+                   placeholder="🔍 Search field... (e.g. Law, BBA, CSS, Python)"
+                   oninput="filterFields(this.value)">
+
+            <div class="field-grid" id="fieldGrid">
+                {% for f in fields %}
+                <div class="field-card"
+                     data-id="{{ f.id }}"
+                     data-label="{{ f.label }}"
+                     data-search="{{ f.label|lower }}"
+                     onclick="selectField(this)">
+                    <div class="field-check"
+                         style="background:{{ f.color }};">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="field-icon-wrap"
+                         style="background:{{ f.color }}18;
+                                color:{{ f.color }};">
+                        <i class="{{ f.icon }}"></i>
+                    </div>
+                    <div class="field-label">{{ f.label }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Selected field display -->
+            <div id="selectedFieldDisplay"
+                 style="display:none;margin-bottom:16px;
+                        padding:10px 14px;background:#f0fdf4;
+                        border-radius:10px;border:1px solid #bbf7d0;
+                        font-size:0.82rem;color:#059669;font-weight:600;">
+                ✅ Selected: <span id="selectedFieldName"></span>
+            </div>
+
+            <div class="ob-btn-row">
+                <button class="ob-btn-skip"
+                        onclick="skipOnboarding()">
+                    Skip setup
+                </button>
+                <button class="ob-btn-next" id="nextBtn1"
+                        disabled onclick="goToStep(2)">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ══ STEP 2 — Level ══ -->
+        <div class="step-panel" id="step2">
+            <p class="ob-eyebrow">Almost done!</p>
+            <h1 class="ob-title">What is your current level?</h1>
+            <p class="ob-subtitle">
+                We'll set the difficulty of videos based on this.
+            </p>
+
+            <div class="level-grid">
+                {% for l in levels %}
+                <div class="level-card"
+                     data-id="{{ l.id }}"
+                     onclick="selectLevel(this)"
+                     style="--lc: {{ l.color }};">
+                    <div class="level-check"
+                         style="background:{{ l.color }};">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <span class="level-icon">
+                        <i class="{{ l.icon }}"
+                           style="color:{{ l.color }};"></i>
+                    </span>
+                    <div class="level-name">{{ l.label }}</div>
+                    <div class="level-desc">{{ l.desc }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="ob-btn-row">
+                <button class="ob-btn-skip"
+                        onclick="skipOnboarding()">
+                    Skip setup
+                </button>
+                <button class="ob-btn-back" onclick="goToStep(1)">
+                    <i class="fas fa-arrow-left me-1"></i> Back
+                </button>
+                <button class="ob-btn-next" id="nextBtn2"
+                        disabled onclick="saveAndFinish()">
+                    <span id="saveLabel">Finish Setup</span>
+                    <i class="fas fa-check" id="saveIcon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ══ STEP 3 — Success ══ -->
+        <div class="step-panel" id="step3">
+            <div class="success-screen">
+                <div class="success-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h2 style="font-size:1.4rem;font-weight:800;
+                           color:#0f172a;margin-bottom:6px;">
+                    All set, {{ user_name }}! 🎉
+                </h2>
+                <p style="font-size:0.84rem;color:#94a3b8;margin:0;">
+                    Preferences save ho gayi. Dashboard load ho raha hai...
+                </p>
+                <div class="success-tags" id="successTags"></div>
+                <div style="margin-top:12px;">
+                    <div class="spinner-border"
+                         style="width:1.5rem;height:1.5rem;
+                                color:#7c3aed;"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+var selectedField = null;
+var selectedLevel = null;
+
+// ── Field selection ───────────────────────────────────────
+function selectField(el) {
+    document.querySelectorAll('.field-card').forEach(function(c) {
+        c.classList.remove('selected');
+        c.style.borderColor = '#f1f5f9';
+        c.style.boxShadow   = '';
+    });
+
+    el.classList.add('selected');
+    var color = el.querySelector('.field-icon-wrap').style.color;
+    el.style.borderColor = color;
+    el.style.boxShadow   = '0 8px 20px rgba(0,0,0,0.1)';
+
+    selectedField = el.dataset.id;
+
+    var name = el.dataset.label;
+    var disp = document.getElementById('selectedFieldDisplay');
+    var nameEl = document.getElementById('selectedFieldName');
+    if (disp && nameEl) {
+        nameEl.textContent = name;
+        disp.style.display = 'block';
+    }
+
+    document.getElementById('nextBtn1').disabled = false;
+}
+
+// ── Field search filter ───────────────────────────────────
+function filterFields(q) {
+    var cards = document.querySelectorAll('.field-card');
+    var search = q.toLowerCase().trim();
+    cards.forEach(function(c) {
+        var label = c.dataset.search || '';
+        c.style.display = (!search || label.includes(search)) ?
+                          '' : 'none';
+    });
+}
+
+// ── Level selection ───────────────────────────────────────
+function selectLevel(el) {
+    document.querySelectorAll('.level-card').forEach(function(c) {
+        c.classList.remove('selected');
+        c.style.borderColor = '#f1f5f9';
+        c.style.boxShadow   = '';
+    });
+
+    el.classList.add('selected');
+    var icon  = el.querySelector('.level-icon i');
+    var color = icon ? icon.style.color : '#7c3aed';
+    el.style.borderColor = color;
+    el.style.boxShadow   = '0 8px 20px rgba(0,0,0,0.1)';
+
+    selectedLevel = el.dataset.id;
+    document.getElementById('nextBtn2').disabled = false;
+}
+
+// ── Step navigation ───────────────────────────────────────
+function goToStep(n) {
+    document.querySelectorAll('.step-panel').forEach(function(p) {
+        p.classList.remove('active');
+    });
+    document.getElementById('step' + n).classList.add('active');
+
+    for (var i = 0; i < 3; i++) {
+        var d = document.getElementById('dot' + i);
+        d.classList.remove('active', 'done');
+        if (i < n - 1)       d.classList.add('done');
+        else if (i === n - 1) d.classList.add('active');
+    }
+
+    document.getElementById('progressFill').style.width =
+        ((n / 3) * 100) + '%';
+}
+
+// ── Save preferences ──────────────────────────────────────
+async function saveAndFinish() {
+    if (!selectedField || !selectedLevel) return;
+
+    var btn  = document.getElementById('nextBtn2');
+    var lbl  = document.getElementById('saveLabel');
+    var icon = document.getElementById('saveIcon');
+    btn.disabled    = true;
+    lbl.textContent = 'Saving...';
+    icon.className  = 'fas fa-spinner fa-spin';
+
+    try {
+        var res = await fetch('/onboarding/save', {
+            method : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body   : JSON.stringify({
+                field: selectedField,
+                level: selectedLevel
+            })
+        });
+        var data = await res.json();
+
+        if (data.success) {
+            goToStep(3);
+
+            var tags = document.getElementById('successTags');
+            // Find field label
+            var fieldCard = document.querySelector(
+                '.field-card[data-id="' + selectedField + '"]'
+            );
+            var fieldLabel = fieldCard ?
+                fieldCard.dataset.label : selectedField;
+
+            tags.innerHTML =
+                '<span class="stag">' +
+                '<i class="fas fa-graduation-cap me-1"></i>' +
+                fieldLabel + '</span>' +
+                '<span class="stag">' +
+                '<i class="fas fa-signal me-1"></i>' +
+                selectedLevel + '</span>';
+
+            setTimeout(function() {
+                window.location.href = '/dashboard';
+            }, 2200);
+        } else {
+            btn.disabled    = false;
+            lbl.textContent = 'Finish Setup';
+            icon.className  = 'fas fa-check';
+        }
+    } catch(e) {
+        btn.disabled    = false;
+        lbl.textContent = 'Finish Setup';
+        icon.className  = 'fas fa-check';
+    }
+}
+
+// ── Skip ──────────────────────────────────────────────────
+async function skipOnboarding() {
+    try {
+        await fetch('/onboarding/skip', {
+            method : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body   : JSON.stringify({})
+        });
+    } catch(e) {}
+    window.location.href = '/dashboard';
+}
+</script>
+</body>
+</html>

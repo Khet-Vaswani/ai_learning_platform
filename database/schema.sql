@@ -7,14 +7,17 @@ USE ai_learning_platform;
 
 -- TABLE 1: users
 CREATE TABLE IF NOT EXISTS users (
-    id              INT AUTO_INCREMENT PRIMARY KEY,
-    full_name       VARCHAR(100) NOT NULL,
-    email           VARCHAR(100) NOT NULL UNIQUE,
-    password        VARCHAR(255) NOT NULL,
-    role            ENUM('student','admin') DEFAULT 'student',
-    profile_pic     VARCHAR(255) DEFAULT 'default.png',
-    onboarding_done TINYINT(1) DEFAULT 0,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    full_name         VARCHAR(100) NOT NULL,
+    email             VARCHAR(100) NOT NULL UNIQUE,
+    password          VARCHAR(255) NOT NULL,
+    role              ENUM('student','admin') DEFAULT 'student',
+    profile_pic       VARCHAR(255) DEFAULT 'default.png',
+    field_of_interest VARCHAR(100),
+    skill_level       ENUM('Beginner','Intermediate','Advanced') DEFAULT 'Beginner',
+    difficulty_level  ENUM('Easy','Medium','Hard') DEFAULT 'Medium',
+    onboarding_done   TINYINT(1) DEFAULT 0,
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- TABLE 2: cognitive_categories
@@ -103,5 +106,45 @@ CREATE TABLE IF NOT EXISTS weak_topics (
     last_detected TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                   ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY unique_weak (user_id, topic),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- TABLE 12: search_cache
+CREATE TABLE IF NOT EXISTS search_cache (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    query      VARCHAR(255) NOT NULL,
+    results    JSON NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_query (query)
+);
+
+-- TABLE 13: topic_difficulty
+CREATE TABLE IF NOT EXISTS topic_difficulty (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    user_id           INT NOT NULL,
+    topic             VARCHAR(100) NOT NULL,
+    difficulty_level  ENUM('Easy','Medium','Hard') DEFAULT 'Medium',
+    last_score        DECIMAL(5,2) DEFAULT 0,
+    attempts          INT DEFAULT 0,
+    last_attempted    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                      ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_topic_user (user_id, topic),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- TABLE 14: learning_curves
+CREATE TABLE IF NOT EXISTS learning_curves (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    user_id           INT NOT NULL,
+    topic             VARCHAR(100) NOT NULL,
+    curve_stage       ENUM('Beginner','Learning','Plateau','Struggling','Mastered') DEFAULT 'Beginner',
+    current_score     DECIMAL(5,2) DEFAULT 0,
+    predicted_next    DECIMAL(5,2) DEFAULT 0,
+    difficulty_level  ENUM('Easy','Medium','Hard') DEFAULT 'Medium',
+    learning_rate     DECIMAL(5,4) DEFAULT 0.0000,
+    last_updated      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                      ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_curve (user_id, topic),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
