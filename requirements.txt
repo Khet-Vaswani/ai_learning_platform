@@ -4,3 +4,4 @@ mysql-connector-python
 bcrypt
 google-genai
 groq
+youtube-transcript-api

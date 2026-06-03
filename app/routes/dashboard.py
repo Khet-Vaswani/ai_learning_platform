@@ -176,6 +176,105 @@ def chatbot():
                            user_name=session.get('user_name'))
 
 
+# ── API: Dashboard Stats ────────────────────────────────────
+@dashboard.route('/api/dashboard-stats')
+@login_required
+def dashboard_stats():
+    user_id = session['user_id']
+    
+    # Total topics
+    total_topics = execute_query(
+        "SELECT COUNT(DISTINCT topic) as cnt FROM watched_videos WHERE user_id=%s",
+        (user_id,), fetch=True
+    )
+    total_topics = total_topics[0]['cnt'] if total_topics else 0
+    
+    # Topics completed
+    topics_completed = execute_query(
+        """SELECT COUNT(DISTINCT topic) as cnt FROM watched_videos 
+           WHERE user_id=%s AND watched_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)""",
+        (user_id,), fetch=True
+    )
+    topics_completed = topics_completed[0]['cnt'] if topics_completed else 0
+    
+    # Average score
+    avg_score = execute_query(
+        """SELECT AVG(score/total*100) as avg_score FROM video_quizzes
+           WHERE user_id=%s AND attempted=1 AND total>0""",
+        (user_id,), fetch=True
+    )
+    avg_score = round(float(avg_score[0]['avg_score'] or 0), 1) if avg_score else 0
+    
+    # Hours learned
+    hours = execute_query(
+        """SELECT SUM(duration_min)/60 as total_hours FROM study_sessions
+           WHERE user_id=%s""",
+        (user_id,), fetch=True
+    )
+    hours_learned = round(float(hours[0]['total_hours'] or 0), 1) if hours else 0
+    
+    # Quizzes completed
+    quizzes = execute_query(
+        """SELECT COUNT(*) as cnt FROM video_quizzes
+           WHERE user_id=%s AND attempted=1""",
+        (user_id,), fetch=True
+    )
+    quizzes_completed = quizzes[0]['cnt'] if quizzes else 0
+    
+    # Streak days
+    streak = execute_query(
+        """SELECT DATEDIFF(CURDATE(), MIN(session_date)) as days
+           FROM study_sessions WHERE user_id=%s AND session_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)""",
+        (user_id,), fetch=True
+    )
+    streak_days = streak[0]['days'] if streak and streak[0]['days'] else 0
+    
+    # Weak topics count
+    weak_count = execute_query(
+        """SELECT COUNT(*) as cnt FROM weak_topics
+           WHERE user_id=%s AND fail_count > 0""",
+        (user_id,), fetch=True
+    )
+    weak_topics_count = weak_count[0]['cnt'] if weak_count else 0
+    
+    # Recommended topics
+    recommended = execute_query(
+        """SELECT DISTINCT topic FROM watched_videos WHERE user_id=%s
+           ORDER BY watched_at DESC LIMIT 5""",
+        (user_id,), fetch=True
+    ) or []
+    
+    recommended_topics = [
+        {'id': i, 'name': r['topic'], 'emoji': '📚'}
+        for i, r in enumerate(recommended)
+    ]
+    
+    # Continue topics
+    continue_topics = execute_query(
+        """SELECT DISTINCT topic FROM watched_videos WHERE user_id=%s
+           ORDER BY watched_at DESC LIMIT 5 OFFSET 5""",
+        (user_id,), fetch=True
+    ) or []
+    
+    continue_topics = [
+        {'id': i, 'name': r['topic'], 'emoji': '📖'}
+        for i, r in enumerate(continue_topics)
+    ]
+    
+    return jsonify({
+        'success': True,
+        'total_topics': total_topics,
+        'topics_completed': topics_completed,
+        'avg_score': avg_score,
+        'hours_learned': hours_learned,
+        'quizzes_completed': quizzes_completed,
+        'streak_days': streak_days,
+        'weak_topics_count': weak_topics_count,
+        'recommended_topics': recommended_topics,
+        'continue_topics': continue_topics
+    })
+
+
 # ── Progress ───────────────────────────────────────────────
 @dashboard.route('/progress')
 @login_required

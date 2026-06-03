@@ -40,3 +40,8 @@ def execute_query(query, params=None, fetch=False):
     finally:
         cursor.close()
         conn.close()
+
+
+def fetch_query(query, params=None):
+    """Execute a SQL query and fetch all results."""
+    return execute_query(query, params, fetch=True)

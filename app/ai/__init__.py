@@ -1,15 +1,23 @@
+# ============================================================
+# app/ai/__init__.py  ←  FINAL FIXED VERSION
+# ============================================================
+# Aapki dashboard.py mein blueprint ka naam "dashboard" hai
+# isliye yahan bhi "dashboard" import kar rahe hain
+# ============================================================
+
 import os
 from flask import Flask, redirect, url_for
 from app.config import Config
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+BASE_DIR        = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 TEMPLATE_FOLDER = os.path.join(BASE_DIR, 'templates')
-STATIC_FOLDER = os.path.join(BASE_DIR, 'static')
+STATIC_FOLDER   = os.path.join(BASE_DIR, 'static')
+
 
 def create_app():
     app = Flask(__name__,
-        template_folder=TEMPLATE_FOLDER,
-        static_folder=STATIC_FOLDER
+        template_folder = TEMPLATE_FOLDER,
+        static_folder   = STATIC_FOLDER
     )
     app.config.from_object(Config)
 
@@ -24,19 +32,18 @@ def create_app():
 
     # ── Blueprints ────────────────────────────────────────
     from app.routes.auth        import auth
-    from app.routes.cognitive   import cognitive_bp as cognitive
-    from app.routes.dashboard   import dashboard
+    from app.routes.cognitive   import cognitive_bp
+    from app.routes.dashboard   import dashboard      # ← your file has "dashboard"
     from app.routes.youtube     import youtube_bp
     from app.routes.gemini      import gemini_bp
     from app.routes.recommend   import recommend_bp
     from app.routes.admin       import admin_bp
     from app.routes.social_auth import social_bp
-    from app.routes.onboarding import onboarding_bp
-    
+    from app.routes.onboarding  import onboarding_bp
 
     app.register_blueprint(auth)
-    app.register_blueprint(cognitive)
-    app.register_blueprint(dashboard)
+    app.register_blueprint(cognitive_bp)
+    app.register_blueprint(dashboard)               # ← same name
     app.register_blueprint(youtube_bp)
     app.register_blueprint(gemini_bp)
     app.register_blueprint(recommend_bp)
@@ -44,9 +51,9 @@ def create_app():
     app.register_blueprint(social_bp)
     app.register_blueprint(onboarding_bp)
 
+    # ── Root redirect ─────────────────────────────────────
     @app.route('/')
     def home():
         return redirect(url_for('auth.login'))
 
     return app
-

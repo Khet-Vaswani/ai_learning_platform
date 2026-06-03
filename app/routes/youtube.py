@@ -2,6 +2,7 @@
 # youtube.py — YouTube Search with Caching & Quota Management
 # ============================================================
 
+
 from flask import Blueprint, request, jsonify, session
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
@@ -307,3 +308,95 @@ def related_videos():
             filtered = [v for v in fallback if v['video_id'] != video_id]
             return jsonify({'success': True, 'videos': filtered})
         return jsonify({'success': False, 'message': str(e)})
+    
+# ============================================================
+# Transcript Route — Add this to your app/routes/youtube.py
+# ============================================================
+# pip install youtube-transcript-api --break-system-packages
+# ============================================================
+
+
+# ── Add this route inside youtube.py ─────────────────────
+# (Keep all your existing routes, just ADD this one)
+
+@youtube_bp.route('/youtube/transcript')
+@login_required
+def get_transcript():
+    video_id = request.args.get('video_id', '').strip()
+    if not video_id:
+        return jsonify({'success': False, 'message': 'No video_id'})
+
+    # ── Try youtube-transcript-api ────────────────────────
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+
+        # Try English first, then any available
+        try:
+            transcript_list = YouTubeTranscriptApi.get_transcript(
+                video_id,
+                languages=['en', 'en-US', 'en-GB']
+            )
+        except Exception:
+            # Try auto-generated
+            try:
+                transcript_list = YouTubeTranscriptApi.get_transcript(
+                    video_id,
+                    languages=['en-auto', 'a.en']
+                )
+            except Exception:
+                # Get whatever is available
+                try:
+                    available = YouTubeTranscriptApi.list_transcripts(video_id)
+                    transcript_obj = next(iter(available))
+                    transcript_list = transcript_obj.fetch()
+                except Exception as e:
+                    return jsonify({
+                        'success'   : False,
+                        'message'   : f'No transcript: {str(e)}',
+                        'transcript': ''
+                    })
+
+        # Join all text
+        full_text = ' '.join([
+            item['text'].strip()
+            for item in transcript_list
+            if item.get('text', '').strip()
+        ])
+
+        # Clean up
+        full_text = (full_text
+            .replace('\n', ' ')
+            .replace('  ', ' ')
+            .replace('[Music]', '')
+            .replace('[Applause]', '')
+            .replace('[music]', '')
+            .strip()
+        )
+
+        if len(full_text) < 50:
+            return jsonify({
+                'success'   : False,
+                'message'   : 'Transcript too short',
+                'transcript': ''
+            })
+
+        return jsonify({
+            'success'   : True,
+            'transcript': full_text,
+            'length'    : len(full_text),
+            'segments'  : len(transcript_list)
+        })
+
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'message': 'youtube-transcript-api not installed. Run: pip install youtube-transcript-api',
+            'transcript': ''
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success'   : False,
+            'message'   : str(e),
+            'transcript': ''
+        })

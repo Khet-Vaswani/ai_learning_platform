@@ -1,5 +1,7 @@
 # ============================================================
-# onboarding.py — User Preferences & Onboarding
+# onboarding.py — FINAL FIXED VERSION
+# Database-Driven: educational_categories, university_departments,
+#                  university_fields_of_study
 # ============================================================
 
 from flask import (Blueprint, render_template, request,
@@ -9,181 +11,160 @@ from app.utils.db import execute_query
 
 onboarding_bp = Blueprint('onboarding', __name__)
 
-# ── Fields (General — not IT only) ───────────────────────
-FIELDS = [
-    # Technology
-    {'id': 'computer_science',  'label': 'Computer Science',
-     'icon': 'fas fa-laptop-code', 'color': '#2563eb',
-     'topics': ['Python Programming', 'Algorithms', 'Data Structures', 'Web Development']},
-    {'id': 'data_science',      'label': 'Data Science & AI',
-     'icon': 'fas fa-brain',       'color': '#7c3aed',
-     'topics': ['Machine Learning', 'Data Analysis', 'Deep Learning', 'Statistics']},
-    {'id': 'web_development',   'label': 'Web Development',
-     'icon': 'fas fa-globe',       'color': '#0891b2',
-     'topics': ['HTML CSS', 'JavaScript', 'React', 'Flask Framework']},
-    {'id': 'cybersecurity',     'label': 'Cybersecurity',
-     'icon': 'fas fa-shield-alt',  'color': '#dc2626',
-     'topics': ['Network Security', 'Ethical Hacking', 'Cryptography']},
-    {'id': 'mobile_dev',        'label': 'Mobile Development',
-     'icon': 'fas fa-mobile-alt',  'color': '#d97706',
-     'topics': ['React Native', 'Flutter', 'Android', 'iOS']},
-
-    # Business
-    {'id': 'business_admin',    'label': 'BBA / Business Admin',
-     'icon': 'fas fa-briefcase',   'color': '#b45309',
-     'topics': ['Business Analysis', 'Management', 'Marketing', 'Finance']},
-    {'id': 'accounting',        'label': 'Accounting & Finance',
-     'icon': 'fas fa-calculator',  'color': '#059669',
-     'topics': ['Financial Accounting', 'Taxation', 'Auditing', 'Managerial Accounting']},
-    {'id': 'marketing',         'label': 'Marketing & Sales',
-     'icon': 'fas fa-bullhorn',    'color': '#d97706',
-     'topics': ['Digital Marketing', 'Brand Management', 'Sales Strategy', 'Market Research']},
-    {'id': 'hr_management',     'label': 'Human Resources',
-     'icon': 'fas fa-users',       'color': '#7c3aed',
-     'topics': ['HR Management', 'Recruitment', 'Employee Relations', 'Training']},
-
-    # Law
-    {'id': 'law',               'label': 'Law & Legal Studies',
-     'icon': 'fas fa-gavel',       'color': '#dc2626',
-     'topics': ['Constitutional Law', 'Criminal Law', 'Contract Law', 'International Law']},
-    {'id': 'criminal_justice',  'label': 'Criminal Justice',
-     'icon': 'fas fa-balance-scale','color': '#2563eb',
-     'topics': ['Criminal Justice', 'Forensic Science', 'Law Enforcement']},
-
-    # CSS / Competitive Exams
-    {'id': 'css_exam',          'label': 'CSS / PMS Exam Prep',
-     'icon': 'fas fa-landmark',    'color': '#4f46e5',
-     'topics': ['Pakistan Affairs', 'Islamic Studies', 'Current Affairs', 'Essay Writing',
-                'General Knowledge', 'English Composition']},
-    {'id': 'political_science', 'label': 'Political Science',
-     'icon': 'fas fa-vote-yea',    'color': '#4f46e5',
-     'topics': ['Political Theory', 'International Relations', 'Public Policy', 'Comparative Politics']},
-
-    # Social Sciences
-    {'id': 'psychology',        'label': 'Psychology',
-     'icon': 'fas fa-brain',       'color': '#ec4899',
-     'topics': ['Clinical Psychology', 'Cognitive Psychology', 'Developmental Psychology']},
-    {'id': 'sociology',         'label': 'Sociology',
-     'icon': 'fas fa-users-cog',   'color': '#0891b2',
-     'topics': ['Social Theory', 'Criminology', 'Urban Sociology', 'Social Research']},
-    {'id': 'economics',         'label': 'Economics',
-     'icon': 'fas fa-chart-line',  'color': '#059669',
-     'topics': ['Microeconomics', 'Macroeconomics', 'International Economics', 'Development Economics']},
-
-    # Science & Engineering
-    {'id': 'engineering',       'label': 'Engineering',
-     'icon': 'fas fa-cogs',        'color': '#d97706',
-     'topics': ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering']},
-    {'id': 'mathematics',       'label': 'Mathematics',
-     'icon': 'fas fa-square-root-alt','color': '#4f46e5',
-     'topics': ['Calculus', 'Linear Algebra', 'Statistics', 'Discrete Mathematics']},
-    {'id': 'physics',           'label': 'Physics',
-     'icon': 'fas fa-atom',        'color': '#7c3aed',
-     'topics': ['Classical Physics', 'Quantum Physics', 'Thermodynamics']},
-    {'id': 'chemistry',         'label': 'Chemistry',
-     'icon': 'fas fa-flask',       'color': '#dc2626',
-     'topics': ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry']},
-    {'id': 'biology',           'label': 'Biology',
-     'icon': 'fas fa-dna',         'color': '#059669',
-     'topics': ['Molecular Biology', 'Genetics', 'Ecology', 'Microbiology']},
-
-    # Health & Medicine
-    {'id': 'medicine',          'label': 'Medicine & Healthcare',
-     'icon': 'fas fa-stethoscope', 'color': '#dc2626',
-     'topics': ['Anatomy', 'Physiology', 'Pharmacology', 'Clinical Medicine']},
-    {'id': 'nursing',           'label': 'Nursing',
-     'icon': 'fas fa-user-md',     'color': '#ec4899',
-     'topics': ['Nursing Fundamentals', 'Medical-Surgical Nursing', 'Pediatric Nursing']},
-    {'id': 'pharmacy',          'label': 'Pharmacy',
-     'icon': 'fas fa-pills',       'color': '#0891b2',
-     'topics': ['Pharmaceutical Chemistry', 'Pharmacology', 'Clinical Pharmacy']},
-
-    # Arts & Humanities
-    {'id': 'english_literature','label': 'English Literature',
-     'icon': 'fas fa-book',        'color': '#b45309',
-     'topics': ['American Literature', 'British Literature', 'World Literature', 'Literary Theory']},
-    {'id': 'history',           'label': 'History',
-     'icon': 'fas fa-history',     'color': '#4f46e5',
-     'topics': ['World History', 'Pakistani History', 'European History', 'Asian History']},
-    {'id': 'philosophy',        'label': 'Philosophy',
-     'icon': 'fas fa-brain',       'color': '#7c3aed',
-     'topics': ['Western Philosophy', 'Eastern Philosophy', 'Ethics', 'Logic']},
-    {'id': 'art_design',        'label': 'Art & Design',
-     'icon': 'fas fa-palette',     'color': '#ec4899',
-     'topics': ['Visual Arts', 'Graphic Design', 'Art History', 'Digital Art']},
-
-    # Education & Media
-    {'id': 'education',         'label': 'Education',
-     'icon': 'fas fa-graduation-cap','color': '#0891b2',
-     'topics': ['Educational Psychology', 'Curriculum Development', 'Teaching Methods']},
-    {'id': 'journalism',        'label': 'Journalism & Media',
-     'icon': 'fas fa-newspaper',   'color': '#d97706',
-     'topics': ['News Writing', 'Broadcast Journalism', 'Digital Media', 'Media Ethics']},
-    {'id': 'hospitality',       'label': 'Hospitality & Tourism',
-     'icon': 'fas fa-concierge-bell','color': '#b45309',
-     'topics': ['Hotel Management', 'Tourism Management', 'Event Planning']},
-]
+# ── Static class data for non-university categories ───────
+CATEGORY_CLASSES = {
+    'Primary': [
+        {'id': 'class_1', 'label': 'Class 1', 'emoji': '⭐', 'color': '#059669',
+         'topics': ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge']},
+        {'id': 'class_2', 'label': 'Class 2', 'emoji': '⭐', 'color': '#059669',
+         'topics': ['English Class 2', 'Urdu Class 2', 'Maths Class 2', 'Science Class 2']},
+        {'id': 'class_3', 'label': 'Class 3', 'emoji': '⭐', 'color': '#0891b2',
+         'topics': ['English Class 3', 'Urdu Class 3', 'Maths Class 3', 'Science Class 3']},
+        {'id': 'class_4', 'label': 'Class 4', 'emoji': '⭐', 'color': '#0891b2',
+         'topics': ['English Class 4', 'Urdu Class 4', 'Maths Class 4', 'Social Studies']},
+        {'id': 'class_5', 'label': 'Class 5', 'emoji': '⭐', 'color': '#7c3aed',
+         'topics': ['English Class 5', 'Urdu Class 5', 'Maths Class 5', 'Science Class 5', 'Islamiat']},
+    ],
+    'Secondary': [
+        {'id': 'class_6', 'label': 'Class 6', 'emoji': '📗', 'color': '#0891b2',
+         'topics': ['English Class 6', 'Urdu Class 6', 'Mathematics Class 6', 'General Science', 'Islamiat']},
+        {'id': 'class_7', 'label': 'Class 7', 'emoji': '📗', 'color': '#0891b2',
+         'topics': ['English Class 7', 'Urdu Class 7', 'Mathematics Class 7', 'General Science', 'History']},
+        {'id': 'class_8', 'label': 'Class 8', 'emoji': '📗', 'color': '#7c3aed',
+         'topics': ['English Class 8', 'Urdu Class 8', 'Mathematics Class 8', 'Science Class 8', 'Pakistan Studies']},
+    ],
+    'Matriculation': [
+        {'id': 'c9_sci',  'label': 'Class 9 — Science',  'emoji': '🔬', 'color': '#7c3aed',
+         'topics': ['Physics Class 9', 'Chemistry Class 9', 'Biology Class 9', 'Mathematics Class 9', 'English Class 9']},
+        {'id': 'c10_sci', 'label': 'Class 10 — Science', 'emoji': '🔬', 'color': '#7c3aed',
+         'topics': ['Physics Class 10', 'Chemistry Class 10', 'Biology Class 10', 'Mathematics Class 10', 'English Class 10']},
+        {'id': 'c9_arts', 'label': 'Class 9 — Arts',    'emoji': '🎨', 'color': '#d97706',
+         'topics': ['General Math Class 9', 'Urdu Class 9', 'English Class 9', 'Pakistan Studies', 'Islamiat']},
+        {'id': 'c10_arts','label': 'Class 10 — Arts',   'emoji': '🎨', 'color': '#d97706',
+         'topics': ['General Math Class 10', 'Urdu Class 10', 'English Class 10', 'Pakistan Studies', 'Civics']},
+        {'id': 'c9_com',  'label': 'Class 9 — Commerce','emoji': '💼', 'color': '#059669',
+         'topics': ['Principles of Accounting', 'Commercial Geography', 'Urdu', 'English', 'Pakistan Studies']},
+        {'id': 'c10_com', 'label': 'Class 10 — Commerce','emoji': '💼', 'color': '#059669',
+         'topics': ['Principles of Accounting', 'Principles of Commerce', 'Urdu', 'English', 'Pakistan Studies']},
+    ],
+    'Intermediate': [
+        {'id': 'pre_med', 'label': 'Pre-Medical (FSc)',      'emoji': '🏥', 'color': '#dc2626',
+         'topics': ['Biology FSc', 'Chemistry FSc', 'Physics FSc', 'English FSc', 'Urdu FSc']},
+        {'id': 'pre_eng', 'label': 'Pre-Engineering (FSc)',  'emoji': '⚙️', 'color': '#7c3aed',
+         'topics': ['Mathematics FSc', 'Physics FSc', 'Chemistry FSc', 'English FSc', 'Urdu FSc']},
+        {'id': 'ics',     'label': 'ICS — Computer Science', 'emoji': '💻', 'color': '#2563eb',
+         'topics': ['Computer Science ICS', 'Mathematics ICS', 'Physics ICS', 'English ICS']},
+        {'id': 'icom',    'label': 'ICom — Commerce',        'emoji': '💹', 'color': '#059669',
+         'topics': ['Accounting ICom', 'Business Mathematics', 'Economics', 'English ICom']},
+        {'id': 'fa',      'label': 'FA — Arts',              'emoji': '📜', 'color': '#d97706',
+         'topics': ['Urdu FA', 'English FA', 'Islamic Studies', 'History', 'Civics']},
+    ],
+    'Professional': [
+        {'id': 'css_pms',  'label': 'CSS / PMS',    'emoji': '🏛️', 'color': '#4f46e5',
+         'topics': ['Pakistan Affairs', 'Current Affairs', 'Islamiat', 'English Essay', 'General Knowledge']},
+        {'id': 'mdcat',    'label': 'MDCAT',         'emoji': '🩺', 'color': '#dc2626',
+         'topics': ['Biology MDCAT', 'Chemistry MDCAT', 'Physics MDCAT', 'English MDCAT']},
+        {'id': 'ecat',     'label': 'ECAT',          'emoji': '📐', 'color': '#7c3aed',
+         'topics': ['Mathematics ECAT', 'Physics ECAT', 'Chemistry ECAT']},
+        {'id': 'nts_gat',  'label': 'NTS / GAT',    'emoji': '📋', 'color': '#2563eb',
+         'topics': ['Verbal Reasoning', 'Quantitative Reasoning', 'Analytical Reasoning']},
+        {'id': 'ielts',    'label': 'IELTS / TOEFL', 'emoji': '🌍', 'color': '#0891b2',
+         'topics': ['IELTS Reading', 'IELTS Writing', 'IELTS Listening', 'IELTS Speaking']},
+        {'id': 'ppsc_fpsc','label': 'PPSC / FPSC',  'emoji': '🏢', 'color': '#d97706',
+         'topics': ['General Knowledge', 'Pakistan Studies', 'Islamic Studies', 'Current Affairs']},
+    ],
+}
 
 LEVELS = [
-    {'id': 'Beginner',     'label': 'Beginner',
-     'desc': 'Bilkul naya hoon, basics seekhna chahta hoon',
-     'icon': 'fas fa-seedling', 'color': '#059669'},
-    {'id': 'Intermediate', 'label': 'Intermediate',
-     'desc': 'Kuch basics pata hai, aur deep jana chahta hoon',
-     'icon': 'fas fa-fire',    'color': '#d97706'},
-    {'id': 'Advanced',     'label': 'Advanced',
-     'desc': 'Achha knowledge hai, advanced topics chahiye',
-     'icon': 'fas fa-rocket',  'color': '#7c3aed'},
+    {'id': 'Beginner',     'label': 'Beginner',     'emoji': '🌱', 'color': '#059669',
+     'desc': 'New to this, need basics explained'},
+    {'id': 'Intermediate', 'label': 'Intermediate', 'emoji': '🔥', 'color': '#d97706',
+     'desc': 'Know some basics, want to go deeper'},
+    {'id': 'Advanced',     'label': 'Advanced',     'emoji': '🚀', 'color': '#7c3aed',
+     'desc': 'Strong foundation, need advanced content'},
 ]
 
-# ── Field → YouTube query map ─────────────────────────────
-FIELD_QUERY_MAP = {
-    'Computer Science'      : ['python programming tutorial', 'data structures algorithms', 'computer science fundamentals'],
-    'Data Science & AI'     : ['machine learning tutorial beginners', 'data science python', 'deep learning course'],
-    'Web Development'       : ['html css javascript tutorial', 'web development beginners', 'responsive web design'],
-    'Cybersecurity'         : ['cybersecurity tutorial beginners', 'ethical hacking course', 'network security'],
-    'Mobile Development'    : ['flutter tutorial beginners', 'react native course', 'android development'],
-    'BBA / Business Admin'  : ['business management tutorial', 'business administration course', 'MBA concepts'],
-    'Accounting & Finance'  : ['financial accounting tutorial', 'accounting basics', 'finance course beginners'],
-    'Marketing & Sales'     : ['digital marketing tutorial', 'marketing strategy course', 'social media marketing'],
-    'Human Resources'       : ['hr management course', 'human resources basics', 'recruitment training'],
-    'Law & Legal Studies'   : ['law basics tutorial', 'legal studies beginners', 'constitutional law lecture'],
-    'Criminal Justice'      : ['criminal justice system', 'forensic science course', 'criminology lecture'],
-    'CSS / PMS Exam Prep'   : ['CSS exam preparation', 'Pakistan current affairs', 'general knowledge Pakistan'],
-    'Political Science'     : ['political science lecture', 'international relations tutorial', 'political theory'],
-    'Psychology'            : ['psychology basics tutorial', 'introduction to psychology', 'cognitive psychology'],
-    'Sociology'             : ['sociology introduction', 'social theory lecture', 'criminology basics'],
-    'Economics'             : ['economics basics tutorial', 'microeconomics course', 'macroeconomics lecture'],
-    'Engineering'           : ['engineering basics tutorial', 'mechanical engineering', 'electrical engineering basics'],
-    'Mathematics'           : ['calculus tutorial beginners', 'linear algebra course', 'statistics tutorial'],
-    'Physics'               : ['physics basics tutorial', 'classical mechanics', 'quantum physics introduction'],
-    'Chemistry'             : ['chemistry basics tutorial', 'organic chemistry', 'chemistry for beginners'],
-    'Biology'               : ['biology basics tutorial', 'cell biology lecture', 'genetics introduction'],
-    'Medicine & Healthcare' : ['anatomy basics tutorial', 'physiology lecture', 'medical studies basics'],
-    'Nursing'               : ['nursing fundamentals', 'nursing basics tutorial', 'clinical nursing'],
-    'Pharmacy'              : ['pharmacology tutorial', 'pharmacy basics', 'clinical pharmacy lecture'],
-    'English Literature'    : ['english literature analysis', 'literary theory basics', 'poetry analysis'],
-    'History'               : ['world history lecture', 'history documentary', 'pakistan history'],
-    'Philosophy'            : ['philosophy basics tutorial', 'introduction to philosophy', 'ethics lecture'],
-    'Art & Design'          : ['graphic design tutorial', 'digital art basics', 'design principles'],
-    'Education'             : ['educational psychology', 'teaching methods tutorial', 'curriculum development'],
-    'Journalism & Media'    : ['journalism basics', 'media ethics tutorial', 'digital journalism'],
-    'Hospitality & Tourism' : ['hotel management course', 'tourism management basics', 'hospitality industry'],
-}
+
+# ── Load categories from DB ───────────────────────────────
+def get_categories():
+    rows = execute_query(
+        "SELECT id, name, description, icon FROM educational_categories ORDER BY display_order",
+        fetch=True
+    ) or []
+    emoji_map = {
+        'Primary': '📚', 'Secondary': '🏫', 'Matriculation': '📖',
+        'Intermediate': '🎓', 'University': '🏛️', 'Professional': '🏆'
+    }
+    color_map = {
+        'Primary': '#059669', 'Secondary': '#0891b2', 'Matriculation': '#7c3aed',
+        'Intermediate': '#d97706', 'University': '#2563eb', 'Professional': '#dc2626'
+    }
+    result = []
+    for r in rows:
+        name = r['name']
+        result.append({
+            'id'   : r['id'],
+            'name' : name,
+            'desc' : r['description'] or '',
+            'icon' : r['icon'] or 'fas fa-book',
+            'emoji': emoji_map.get(name, '📚'),
+            'color': color_map.get(name, '#2563eb'),
+        })
+    return result
+
+
+# ── Load university departments ───────────────────────────
+def get_departments():
+    rows = execute_query(
+        "SELECT id, name, icon FROM university_departments ORDER BY display_order",
+        fetch=True
+    ) or []
+    return [{'id': r['id'], 'name': r['name'], 'icon': r.get('icon', '')} for r in rows]
+
+
+# ── Load fields for a department ─────────────────────────
+def get_fields(dept_id):
+    rows = execute_query(
+        "SELECT id, field_name FROM university_fields_of_study WHERE department_id=%s ORDER BY display_order",
+        (dept_id,), fetch=True
+    ) or []
+    return [{'id': r['id'], 'field_name': r['field_name']} for r in rows]
 
 
 # ============================================================
-# SHOW PREFERENCES PAGE
+# ONBOARDING PAGE
 # ============================================================
 @onboarding_bp.route('/onboarding/preferences', methods=['GET'])
 @login_required
 def preferences():
     if session.get('onboarding_done'):
         return redirect(url_for('dashboard.index'))
-    return render_template('onboarding.html',
-                           fields=FIELDS,
-                           levels=LEVELS,
-                           user_name=session.get('user_name', ''))
+
+    categories  = get_categories()
+    departments = get_departments()
+
+    # University category ID from DB
+    uni_cat_id = next((c['id'] for c in categories if c['name'] == 'University'), 5)
+
+    return render_template(
+        'onboarding.html',
+        categories       = categories,
+        category_classes = CATEGORY_CLASSES,
+        departments      = departments,
+        levels           = LEVELS,
+        uni_cat_id       = uni_cat_id,
+        user_name        = session.get('user_name', ''),
+    )
+
+
+# ============================================================
+# GET FIELDS FOR DEPARTMENT (AJAX)
+# ============================================================
+@onboarding_bp.route('/onboarding/get-fields/<int:dept_id>')
+@login_required
+def get_fields_ajax(dept_id):
+    fields = get_fields(dept_id)
+    return jsonify({'success': True, 'fields': fields})
 
 
 # ============================================================
@@ -195,89 +176,94 @@ def save_preferences():
     data        = request.get_json()
     user_id     = session['user_id']
 
-    # Support both old and new key names
-    field_id    = data.get('field') or data.get('field_of_interest', '')
-    skill_level = data.get('level') or data.get('skill_level', 'Beginner')
+    cat_id      = data.get('category_id')
+    cat_name    = data.get('category_name', '')
+    class_id    = data.get('class_id', '')
+    class_label = data.get('class_label', '')
+    dept_id     = data.get('dept_id')
+    dept_name   = data.get('dept_name', '')
+    field_id    = data.get('field_id')
+    field_name  = data.get('field_name', '')
+    level       = data.get('level', 'Beginner')
 
-    if not field_id:
-        return jsonify({'success': False, 'message': 'Field required'})
+    if not cat_id:
+        return jsonify({'success': False, 'message': 'Category required'})
 
-    # Find field label + topics
-    field_label  = field_id
-    field_topics = []
-    for f in FIELDS:
-        if f['id'] == field_id:
-            field_label  = f['label']
-            field_topics = f['topics']
-            break
+    # Field of interest
+    if cat_name == 'University':
+        field_of_interest = field_name or dept_name
+        topics = []
+    else:
+        field_of_interest = class_label
+        topics = []
+        for c in CATEGORY_CLASSES.get(cat_name, []):
+            if c['id'] == class_id:
+                topics = c.get('topics', [])
+                break
 
-    # Difficulty map
-    diff_map = {
-        'Beginner'    : 'Easy',
-        'Intermediate': 'Medium',
-        'Advanced'    : 'Hard'
-    }
-    difficulty = diff_map.get(skill_level, 'Easy')
+    diff_map   = {'Beginner': 'Easy', 'Intermediate': 'Medium', 'Advanced': 'Hard'}
+    difficulty = diff_map.get(level, 'Easy')
 
-    # Save to users table
-    execute_query(
-        """UPDATE users
-           SET field_of_interest = %s,
-               skill_level       = %s,
-               difficulty_level  = %s,
-               onboarding_done   = 1
-           WHERE id = %s""",
-        (field_label, skill_level, difficulty, user_id)
-    )
+    # Save
+    try:
+        execute_query(
+            """UPDATE users
+               SET education_category       = %s,
+                   educational_category_id  = %s,
+                   field_of_interest        = %s,
+                   skill_level              = %s,
+                   difficulty_level         = %s,
+                   department               = %s,
+                   university_department_id = %s,
+                   university_field_id      = %s,
+                   onboarding_done          = 1
+               WHERE id = %s""",
+            (cat_name, cat_id, field_of_interest, level, difficulty,
+             dept_name or None, dept_id or None, field_id or None, user_id)
+        )
+    except Exception as e:
+        # Fallback without new columns
+        execute_query(
+            """UPDATE users
+               SET field_of_interest = %s,
+                   skill_level       = %s,
+                   difficulty_level  = %s,
+                   onboarding_done   = 1
+               WHERE id = %s""",
+            (field_of_interest, level, difficulty, user_id)
+        )
 
-    # Seed topic_difficulty (NOT weak_topics)
-    for topic in field_topics:
+    # Seed topic_difficulty
+    for topic in topics:
         execute_query(
             """INSERT INTO topic_difficulty
                (user_id, topic, difficulty_level, last_score, attempts)
-               VALUES (%s, %s, %s, 0, 0)
-               ON DUPLICATE KEY UPDATE
-               difficulty_level = VALUES(difficulty_level)""",
+               VALUES (%s,%s,%s,0,0)
+               ON DUPLICATE KEY UPDATE difficulty_level=VALUES(difficulty_level)""",
             (user_id, topic, difficulty)
         )
 
-    # Update session
-    session['onboarding_done']   = 1
-    session['field_of_interest'] = field_label
-    session['skill_level']       = skill_level
+    session['onboarding_done']    = 1
+    session['education_category'] = cat_name
+    session['field_of_interest']  = field_of_interest
+    session['skill_level']        = level
 
     return jsonify({'success': True, 'redirect_url': '/dashboard'})
 
 
 # ============================================================
-# SKIP ONBOARDING
+# SKIP
 # ============================================================
 @onboarding_bp.route('/onboarding/skip', methods=['POST'])
 @login_required
 def skip():
-    user_id = session['user_id']
-    execute_query(
-        "UPDATE users SET onboarding_done=1 WHERE id=%s",
-        (user_id,)
-    )
+    execute_query("UPDATE users SET onboarding_done=1 WHERE id=%s", (session['user_id'],))
     session['onboarding_done'] = 1
     return jsonify({'success': True, 'redirect_url': '/dashboard'})
 
 
-# ============================================================
-# GET FIELD QUERIES (used by recommend.py)
-# ============================================================
+# ── Helper for recommend.py ───────────────────────────────
 def get_field_queries(field_label, skill_level):
-    """Return YouTube search queries for a field + skill level"""
-    queries  = FIELD_QUERY_MAP.get(field_label, [])
-    suffix_map = {
-        'Beginner'    : 'for beginners',
-        'Intermediate': 'intermediate',
-        'Advanced'    : 'advanced',
-    }
-    suffix = suffix_map.get(skill_level, 'for beginners')
-
-    result = []
-    for q in queries[:3]:
-        result.append(f"{q} {suffix}".strip())
-    return result
+    suffix = {'Beginner': 'beginners tutorial', 'Intermediate': 'intermediate',
+               'Advanced': 'advanced'}.get(skill_level, 'tutorial')
+    return [f"{field_label} {suffix}", f"{field_label} lecture", f"{field_label} course"]

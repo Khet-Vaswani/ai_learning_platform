@@ -1,170 +1,338 @@
-# ============================================================
-# moe_engine.py — Intelligent Adaptive Recommendation Engine
+# moe_engine.py — FIXED: Supports ALL educational categories
+# Now handles: Primary/Secondary/Matric/Intermediate/University
 # ============================================================
 
 import math
 from app.utils.db import execute_query
 
 
-# ── Field → Topics (BOTH id and label keys) ───────────────
+# ══════════════════════════════════════════════════════════
+# FIELD → TOPICS MAP (University fields)
+# ══════════════════════════════════════════════════════════
 FIELD_TOPICS = {
-    # ── IT ────────────────────────────────────────────────
-    'computer_science'       : ['Python Programming', 'Algorithms', 'Data Structures', 'Object Oriented Programming', 'Web Development'],
-    'Computer Science'       : ['Python Programming', 'Algorithms', 'Data Structures', 'Object Oriented Programming', 'Web Development'],
-    'data_science'           : ['Machine Learning', 'Data Analysis', 'Deep Learning', 'Statistics', 'Python for Data Science'],
-    'Data Science & AI'      : ['Machine Learning', 'Data Analysis', 'Deep Learning', 'Statistics', 'Python for Data Science'],
-    'web_development'        : ['HTML CSS', 'JavaScript', 'React', 'Flask Framework', 'Node.js'],
+    # ── Computer Science ──────────────────────────────────
+    'computer_science'       : ['Python Programming', 'Algorithms', 'Data Structures', 'OOP', 'Web Development'],
+    'Computer Science'       : ['Python Programming', 'Algorithms', 'Data Structures', 'OOP', 'Web Development'],
+    'Software Engineering'   : ['Software Engineering', 'System Design', 'Algorithms', 'Database Design', 'Web Development'],
+    'Data Science & AI'      : ['Machine Learning', 'Data Analysis', 'Deep Learning', 'Statistics', 'Python'],
     'Web Development'        : ['HTML CSS', 'JavaScript', 'React', 'Flask Framework', 'Node.js'],
-    'database'               : ['Database SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Database Design'],
     'Database & Backend'     : ['Database SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Database Design'],
-    'mobile_dev'             : ['React Native', 'Flutter', 'Android Development', 'iOS Development'],
     'Mobile Development'     : ['React Native', 'Flutter', 'Android Development', 'iOS Development'],
-    'cybersecurity'          : ['Network Security', 'Ethical Hacking', 'Cryptography', 'Cyber Forensics'],
     'Cybersecurity'          : ['Network Security', 'Ethical Hacking', 'Cryptography', 'Cyber Forensics'],
-    'cloud_devops'           : ['AWS', 'Docker', 'Linux', 'CI/CD', 'Kubernetes'],
     'Cloud & DevOps'         : ['AWS', 'Docker', 'Linux', 'CI/CD', 'Kubernetes'],
 
     # ── Business ──────────────────────────────────────────
-    'business_admin'         : ['Business Management', 'Marketing Strategy', 'Financial Management', 'Entrepreneurship', 'Business Analytics'],
-    'BBA / Business Admin'   : ['Business Management', 'Marketing Strategy', 'Financial Management', 'Entrepreneurship', 'Business Analytics'],
-    'Business Administration (BBA)' : ['Business Management', 'Marketing Strategy', 'Financial Management', 'Entrepreneurship', 'Business Analytics'],
-    'accounting'             : ['Financial Accounting', 'Managerial Accounting', 'Taxation', 'Auditing', 'Cost Accounting'],
-    'Accounting & Finance'   : ['Financial Accounting', 'Managerial Accounting', 'Taxation', 'Auditing', 'Cost Accounting'],
-    'marketing'              : ['Digital Marketing', 'Brand Management', 'Sales Strategy', 'Market Research', 'Social Media Marketing'],
-    'Marketing & Sales'      : ['Digital Marketing', 'Brand Management', 'Sales Strategy', 'Market Research', 'Social Media Marketing'],
-    'hr_management'          : ['HR Management', 'Recruitment', 'Employee Relations', 'Training and Development', 'Performance Management'],
-    'Human Resources'        : ['HR Management', 'Recruitment', 'Employee Relations', 'Training and Development', 'Performance Management'],
+    'BBA / Business Admin'   : ['Business Management', 'Marketing Strategy', 'Financial Management', 'Entrepreneurship'],
+    'Marketing'              : ['Digital Marketing', 'Brand Management', 'Sales Strategy', 'Market Research'],
+    'Finance & Accounting'   : ['Financial Accounting', 'Managerial Accounting', 'Taxation', 'Auditing'],
+    'Human Resources'        : ['HR Management', 'Recruitment', 'Employee Relations', 'Training and Development'],
+    'International Business' : ['International Trade', 'Global Supply Chain', 'Trade Agreements', 'Export Import'],
+    'Entrepreneurship'       : ['Startup Strategy', 'Business Planning', 'Funding', 'Innovation Management'],
 
     # ── Law ───────────────────────────────────────────────
-    'law'                    : ['Constitutional Law', 'Criminal Law', 'Contract Law', 'International Law', 'Legal Research'],
-    'Law & Legal Studies'    : ['Constitutional Law', 'Criminal Law', 'Contract Law', 'International Law', 'Legal Research'],
-    'criminal_justice'       : ['Criminal Justice System', 'Forensic Science', 'Law Enforcement', 'Criminology', 'Corrections'],
-    'Criminal Justice'       : ['Criminal Justice System', 'Forensic Science', 'Law Enforcement', 'Criminology', 'Corrections'],
+    'Law & Legal Studies'    : ['Constitutional Law', 'Criminal Law', 'Contract Law', 'International Law'],
+    'Constitutional Law'     : ['Constitutional Law', 'Human Rights', 'Administrative Law', 'Federal System'],
+    'Criminal Law'           : ['Criminal Law', 'Criminal Procedure', 'Evidence Law', 'Criminology'],
+    'Civil Law'              : ['Contract Law', 'Property Law', 'Tort Law', 'Civil Procedure'],
+    'International Law'      : ['International Law', 'Treaties', 'Diplomacy', 'Trade Law'],
+    'Corporate Law'          : ['Corporate Law', 'Company Law', 'Securities Law', 'Business Contracts'],
 
-    # ── CSS/PMS ───────────────────────────────────────────
-    'css_exam'               : ['Pakistan Affairs', 'Islamic Studies', 'Current Affairs', 'Essay Writing', 'General Knowledge'],
-    'CSS / PMS Exam Prep'    : ['Pakistan Affairs', 'Islamic Studies', 'Current Affairs', 'Essay Writing', 'General Knowledge'],
+    # ── Medicine ──────────────────────────────────────────
+    'MBBS / Medicine'        : ['Anatomy', 'Physiology', 'Pharmacology', 'Clinical Medicine', 'Pathology'],
+    'Nursing'                : ['Nursing Fundamentals', 'Medical-Surgical Nursing', 'Patient Care', 'Pediatric Nursing'],
+    'Pharmacy'               : ['Pharmaceutical Chemistry', 'Pharmacology', 'Clinical Pharmacy', 'Drug Interactions'],
+    'Dentistry'              : ['Dental Science', 'Oral Surgery', 'Prosthodontics', 'Orthodontics'],
+    'Public Health'          : ['Epidemiology', 'Biostatistics', 'Environmental Health', 'Health Promotion'],
+    'Physiotherapy'          : ['Physiotherapy Principles', 'Rehabilitation', 'Therapeutic Exercises'],
 
     # ── Social Sciences ───────────────────────────────────
-    'political_science'      : ['Political Theory', 'International Relations', 'Public Policy', 'Comparative Politics'],
-    'Political Science'      : ['Political Theory', 'International Relations', 'Public Policy', 'Comparative Politics'],
-    'psychology'             : ['Clinical Psychology', 'Cognitive Psychology', 'Developmental Psychology', 'Social Psychology'],
     'Psychology'             : ['Clinical Psychology', 'Cognitive Psychology', 'Developmental Psychology', 'Social Psychology'],
-    'sociology'              : ['Social Theory', 'Criminology', 'Urban Sociology', 'Social Research'],
     'Sociology'              : ['Social Theory', 'Criminology', 'Urban Sociology', 'Social Research'],
-    'economics'              : ['Microeconomics', 'Macroeconomics', 'International Economics', 'Development Economics'],
-    'Economics'              : ['Microeconomics', 'Macroeconomics', 'International Economics', 'Development Economics'],
+    'Political Science'      : ['Political Theory', 'International Relations', 'Public Policy', 'Comparative Politics'],
+    'International Relations': ['International Relations', 'Foreign Policy', 'Geopolitics', 'Diplomacy'],
+    'Social Work'            : ['Social Work Practice', 'Community Development', 'Counseling'],
 
-    # ── Science ───────────────────────────────────────────
-    'engineering'            : ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Thermodynamics'],
-    'Engineering'            : ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Thermodynamics'],
-    'mathematics'            : ['Calculus', 'Linear Algebra', 'Statistics', 'Discrete Mathematics', 'Probability'],
-    'Mathematics'            : ['Calculus', 'Linear Algebra', 'Statistics', 'Discrete Mathematics', 'Probability'],
-    'physics'                : ['Classical Physics', 'Quantum Physics', 'Thermodynamics', 'Electromagnetism'],
+    # ── Natural Sciences ──────────────────────────────────
     'Physics'                : ['Classical Physics', 'Quantum Physics', 'Thermodynamics', 'Electromagnetism'],
-    'chemistry'              : ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
     'Chemistry'              : ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
-    'biology'                : ['Molecular Biology', 'Genetics', 'Ecology', 'Microbiology'],
     'Biology'                : ['Molecular Biology', 'Genetics', 'Ecology', 'Microbiology'],
+    'Mathematics'            : ['Calculus', 'Linear Algebra', 'Statistics', 'Discrete Mathematics'],
+    'Environmental Science'  : ['Environmental Science', 'Ecology', 'Climate Science', 'Sustainability'],
 
-    # ── Health ────────────────────────────────────────────
-    'medicine'               : ['Anatomy', 'Physiology', 'Pharmacology', 'Clinical Medicine', 'Pathology'],
-    'Medicine & Healthcare'  : ['Anatomy', 'Physiology', 'Pharmacology', 'Clinical Medicine', 'Pathology'],
-    'nursing'                : ['Nursing Fundamentals', 'Medical-Surgical Nursing', 'Pediatric Nursing', 'Mental Health Nursing'],
-    'Nursing'                : ['Nursing Fundamentals', 'Medical-Surgical Nursing', 'Pediatric Nursing', 'Mental Health Nursing'],
-    'pharmacy'               : ['Pharmaceutical Chemistry', 'Pharmacology', 'Clinical Pharmacy', 'Pharmacy Practice'],
-    'Pharmacy'               : ['Pharmaceutical Chemistry', 'Pharmacology', 'Clinical Pharmacy', 'Pharmacy Practice'],
+    # ── Engineering ───────────────────────────────────────
+    'Mechanical Engineering' : ['Thermodynamics', 'Fluid Mechanics', 'Machine Design', 'Materials Science'],
+    'Electrical Engineering' : ['Circuit Theory', 'Power Systems', 'Electronics', 'Signal Processing'],
+    'Civil Engineering'      : ['Structural Design', 'Concrete Design', 'Soil Mechanics', 'Infrastructure'],
+    'Chemical Engineering'   : ['Chemical Processes', 'Fluid Mechanics', 'Heat Transfer', 'Process Design'],
+    'Aerospace Engineering'  : ['Aerodynamics', 'Aircraft Design', 'Propulsion', 'Flight Mechanics'],
+    'Biomedical Engineering' : ['Biomedical Devices', 'Biomaterials', 'Medical Imaging', 'Rehabilitation'],
 
-    # ── Arts ──────────────────────────────────────────────
-    'english_literature'     : ['American Literature', 'British Literature', 'World Literature', 'Literary Theory'],
-    'English Literature'     : ['American Literature', 'British Literature', 'World Literature', 'Literary Theory'],
-    'history'                : ['World History', 'Pakistani History', 'European History', 'Asian History'],
+    # ── Arts & Humanities ─────────────────────────────────
+    'English Literature'     : ['American Literature', 'British Literature', 'Literary Theory', 'Poetry Analysis'],
     'History'                : ['World History', 'Pakistani History', 'European History', 'Asian History'],
-    'philosophy'             : ['Western Philosophy', 'Eastern Philosophy', 'Ethics', 'Logic'],
     'Philosophy'             : ['Western Philosophy', 'Eastern Philosophy', 'Ethics', 'Logic'],
-    'art_design'             : ['Visual Arts', 'Graphic Design', 'Art History', 'Digital Art'],
-    'Art & Design'           : ['Visual Arts', 'Graphic Design', 'Art History', 'Digital Art'],
-
-    # ── Education / Media ─────────────────────────────────
-    'education'              : ['Educational Psychology', 'Curriculum Development', 'Teaching Methods', 'Educational Technology'],
-    'Education'              : ['Educational Psychology', 'Curriculum Development', 'Teaching Methods', 'Educational Technology'],
-    'journalism'             : ['News Writing', 'Broadcast Journalism', 'Digital Media', 'Media Ethics'],
     'Journalism & Media'     : ['News Writing', 'Broadcast Journalism', 'Digital Media', 'Media Ethics'],
-    'hospitality'            : ['Hotel Management', 'Tourism Management', 'Event Planning', 'Food and Beverage'],
-    'Hospitality & Tourism'  : ['Hotel Management', 'Tourism Management', 'Event Planning', 'Food and Beverage'],
+    'Art & Design'           : ['Visual Arts', 'Graphic Design', 'Digital Art', 'Art History'],
+    'Islamic Studies'        : ['Quran Studies', 'Hadith', 'Islamic History', 'Fiqh', 'Islamic Philosophy'],
 
-    # ── Design ────────────────────────────────────────────
-    'design'                 : ['Figma', 'UI Design', 'UX Research', 'Graphic Design', 'Prototyping'],
-    'UI/UX Design'           : ['Figma', 'UI Design', 'UX Research', 'Graphic Design', 'Prototyping'],
+    # ── Education ─────────────────────────────────────────
+    'Education / Teaching'   : ['Educational Psychology', 'Curriculum Development', 'Teaching Methods', 'Assessment'],
+    'Educational Psychology' : ['Learning Theories', 'Behavioral Psychology', 'Cognitive Development'],
+    'Curriculum Design'      : ['Curriculum Design', 'Instructional Design', 'Assessment Methods'],
+
+    # ── Economics ─────────────────────────────────────────
+    'Economics'              : ['Microeconomics', 'Macroeconomics', 'International Economics', 'Economic Policy'],
+    'Development Economics'  : ['Development Economics', 'Poverty Studies', 'Economic Policy', 'Growth Theory'],
+    'Islamic Economics'      : ['Islamic Finance', 'Zakat', 'Islamic Banking', 'Halal Economics'],
+}
+
+
+# ══════════════════════════════════════════════════════════
+# CLASS → TOPICS MAP (School/College levels)
+# ══════════════════════════════════════════════════════════
+CLASS_TOPICS = {
+    # Primary
+    'class_1' : ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge'],
+    'class_2' : ['English Class 2', 'Urdu Class 2', 'Maths Class 2', 'Science Class 2'],
+    'class_3' : ['English Class 3', 'Urdu Class 3', 'Maths Class 3', 'Science Class 3'],
+    'class_4' : ['English Class 4', 'Urdu Class 4', 'Maths Class 4', 'Social Studies'],
+    'class_5' : ['English Class 5', 'Urdu Class 5', 'Maths Class 5', 'Science Class 5'],
+
+    # Secondary
+    'class_6' : ['English Class 6', 'Mathematics Class 6', 'General Science', 'Islamiat', 'Urdu'],
+    'class_7' : ['English Class 7', 'Mathematics Class 7', 'General Science', 'History', 'Urdu'],
+    'class_8' : ['English Class 8', 'Mathematics Class 8', 'Science Class 8', 'Pakistan Studies', 'Urdu'],
+
+    # Matriculation
+    'class_9_sci'  : ['Physics Class 9', 'Chemistry Class 9', 'Biology Class 9', 'Mathematics Class 9'],
+    'class_10_sci' : ['Physics Class 10', 'Chemistry Class 10', 'Biology Class 10', 'Mathematics Class 10'],
+    'class_9_arts' : ['General Math', 'Urdu', 'English', 'Pakistan Studies', 'Islamiat'],
+    'class_10_arts': ['General Math', 'Urdu', 'English', 'Pakistan Studies', 'Civics'],
+    'class_9_com'  : ['Principles of Accounting', 'Commercial Geography', 'Urdu', 'English'],
+    'class_10_com' : ['Principles of Accounting', 'Principles of Commerce', 'Urdu', 'English'],
+
+    # Intermediate
+    'pre_med' : ['Biology FSc', 'Chemistry FSc', 'Physics FSc', 'English FSc'],
+    'pre_eng' : ['Mathematics FSc', 'Physics FSc', 'Chemistry FSc', 'English FSc'],
+    'ics'     : ['Computer Science ICS', 'Mathematics ICS', 'Physics ICS'],
+    'icom'    : ['Accounting ICom', 'Business Mathematics', 'Economics', 'English'],
+    'fa'      : ['Urdu FA', 'English FA', 'Islamic Studies', 'History', 'Civics'],
+
+    # Professional/Competitive
+    'css_pms'   : ['Pakistan Affairs', 'Current Affairs', 'Islamiat', 'English Essay', 'General Knowledge'],
+    'mdcat'     : ['Biology MDCAT', 'Chemistry MDCAT', 'Physics MDCAT', 'English MDCAT'],
+    'ecat'      : ['Mathematics ECAT', 'Physics ECAT', 'Chemistry ECAT'],
+    'nts_gat'   : ['Verbal Reasoning', 'Quantitative Reasoning', 'Analytical Reasoning'],
+    'ielts'     : ['IELTS Reading', 'IELTS Writing', 'IELTS Listening', 'IELTS Speaking'],
+    'ppsc_fpsc' : ['General Knowledge', 'Pakistan Studies', 'Islamic Studies', 'Current Affairs'],
+}
+
+
+# ══════════════════════════════════════════════════════════
+# SEARCH QUERY MAP — for YouTube searches
+# ══════════════════════════════════════════════════════════
+TOPIC_SEARCH_QUERIES = {
+    # Primary
+    'English Basics'          : 'English basics for kids class 1',
+    'Urdu Basics'             : 'Urdu basics class 1 for kids',
+    'Maths Class 1'           : 'basic maths class 1 addition subtraction',
+    'General Knowledge'       : 'general knowledge for kids primary school',
+    'English Class 2'         : 'English class 2 grammar basics',
+    'Mathematics Class 6'     : 'Mathematics class 6 Pakistan curriculum',
+    'General Science'         : 'General science class 6 Pakistan',
+    'Physics Class 9'         : 'Physics class 9 Pakistan lecture',
+    'Chemistry Class 9'       : 'Chemistry class 9 Pakistan tutorial',
+    'Biology Class 9'         : 'Biology class 9 Pakistan tutorial',
+    'Mathematics Class 9'     : 'Mathematics class 9 algebra geometry',
+    'Biology FSc'             : 'FSc Biology Part 1 lecture',
+    'Chemistry FSc'           : 'FSc Chemistry Part 1 tutorial',
+    'Physics FSc'             : 'FSc Physics mechanics tutorial',
+    'Mathematics FSc'         : 'FSc Mathematics calculus tutorial',
+    'Computer Science ICS'    : 'ICS Computer Science programming tutorial',
+    'Accounting ICom'         : 'ICom Accounting principles tutorial',
+    'Pakistan Affairs'        : 'Pakistan affairs CSS preparation',
+    'Current Affairs'         : 'current affairs Pakistan 2024',
+    'Biology MDCAT'           : 'MDCAT Biology preparation',
+    'IELTS Reading'           : 'IELTS reading skills practice',
+}
+
+
+# ══════════════════════════════════════════════════════════
+# CATEGORY → GENERIC SEARCH (fallback)
+# ══════════════════════════════════════════════════════════
+CATEGORY_SEARCH = {
+    'Primary'      : 'educational videos for kids primary school',
+    'Secondary'    : 'middle school education Pakistan curriculum',
+    'Matriculation': 'matric class Pakistan science arts',
+    'Intermediate' : 'FSc intermediate Pakistan lecture',
+    'University'   : 'university education lecture tutorial',
+    'Professional' : 'competitive exam preparation Pakistan',
 }
 
 
 def get_topics_for_field(field):
     """
-    Resolve topics for any field label or id.
-    Tries exact match first, then case-insensitive,
-    then partial match — never falls through to IT topics.
+    Get topics for any field_of_interest value.
+    Handles:
+    - University fields: "Python Programming", "Constitutional Law", etc.
+    - Class labels: "Class 9 — Science", "Pre-Medical (FSc)", etc.
+    - Class IDs: "class_9_sci", "pre_med", etc.
+    - Category names: "Primary", "Secondary", etc.
+    Never returns empty for known categories.
     """
     if not field:
-        return []
+        return _get_general_topics()
 
-    # 1. Exact match
+    # 1. Exact match in FIELD_TOPICS (university)
     if field in FIELD_TOPICS:
         return FIELD_TOPICS[field]
 
-    # 2. Case-insensitive exact match
+    # 2. Exact match in CLASS_TOPICS (school/college)
+    if field in CLASS_TOPICS:
+        return CLASS_TOPICS[field]
+
     field_lower = field.lower().strip()
+
+    # 3. Case-insensitive match in FIELD_TOPICS
     for key, topics in FIELD_TOPICS.items():
         if key.lower().strip() == field_lower:
             return topics
 
-    # 3. Partial match (field label contains a known key or vice versa)
+    # 4. Case-insensitive match in CLASS_TOPICS
+    for key, topics in CLASS_TOPICS.items():
+        if key.lower().strip() == field_lower:
+            return topics
+
+    # 5. Parse "Category - Class Label" format (saved by onboarding)
+    #    e.g. "Primary - Class 5", "Matriculation - Class 9 — Science"
+    if ' - ' in field:
+        parts    = field.split(' - ', 1)
+        cat      = parts[0].strip()
+        cls_label = parts[1].strip()
+
+        # Try to find matching class in CLASS_TOPICS by label
+        for key, topics in CLASS_TOPICS.items():
+            # Match by key substring or by known label patterns
+            if _label_matches_key(cls_label, key):
+                return topics
+
+        # Fallback to category generic topics
+        return _category_fallback_topics(cat)
+
+    # 6. Partial match in FIELD_TOPICS
     for key, topics in FIELD_TOPICS.items():
         if field_lower in key.lower() or key.lower() in field_lower:
             return topics
 
-    # 4. Return empty — do NOT fallback to IT topics
-    print(f"⚠️ No topics found for field: '{field}'")
-    return []
+    # 7. Partial match in CLASS_TOPICS
+    for key, topics in CLASS_TOPICS.items():
+        if field_lower in key.lower() or key.lower() in field_lower:
+            return topics
+
+    # 8. Category name fallback
+    return _category_fallback_topics(field)
 
 
-# ── Learning path ─────────────────────────────────────────
+def _label_matches_key(label, key):
+    """Match class label to CLASS_TOPICS key."""
+    label_l = label.lower()
+    key_l   = key.lower()
+    mappings = {
+        'class 1': 'class_1', 'class 2': 'class_2', 'class 3': 'class_3',
+        'class 4': 'class_4', 'class 5': 'class_5', 'class 6': 'class_6',
+        'class 7': 'class_7', 'class 8': 'class_8',
+        'class 9': 'class_9', 'class 10': 'class_10',
+        'science': 'sci', 'arts': 'arts', 'commerce': 'com',
+        'pre-medical': 'pre_med', 'pre-engineering': 'pre_eng',
+        'ics': 'ics', 'icom': 'icom', 'fa': 'fa',
+        'css': 'css_pms', 'mdcat': 'mdcat', 'ecat': 'ecat',
+    }
+    for lbl, k in mappings.items():
+        if lbl in label_l and k in key_l:
+            return True
+    return False
+
+
+def _category_fallback_topics(category):
+    """Return generic topics for a broad category."""
+    cat_lower = category.lower()
+    if 'primary' in cat_lower:
+        return ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge', 'Science Basics']
+    elif 'secondary' in cat_lower:
+        return ['English Class 6', 'Mathematics Class 6', 'General Science', 'Islamiat', 'Pakistan Studies']
+    elif 'matric' in cat_lower:
+        return ['Physics Class 9', 'Chemistry Class 9', 'Biology Class 9', 'Mathematics Class 9', 'English']
+    elif 'intermediate' in cat_lower or 'fsc' in cat_lower:
+        return ['Biology FSc', 'Chemistry FSc', 'Physics FSc', 'Mathematics FSc', 'English FSc']
+    elif 'university' in cat_lower:
+        return ['Python Programming', 'Data Structures', 'Algorithms', 'Web Development', 'Database Design']
+    elif 'professional' in cat_lower or 'css' in cat_lower:
+        return ['Pakistan Affairs', 'Current Affairs', 'Islamiat', 'English Essay', 'General Knowledge']
+    else:
+        return _get_general_topics()
+
+
+def _get_general_topics():
+    return ['English Language', 'Mathematics', 'Science Basics', 'General Knowledge', 'Pakistan Studies']
+
+
+def get_search_query_for_topic(topic, skill_level='Beginner'):
+    """Build YouTube search query for a topic."""
+    # Check custom query map first
+    if topic in TOPIC_SEARCH_QUERIES:
+        base = TOPIC_SEARCH_QUERIES[topic]
+    else:
+        base = topic
+
+    suffix_map = {
+        'Beginner'    : 'beginners tutorial',
+        'Intermediate': 'intermediate level',
+        'Advanced'    : 'advanced concepts',
+        'Easy'        : 'beginners tutorial',
+        'Medium'      : 'intermediate level',
+        'Hard'        : 'advanced concepts',
+    }
+    suffix = suffix_map.get(skill_level, 'tutorial')
+    return f"{base} {suffix}"
+
+
+# ══════════════════════════════════════════════════════════
+# LEARNING PATH
+# ══════════════════════════════════════════════════════════
 TOPIC_PATH = {
-    'Python Programming'             : 'Object Oriented Programming',
-    'Object Oriented Programming'    : 'Data Structures',
-    'Data Structures'                : 'Algorithms',
-    'Algorithms'                     : 'Web Development',
-    'HTML CSS'                       : 'JavaScript',
-    'JavaScript'                     : 'React',
-    'React'                          : 'Node.js',
-    'Node.js'                        : 'Database SQL',
-    'Machine Learning'               : 'Deep Learning',
-    'Deep Learning'                  : 'Neural Networks',
-    'Data Analysis'                  : 'Machine Learning',
-    'Statistics'                     : 'Data Analysis',
-    'Database SQL'                   : 'MySQL',
-    'MySQL'                          : 'PostgreSQL',
-    'Network Security'               : 'Ethical Hacking',
-    'Ethical Hacking'                : 'Cryptography',
-    'Calculus'                       : 'Linear Algebra',
-    'Linear Algebra'                 : 'Statistics',
-    'Business Management'            : 'Marketing Strategy',
-    'Marketing Strategy'             : 'Financial Management',
-    'Financial Accounting'           : 'Managerial Accounting',
-    'Constitutional Law'             : 'Criminal Law',
-    'Criminal Law'                   : 'Contract Law',
-    'Pakistan Affairs'               : 'Current Affairs',
-    'Current Affairs'                : 'Essay Writing',
-    'Microeconomics'                 : 'Macroeconomics',
-    'Anatomy'                        : 'Physiology',
-    'Physiology'                     : 'Pharmacology',
-    'Political Theory'               : 'International Relations',
-    'Clinical Psychology'            : 'Cognitive Psychology',
-    'Mechanical Engineering'         : 'Electrical Engineering',
-    'Figma'                          : 'UI Design',
-    'UI Design'                      : 'UX Research',
+    'Python Programming'      : 'Object Oriented Programming',
+    'Object Oriented Programming': 'Data Structures',
+    'Data Structures'         : 'Algorithms',
+    'Algorithms'              : 'Web Development',
+    'HTML CSS'                : 'JavaScript',
+    'JavaScript'              : 'React',
+    'React'                   : 'Node.js',
+    'Node.js'                 : 'Database SQL',
+    'Machine Learning'        : 'Deep Learning',
+    'Data Analysis'           : 'Machine Learning',
+    'Statistics'              : 'Data Analysis',
+    'Calculus'                : 'Linear Algebra',
+    'Linear Algebra'          : 'Statistics',
+    'Business Management'     : 'Marketing Strategy',
+    'Marketing Strategy'      : 'Financial Management',
+    'Financial Accounting'    : 'Managerial Accounting',
+    'Constitutional Law'      : 'Criminal Law',
+    'Criminal Law'            : 'Contract Law',
+    'Pakistan Affairs'        : 'Current Affairs',
+    'Current Affairs'         : 'Essay Writing',
+    'Anatomy'                 : 'Physiology',
+    'Physiology'              : 'Pharmacology',
+    'Political Theory'        : 'International Relations',
+    'Clinical Psychology'     : 'Cognitive Psychology',
+    'Mechanical Engineering'  : 'Electrical Engineering',
+    # School progression
+    'Physics Class 9'         : 'Physics Class 10',
+    'Chemistry Class 9'       : 'Chemistry Class 10',
+    'Biology Class 9'         : 'Biology Class 10',
+    'Mathematics Class 9'     : 'Mathematics Class 10',
+    'English Class 6'         : 'English Class 7',
+    'Mathematics Class 6'     : 'Mathematics Class 7',
 }
-
 
 LEVEL_SUFFIX = {
     'Beginner'    : 'complete beginners tutorial step by step',
@@ -176,9 +344,9 @@ LEVEL_SUFFIX = {
 }
 
 
-# ============================================================
+# ══════════════════════════════════════════════════════════
 # ATTENTION ROUTER
-# ============================================================
+# ══════════════════════════════════════════════════════════
 class AttentionRouter:
 
     def __init__(self, student_context):
@@ -187,23 +355,18 @@ class AttentionRouter:
     def _softmax(self, scores):
         if all(s == 0 for s in scores):
             n = len(scores)
-            return [1.0/n for _ in scores]
+            return [1.0 / n for _ in scores]
         max_s = max(scores)
         exp_s = [math.exp(s - max_s) for s in scores]
         total = sum(exp_s)
         return [e / total for e in exp_s]
 
     def compute_weights(self):
-        ctx      = self.context
-        is_new   = ctx.get('is_new_user', False)
+        ctx    = self.context
+        is_new = ctx.get('is_new_user', False)
 
-        # New user — preference expert takes over completely
         if is_new:
-            return {
-                'weak_topic' : 0.05,
-                'performance': 0.05,
-                'history'    : 0.90,
-            }
+            return {'weak_topic': 0.05, 'performance': 0.05, 'history': 0.90}
 
         weak_signal  = min(ctx['weak_count']  * 0.3,  1.0)
         quiz_signal  = min(ctx['quiz_count']  * 0.1,  1.0)
@@ -214,8 +377,8 @@ class AttentionRouter:
         k_perf = quiz_signal * 0.5 + avg_perf * 0.3 + weak_signal * 0.2
         k_hist = watch_signal * 0.5 + (1 - watch_signal) * 0.3 + (1 - weak_signal) * 0.2
 
-        d_k     = math.sqrt(3)
-        raw     = [
+        d_k    = math.sqrt(3)
+        raw    = [
             (weak_signal  * k_weak) / d_k,
             (quiz_signal  * k_perf) / d_k,
             (watch_signal * k_hist) / d_k,
@@ -228,9 +391,9 @@ class AttentionRouter:
         }
 
 
-# ============================================================
-# TRANSFORMER MOE
-# ============================================================
+# ══════════════════════════════════════════════════════════
+# TRANSFORMER MOE ENGINE
+# ══════════════════════════════════════════════════════════
 class TransformerMoE:
 
     def __init__(self, user_id):
@@ -240,33 +403,39 @@ class TransformerMoE:
         self.router  = AttentionRouter(self.context)
         self.weights = self.router.compute_weights()
 
-        state = 'NEW USER' if self.context['is_new_user'] else 'RETURNING'
+        state = 'NEW' if self.context['is_new_user'] else 'RETURNING'
         print(f"\n🤖 MoE [{state}] user={user_id} "
               f"field='{self.data['field']}' "
+              f"cat='{self.data['education_category']}' "
               f"weak={self.context['weak_count']} "
               f"quiz={self.context['quiz_count']} "
               f"watched={self.context['watch_count']} "
               f"avg={self.context['avg_score']}%")
-        print(f"   Weights: weak={self.weights['weak_topic']:.3f} "
-              f"perf={self.weights['performance']:.3f} "
-              f"pref={self.weights['history']:.3f}")
 
-    # ── Load student data ──────────────────────────────────
     def _load_student_data(self):
         user_row = execute_query(
-            """SELECT field_of_interest, skill_level, onboarding_done
+            """SELECT field_of_interest, skill_level, onboarding_done,
+                      education_category, learning_level
                FROM users WHERE id=%s""",
             (self.user_id,), fetch=True
         )
 
-        field     = user_row[0]['field_of_interest'] if user_row else None
-        skill_lvl = (user_row[0]['skill_level'] or 'Beginner') if user_row else 'Beginner'
+        field      = ''
+        skill_lvl  = 'Beginner'
+        edu_cat    = ''
 
-        # Use robust resolver — never falls back to IT
+        if user_row:
+            field     = user_row[0]['field_of_interest'] or ''
+            skill_lvl = user_row[0]['skill_level'] or user_row[0].get('learning_level') or 'Beginner'
+            edu_cat   = user_row[0].get('education_category') or ''
+
+        # Get topics — tries field first, then category
         preferred_topics = get_topics_for_field(field)
-        print(f"   Field resolved: '{field}' → {preferred_topics}")
+        if not preferred_topics and edu_cat:
+            preferred_topics = _category_fallback_topics(edu_cat)
 
-        # Weak topics (real failures only)
+        print(f"   Field: '{field}' → {len(preferred_topics)} topics")
+
         weak = execute_query(
             """SELECT topic, fail_count FROM weak_topics
                WHERE user_id=%s AND fail_count > 0
@@ -274,51 +443,45 @@ class TransformerMoE:
             (self.user_id,), fetch=True
         ) or []
 
-        # Quiz performance
         performance = execute_query(
             """SELECT topic,
                       ROUND(AVG(score/total*100), 1) as avg_score,
-                      COUNT(*) as attempts,
-                      MAX(ROUND(score/total*100, 1)) as best_score,
-                      MIN(ROUND(score/total*100, 1)) as worst_score
+                      COUNT(*) as attempts
                FROM video_quizzes
                WHERE user_id=%s AND attempted=1 AND total>0
                GROUP BY topic ORDER BY avg_score ASC""",
             (self.user_id,), fetch=True
         ) or []
 
-        # Watch history
         watched = execute_query(
             "SELECT DISTINCT video_id, topic FROM watched_videos WHERE user_id=%s",
             (self.user_id,), fetch=True
         ) or []
 
-        # Learning curves
         curves = execute_query(
             """SELECT topic, curve_stage, current_score,
-                      predicted_next, difficulty_level, learning_rate
+                      predicted_next, difficulty_level
                FROM learning_curves WHERE user_id=%s""",
             (self.user_id,), fetch=True
         ) or []
 
-        # Avg score
         avg = execute_query(
             """SELECT ROUND(AVG(score/total*100), 1) as avg
-               FROM video_quizzes
-               WHERE user_id=%s AND attempted=1 AND total>0""",
+               FROM video_quizzes WHERE user_id=%s AND attempted=1 AND total>0""",
             (self.user_id,), fetch=True
         )
         avg_score = float(avg[0]['avg'] or 0) if avg else 0.0
 
         return {
-            'weak'            : weak,
-            'performance'     : performance,
-            'watched'         : watched,
-            'curves'          : curves,
-            'avg_score'       : avg_score,
-            'field'           : field,
-            'skill_level'     : skill_lvl,
-            'preferred_topics': preferred_topics,
+            'weak'               : weak,
+            'performance'        : performance,
+            'watched'            : watched,
+            'curves'             : curves,
+            'avg_score'          : avg_score,
+            'field'              : field,
+            'skill_level'        : skill_lvl,
+            'education_category' : edu_cat,
+            'preferred_topics'   : preferred_topics,
         }
 
     def _build_context(self):
@@ -328,7 +491,6 @@ class TransformerMoE:
             'quiz_count' : len(d['performance']),
             'watch_count': len(d['watched']),
             'avg_score'  : d['avg_score'],
-            # New user = no watch history AND no quiz attempts
             'is_new_user': len(d['watched']) == 0 and len(d['performance']) == 0,
         }
 
@@ -338,47 +500,39 @@ class TransformerMoE:
         weak    = self.data['weak']
         curves  = {c['topic']: c for c in self.data['curves']}
 
-        # Only triggers after quizzes attempted
         if self.context['quiz_count'] == 0 or not weak:
             return queries
 
         for wt in weak[:5]:
             topic      = wt['topic']
-            fail_count = wt['fail_count']
-
-            topic_perf = next(
-                (p for p in self.data['performance'] if p['topic'] == topic),
-                None
-            )
-            avg   = float(topic_perf['avg_score']) if topic_perf else 0.0
-            curve = curves.get(topic)
-            stage = curve['curve_stage'] if curve else ''
+            topic_perf = next((p for p in self.data['performance'] if p['topic'] == topic), None)
+            avg        = float(topic_perf['avg_score']) if topic_perf else 0.0
+            curve      = curves.get(topic)
+            stage      = curve['curve_stage'] if curve else ''
 
             if avg < 30 or stage == 'Struggling':
-                base  = 1.0
-                query = f"{topic} absolute beginners complete guide from zero"
-                reason= f"🔴 Very weak in {topic} ({avg:.0f}%) — back to basics"
+                base   = 1.0
+                query  = get_search_query_for_topic(topic, 'Beginner')
+                reason = f"🔴 Very weak in {topic} ({avg:.0f}%) — back to basics"
             elif avg < 50:
-                base  = 0.85
-                query = f"{topic} basics explained simply step by step"
-                reason= f"⚠️ Struggling in {topic} ({avg:.0f}%) — need basics"
+                base   = 0.85
+                query  = f"{topic} basics explained simply step by step"
+                reason = f"⚠️ Struggling in {topic} ({avg:.0f}%)"
             else:
-                base  = 0.70
-                query = f"{topic} practice exercises solved examples"
-                reason= f"📊 Below average in {topic} ({avg:.0f}%) — more practice"
+                base   = 0.70
+                query  = f"{topic} practice exercises solved examples"
+                reason = f"📊 Need more practice in {topic} ({avg:.0f}%)"
 
-            final = round(base * self.weights['weak_topic'], 4)
             queries.append({
                 'query'       : query,
                 'topic'       : topic,
                 'expert'      : 'weak_topic',
                 'expert_score': base,
-                'final_score' : final,
+                'final_score' : round(base * self.weights['weak_topic'], 4),
                 'reason'      : reason,
                 'priority'    : 'high',
                 'weight_used' : round(self.weights['weak_topic'], 3),
             })
-
         return queries
 
     # ── Expert 2: Performance ──────────────────────────────
@@ -399,55 +553,50 @@ class TransformerMoE:
             stage    = curve['curve_stage'] if curve else ''
 
             if avg >= 75 or stage == 'Mastery':
-                # STRONG → advance + unlock next topic
                 expert_score = 0.85
-                query        = f"{topic} advanced expert techniques projects"
+                query        = f"{topic} advanced expert techniques"
                 reason       = f"🏆 Strong in {topic} ({avg:.0f}%) — advancing!"
-
-                next_t = TOPIC_PATH.get(topic)
+                next_t       = TOPIC_PATH.get(topic)
                 if next_t:
                     suffix = LEVEL_SUFFIX.get(skill_lvl, 'tutorial')
                     queries.append({
-                        'query'       : f"{next_t} introduction {suffix}",
+                        'query'       : f"{next_t} {suffix}",
                         'topic'       : next_t,
                         'expert'      : 'performance',
                         'expert_score': 0.80,
                         'final_score' : round(0.80 * self.weights['performance'], 4),
-                        'reason'      : f"➡️ Unlock next: {next_t}",
+                        'reason'      : f"➡️ Next up: {next_t}",
                         'priority'    : 'high',
                         'weight_used' : round(self.weights['performance'], 3),
                         'curve_stage' : stage,
                     })
-
             elif avg >= 60:
                 expert_score = 0.65
-                query        = f"{topic} intermediate deep dive concepts"
+                query        = f"{topic} intermediate concepts"
                 reason       = f"📈 Progressing in {topic} ({avg:.0f}%)"
             elif avg >= 40:
                 expert_score = 0.80
-                query        = f"{topic} practice problems step by step solutions"
+                query        = f"{topic} practice problems step by step"
                 reason       = f"📊 Need practice in {topic} ({avg:.0f}%)"
             else:
                 expert_score = 0.95
-                query        = f"{topic} fundamentals basics beginners easy"
+                query        = get_search_query_for_topic(topic, 'Beginner')
                 reason       = f"📉 Very low in {topic} ({avg:.0f}%) — fundamentals"
 
             if attempts >= 3 and avg < 60:
                 expert_score = min(expert_score + 0.10, 1.0)
 
-            final = round(expert_score * self.weights['performance'], 4)
             queries.append({
                 'query'       : query,
                 'topic'       : topic,
                 'expert'      : 'performance',
                 'expert_score': expert_score,
-                'final_score' : final,
+                'final_score' : round(expert_score * self.weights['performance'], 4),
                 'reason'      : reason,
                 'priority'    : 'high' if avg < 60 else 'medium',
                 'weight_used' : round(self.weights['performance'], 3),
                 'curve_stage' : stage,
             })
-
         return queries
 
     # ── Expert 3: Preference / History ────────────────────
@@ -457,57 +606,43 @@ class TransformerMoE:
         weak_set       = {w['topic'].lower() for w in self.data['weak']}
         preferred      = self.data['preferred_topics']
         skill_lvl      = self.data['skill_level']
-        suffix         = LEVEL_SUFFIX.get(skill_lvl, 'tutorial')
         is_new         = self.context['is_new_user']
 
-        if not preferred:
-            print(f"   ⚠️ No preferred topics for expert_history")
-
-        # Preferred field topics (new user → all show, returning → unwatched only)
         for topic in preferred:
             t_lower = topic.lower()
             if not is_new and t_lower in watched_topics:
                 continue
             if t_lower in weak_set:
-                continue   # Weak topics handled by Expert 1
+                continue
 
             expert_score = 0.90 if is_new else 0.65
+            query        = get_search_query_for_topic(topic, skill_lvl)
+
             queries.append({
-                'query'       : f"{topic} {suffix}",
+                'query'       : query,
                 'topic'       : topic,
                 'expert'      : 'history',
                 'expert_score': expert_score,
                 'final_score' : round(expert_score * self.weights['history'], 4),
-                'reason'      : f"🎯 {'Your field' if not is_new else 'Recommended for you'}: {topic}",
+                'reason'      : f"🎯 {'Start learning' if is_new else 'Continue'}: {topic}",
                 'priority'    : 'high',
                 'weight_used' : round(self.weights['history'], 3),
             })
 
-        # General fallback ONLY if no preferred topics resolved
+        # If no preferred topics — use category fallback
         if not queries:
-            fallback_topics = [
-                ('Python Programming',  'python programming complete beginners course'),
-                ('Web Development',     'web development html css javascript full course'),
-                ('Machine Learning',    'machine learning beginners complete guide'),
-                ('Data Science',        'data science python complete tutorial'),
-                ('JavaScript',          'javascript complete course beginners'),
-                ('Database SQL',        'sql mysql database complete tutorial'),
-                ('Algorithms',          'data structures algorithms complete course'),
-            ]
-            for topic_name, query in fallback_topics:
-                t_lower = topic_name.lower()
-                if t_lower in watched_topics or t_lower in weak_set:
-                    continue
-                queries.append({
-                    'query'       : query,
-                    'topic'       : topic_name,
-                    'expert'      : 'history',
-                    'expert_score': 0.40,
-                    'final_score' : round(0.40 * self.weights['history'], 4),
-                    'reason'      : f"📺 Explore: {topic_name}",
-                    'priority'    : 'low',
-                    'weight_used' : round(self.weights['history'], 3),
-                })
+            cat     = self.data['education_category']
+            cat_q   = CATEGORY_SEARCH.get(cat, 'educational videos tutorial')
+            queries.append({
+                'query'       : cat_q,
+                'topic'       : cat or 'Education',
+                'expert'      : 'history',
+                'expert_score': 0.50,
+                'final_score' : round(0.50 * self.weights['history'], 4),
+                'reason'      : f"📺 Educational content for {cat or 'you'}",
+                'priority'    : 'medium',
+                'weight_used' : round(self.weights['history'], 3),
+            })
 
         return queries[:6]
 
@@ -518,17 +653,16 @@ class TransformerMoE:
         e3    = self.expert_history()
         all_q = e1 + e2 + e3
 
-        print(f"   E1(Weak)={len(e1)} E2(Perf)={len(e2)} E3(Pref)={len(e3)}")
+        print(f"   E1={len(e1)} E2={len(e2)} E3={len(e3)} total={len(all_q)}")
 
         all_q.sort(key=lambda x: x['final_score'], reverse=True)
 
         seen, unique = set(), []
         for q in all_q:
-            key = q['query'][:35].lower()
+            key = q['query'][:40].lower()
             if key not in seen:
                 seen.add(key)
                 unique.append(q)
-
         return unique
 
     def get_analysis(self):
@@ -538,8 +672,9 @@ class TransformerMoE:
             'is_new' : self.context['is_new_user'],
             'field'  : self.data['field'],
             'level'  : self.data['skill_level'],
+            'category': self.data['education_category'],
             'experts': {
-                'weak_topic': {
+                'weak_topic' : {
                     'name'  : 'Weak Topic Expert',
                     'weight': round(self.weights['weak_topic'], 3),
                     'data'  : len(self.data['weak']),
@@ -549,7 +684,7 @@ class TransformerMoE:
                     'weight': round(self.weights['performance'], 3),
                     'data'  : len(self.data['performance']),
                 },
-                'history': {
+                'history'    : {
                     'name'  : 'Preference Expert',
                     'weight': round(self.weights['history'], 3),
                     'data'  : len(self.data['watched']),

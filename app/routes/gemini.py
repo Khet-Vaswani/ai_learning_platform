@@ -169,15 +169,16 @@ def generate_quiz():
     topic       = data.get('topic', '')
     user_id     = session['user_id']
     video_id    = data.get('video_id', '')
-
-    # ── Get difficulty from learning curve ────────────────
+    transcript  = data.get('transcript', '').strip()
+ 
+    # ── Get difficulty ────────────────────────────────────
     topic_diff = execute_query(
         """SELECT difficulty_level, last_score, attempts
            FROM topic_difficulty
            WHERE user_id=%s AND topic=%s""",
         (user_id, topic), fetch=True
     )
-
+ 
     if topic_diff:
         difficulty = topic_diff[0]['difficulty_level']
         attempts   = topic_diff[0]['attempts']
@@ -186,38 +187,73 @@ def generate_quiz():
         difficulty = 'Medium'
         attempts   = 0
         last_score = 0.0
-
-    # ── Check learning curve stage ────────────────────────
+ 
+    # ── Check learning curve ──────────────────────────────
     curve = execute_query(
-        """SELECT curve_stage, predicted_next
-           FROM learning_curves
+        """SELECT curve_stage FROM learning_curves
            WHERE user_id=%s AND topic=%s""",
         (user_id, topic), fetch=True
     )
-
     curve_stage = curve[0]['curve_stage'] if curve else 'Not Started'
-
+ 
     if curve_stage == 'Struggling' and difficulty != 'Easy':
         difficulty = 'Easy'
     elif curve_stage == 'Mastery' and difficulty != 'Hard':
         difficulty = 'Hard'
-
+ 
     diff_guide = {
-        'Easy'  : 'Simple basic questions. Definitions only.',
-        'Medium': 'Mix of concepts and applications.',
-        'Hard'  : 'Advanced analysis and scenarios.'
+        'Easy'  : 'Simple questions. Focus on definitions and basic facts.',
+        'Medium': 'Mix of concepts, understanding and applications.',
+        'Hard'  : 'Advanced analysis, scenarios and problem solving.'
     }
-
-    prompt = f"""Generate exactly 20 multiple choice questions about:
+ 
+    # ── Build prompt ──────────────────────────────────────
+    if transcript and len(transcript) > 100:
+        # TRANSCRIPT-BASED (accurate MCQs from video content)
+        source_text = transcript[:4000]
+        prompt = f"""You are an expert quiz maker for students.
+ 
+A student watched a video titled: "{video_title}" (Topic: {topic})
+ 
+EXACT transcript of what the tutor explained:
+---
+{source_text}
+---
+ 
+Generate exactly 20 multiple choice questions based STRICTLY on what was said in the transcript above.
+Difficulty: {difficulty} — {diff_guide[difficulty]}
+ 
+RULES:
+- Questions must come ONLY from the transcript content
+- No questions about things NOT mentioned in the video
+- Cover different parts of the transcript
+- Clear, unambiguous questions
+- Each question has exactly 4 options (A, B, C, D)
+ 
+Return ONLY a valid JSON array, no other text, no markdown:
+[
+  {{
+    "question": "According to the video, what is...?",
+    "options": {{"A": "option1", "B": "option2", "C": "option3", "D": "option4"}},
+    "correct": "A",
+    "explanation": "The tutor explained that..."
+  }}
+]"""
+        quiz_source = 'transcript'
+ 
+    else:
+        # TITLE-BASED FALLBACK
+        prompt = f"""Generate exactly 20 multiple choice questions about:
 Video: {video_title}
 Topic: {topic}
 Difficulty: {difficulty} — {diff_guide[difficulty]}
-
+ 
 Rules:
 - Cover different aspects of the topic
 - No repeated or similar questions
 - Clear and unambiguous questions
-
+- Each has exactly 4 options (A, B, C, D)
+ 
 Return ONLY valid JSON array, no other text:
 [
   {{
@@ -227,26 +263,27 @@ Return ONLY valid JSON array, no other text:
     "explanation": "Why A is correct"
   }}
 ]"""
-
+        quiz_source = 'title'
+ 
     try:
-        raw   = generate(prompt, max_tokens=3000)
+        raw   = generate(prompt, max_tokens=3500)
         raw   = raw.replace('```json', '').replace('```', '').strip()
         start = raw.find('[')
         end   = raw.rfind(']') + 1
         if start != -1 and end > start:
             raw = raw[start:end]
+ 
         questions = json.loads(raw)
         questions = questions[:20]
-
+ 
         quiz_id = execute_query(
             """INSERT INTO video_quizzes
-               (user_id, video_id, video_title,
-                topic, questions, total)
-               VALUES (%s,%s,%s,%s,%s,%s)""",
+               (user_id, video_id, video_title, topic, questions, total)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
             (user_id, video_id, video_title,
              topic, json.dumps(questions), len(questions))
         )
-
+ 
         return jsonify({
             'success'    : True,
             'questions'  : questions,
@@ -255,16 +292,18 @@ Return ONLY valid JSON array, no other text:
             'difficulty' : difficulty,
             'attempts'   : attempts,
             'last_score' : last_score,
-            'curve_stage': curve_stage
+            'curve_stage': curve_stage,
+            'source'     : quiz_source,
         })
-
+ 
     except Exception as e:
         print(f"❌ Quiz error: {e}")
         return jsonify({'success': False, 'message': str(e)})
-
-
 # ============================================================
 # GENERATE NOTES
+# ============================================================
+# ============================================================
+# GENERATE NOTES — Transcript based
 # ============================================================
 @gemini_bp.route('/gemini/generate-notes', methods=['POST'])
 @login_required
@@ -274,54 +313,117 @@ def generate_notes():
     topic       = data.get('topic', '')
     user_id     = session['user_id']
     video_id    = data.get('video_id', '')
-
-    prompt = f"""Create detailed study notes for a student about:
+    transcript  = data.get('transcript', '').strip()
+ 
+    # ── Build prompt based on source ─────────────────────
+    if transcript and len(transcript) > 100:
+        # TRANSCRIPT-BASED (accurate)
+        source_text = transcript[:4000]
+        prompt = f"""You are an expert educational notes writer.
+ 
+A student watched a YouTube video titled: "{video_title}"
+Topic: {topic}
+ 
+Below is the EXACT transcript of what the tutor said in the video:
+---
+{source_text}
+---
+ 
+Create detailed and ACCURATE study notes ONLY from what the tutor explained above.
+Do NOT add information not present in the transcript.
+ 
+Format exactly like this:
+ 
+## 📌 Topic: {topic}
+ 
+## 🔑 Key Concepts
+- [concept from transcript]: [explanation as said in video]
+- [concept from transcript]: [explanation as said in video]
+- [concept from transcript]: [explanation as said in video]
+- [concept from transcript]: [explanation as said in video]
+- [concept from transcript]: [explanation as said in video]
+ 
+## 📖 Important Definitions
+- [Term from video]: [exact definition as explained by tutor]
+- [Term from video]: [exact definition as explained by tutor]
+- [Term from video]: [exact definition as explained by tutor]
+ 
+## 💡 Examples (from video)
+- [Example 1 as explained by tutor]
+- [Example 2 as explained by tutor]
+ 
+## ✅ Key Takeaways
+- [main point from transcript]
+- [main point from transcript]
+- [main point from transcript]
+- [main point from transcript]
+ 
+## 📝 Summary
+Write 4-5 sentences summarizing what the tutor actually explained in this video.
+ 
+Keep it educational and based ONLY on the transcript content."""
+ 
+        notes_source = 'transcript'
+ 
+    else:
+        # TITLE-BASED FALLBACK
+        prompt = f"""You are an expert educational notes writer.
+Create detailed study notes for a student about:
 Video: {video_title}
 Topic: {topic}
-
+ 
 Format exactly like this:
-## Key Concepts
-- concept 1 with brief explanation
-- concept 2 with brief explanation
-- concept 3 with brief explanation
-- concept 4 with brief explanation
-- concept 5 with brief explanation
-
-## Important Definitions
+ 
+## 📌 Topic: {topic}
+ 
+## 🔑 Key Concepts
+- concept 1: brief explanation
+- concept 2: brief explanation
+- concept 3: brief explanation
+- concept 4: brief explanation
+- concept 5: brief explanation
+ 
+## 📖 Important Definitions
 - Term1: detailed definition
 - Term2: detailed definition
 - Term3: detailed definition
-
-## Examples
-- Example 1: practical example
-- Example 2: practical example
-
-## Key Takeaways
+ 
+## 💡 Examples
+- Practical Example 1
+- Practical Example 2
+ 
+## ✅ Key Takeaways
 - takeaway 1
 - takeaway 2
 - takeaway 3
-
-## Summary
-Write 4-5 sentences summarizing the main concepts.
-
-Keep it educational and comprehensive. Around 400-500 words."""
-
+- takeaway 4
+ 
+## 📝 Summary
+Write 4-5 sentences summarizing the main concepts of this topic.
+ 
+Keep it comprehensive, around 400-500 words."""
+ 
+        notes_source = 'title'
+ 
     try:
-        notes = generate(prompt, max_tokens=1500)
-
+        notes = generate(prompt, max_tokens=1800)
+ 
         execute_query(
             """INSERT INTO video_notes (user_id, video_id, notes)
-               VALUES (%s,%s,%s)
-               ON DUPLICATE KEY UPDATE notes=%s""",
+               VALUES (%s, %s, %s)
+               ON DUPLICATE KEY UPDATE notes = %s""",
             (user_id, video_id, notes, notes)
         )
-
-        return jsonify({'success': True, 'notes': notes})
-
+ 
+        return jsonify({
+            'success': True,
+            'notes'  : notes,
+            'source' : notes_source
+        })
+ 
     except Exception as e:
         print(f"❌ Notes error: {e}")
-        return jsonify({'success': False, 'message': str(e)})
-# ============================================================
+        return jsonify({'success': False, 'message': str(e)})# ============================================================
 # DIFFICULTY-BASED VIDEO RECOMMENDATIONS
 # Called after quiz submission
 # ============================================================

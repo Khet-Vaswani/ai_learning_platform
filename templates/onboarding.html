@@ -1,571 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup Your Learning — AI Learn</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-        font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0fdf4 100%);
-        min-height: 100vh;
-    }
-
-    .ob-wrap {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        padding: 32px 16px 80px;
-    }
-
-    /* ── Logo ── */
-    .ob-logo {
-        display: flex; align-items: center; gap: 10px;
-        margin-bottom: 28px; text-decoration: none;
-    }
-    .ob-logo-icon {
-        width: 42px; height: 42px; border-radius: 12px;
-        background: linear-gradient(135deg, #2563eb, #7c3aed);
-        display: flex; align-items: center; justify-content: center;
-        color: white; font-size: 1.1rem;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.3);
-    }
-    .ob-logo-text {
-        font-size: 1.15rem; font-weight: 800; color: #0f172a;
-        letter-spacing: -0.02em;
-    }
-
-    /* ── Card ── */
-    .ob-card {
-        background: white;
-        border-radius: 24px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.08);
-        width: 100%; max-width: 860px;
-        padding: 36px 40px;
-    }
-
-    /* ── Progress ── */
-    .ob-progress {
-        height: 4px; background: #f1f5f9;
-        border-radius: 4px; margin-bottom: 28px; overflow: hidden;
-    }
-    .ob-progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #2563eb, #7c3aed);
-        border-radius: 4px;
-        transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
-    }
-
-    /* ── Step dots ── */
-    .step-dots {
-        display: flex; align-items: center; gap: 6px;
-        justify-content: center; margin-bottom: 28px;
-    }
-    .dot {
-        width: 8px; height: 8px; border-radius: 50%;
-        background: #e2e8f0; transition: all 0.35s;
-    }
-    .dot.active { background: #7c3aed; width: 24px; border-radius: 4px; }
-    .dot.done   { background: #059669; }
-
-    /* ── Header text ── */
-    .ob-eyebrow {
-        text-align: center; font-size: 0.72rem; font-weight: 700;
-        color: #94a3b8; text-transform: uppercase;
-        letter-spacing: 0.12em; margin-bottom: 6px;
-    }
-    .ob-title {
-        text-align: center; font-size: 1.55rem; font-weight: 800;
-        color: #0f172a; letter-spacing: -0.03em;
-        line-height: 1.2; margin-bottom: 6px;
-    }
-    .ob-subtitle {
-        text-align: center; font-size: 0.84rem;
-        color: #94a3b8; margin-bottom: 28px; line-height: 1.5;
-    }
-
-    /* ── Step panels ── */
-    .step-panel { display: none; }
-    .step-panel.active { display: block; animation: fadeSlide 0.3s ease; }
-    @keyframes fadeSlide {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── Field grid ── */
-    .field-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-        gap: 10px;
-        margin-bottom: 24px;
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-
-    .field-grid::-webkit-scrollbar { width: 4px; }
-    .field-grid::-webkit-scrollbar-thumb {
-        background: #e2e8f0; border-radius: 4px;
-    }
-
-    .field-card {
-        border: 2px solid #f1f5f9;
-        border-radius: 14px;
-        padding: 16px 12px;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
-        text-align: center;
-        background: #fafafa;
-        position: relative;
-    }
-    .field-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-        border-color: #e2e8f0;
-        background: white;
-    }
-    .field-card.selected {
-        border-width: 2px;
-        background: white;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    }
-
-    .field-icon-wrap {
-        width: 44px; height: 44px; border-radius: 12px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.1rem; margin: 0 auto 8px;
-        transition: all 0.2s;
-    }
-    .field-label {
-        font-size: 0.72rem; font-weight: 700; color: #1e293b;
-        line-height: 1.3;
-    }
-    .field-check {
-        position: absolute; top: 6px; right: 6px;
-        width: 18px; height: 18px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.55rem; color: white;
-        opacity: 0; transform: scale(0);
-        transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    .field-card.selected .field-check { opacity: 1; transform: scale(1); }
-
-    /* ── Level grid ── */
-    .level-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 14px;
-        margin-bottom: 28px;
-    }
-    .level-card {
-        border: 2px solid #f1f5f9;
-        border-radius: 16px;
-        padding: 24px 16px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: center;
-        background: #fafafa;
-        position: relative;
-    }
-    .level-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        background: white;
-    }
-    .level-card.selected {
-        background: white;
-        transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-    }
-    .level-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
-    .level-name { font-size: 0.92rem; font-weight: 800; color: #0f172a; margin-bottom: 5px; }
-    .level-desc { font-size: 0.68rem; color: #94a3b8; line-height: 1.5; }
-    .level-check {
-        position: absolute; top: 10px; right: 10px;
-        width: 20px; height: 20px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 0.6rem; color: white;
-        opacity: 0; transform: scale(0); transition: all 0.2s;
-    }
-    .level-card.selected .level-check { opacity: 1; transform: scale(1); }
-
-    /* ── Buttons ── */
-    .ob-btn-row {
-        display: flex; gap: 10px;
-        justify-content: flex-end; align-items: center;
-    }
-    .ob-btn-next {
-        background: linear-gradient(135deg, #2563eb, #7c3aed);
-        color: white; border: none;
-        padding: 11px 28px; border-radius: 12px;
-        font-size: 0.86rem; font-weight: 700;
-        cursor: pointer; font-family: inherit;
-        box-shadow: 0 4px 14px rgba(37,99,235,0.3);
-        transition: all 0.2s;
-        display: flex; align-items: center; gap: 7px;
-    }
-    .ob-btn-next:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(37,99,235,0.4);
-    }
-    .ob-btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .ob-btn-back {
-        background: none; border: 1.5px solid #e2e8f0;
-        color: #64748b; padding: 11px 20px; border-radius: 12px;
-        font-size: 0.84rem; font-weight: 600;
-        cursor: pointer; font-family: inherit; transition: all 0.2s;
-    }
-    .ob-btn-back:hover { background: #f8fafc; border-color: #cbd5e1; }
-    .ob-btn-skip {
-        background: none; border: none; color: #94a3b8;
-        font-size: 0.78rem; cursor: pointer;
-        font-family: inherit; margin-right: auto;
-        text-decoration: underline; padding: 0;
-    }
-    .ob-btn-skip:hover { color: #64748b; }
-
-    /* ── Success ── */
-    .success-screen { text-align: center; padding: 24px 0; }
-    .success-icon {
-        width: 80px; height: 80px; border-radius: 50%;
-        background: linear-gradient(135deg, #059669, #0891b2);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 2rem; color: white;
-        margin: 0 auto 20px;
-        animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
-        box-shadow: 0 8px 24px rgba(5,150,105,0.3);
-    }
-    @keyframes popIn {
-        from { transform: scale(0); opacity: 0; }
-        to   { transform: scale(1); opacity: 1; }
-    }
-    .success-tags {
-        display: flex; gap: 8px;
-        justify-content: center; flex-wrap: wrap;
-        margin: 16px 0 24px;
-    }
-    .stag {
-        padding: 5px 14px; border-radius: 20px;
-        font-size: 0.75rem; font-weight: 700;
-        background: #f1f5f9; color: #475569;
-    }
-
-    /* ── Search filter ── */
-    .field-search {
-        width: 100%; padding: 9px 14px;
-        border: 1.5px solid #e2e8f0; border-radius: 10px;
-        font-size: 0.82rem; font-family: inherit;
-        outline: none; margin-bottom: 12px;
-        transition: border-color 0.2s;
-        background: #fafafa;
-    }
-    .field-search:focus { border-color: #7c3aed; background: white; }
-
-    @media (max-width: 600px) {
-        .ob-card { padding: 24px 18px; }
-        .field-grid { grid-template-columns: repeat(2,1fr); }
-        .level-grid { grid-template-columns: 1fr; }
-        .ob-title { font-size: 1.25rem; }
-    }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup Your Learning — AI Learn</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#f0f4ff 0%,#faf5ff 50%,#f0fdf4 100%);min-height:100vh}
+.ob-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px}
+.ob-logo{display:flex;align-items:center;gap:10px;margin-bottom:22px;text-decoration:none}
+.ob-logo-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;box-shadow:0 4px 14px rgba(37,99,235,.3)}
+.ob-logo-text{font-size:1.1rem;font-weight:800;color:#0f172a}
+.ob-card{background:white;border-radius:22px;border:1px solid #e2e8f0;box-shadow:0 8px 40px rgba(0,0,0,.08);width:100%;max-width:520px;padding:36px 40px}
+.ob-prog{height:4px;background:#f1f5f9;border-radius:4px;margin-bottom:22px;overflow:hidden}
+.ob-prog-fill{height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:4px;transition:width .5s ease}
+.ob-dots{display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:24px}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;transition:all .3s}
+.ob-dot.active{background:#7c3aed;width:24px;border-radius:4px}
+.ob-dot.done{background:#059669}
+.ob-eyebrow{text-align:center;font-size:.68rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
+.ob-title{text-align:center;font-size:1.45rem;font-weight:900;color:#0f172a;letter-spacing:-.03em;line-height:1.2;margin-bottom:5px}
+.ob-sub{text-align:center;font-size:.83rem;color:#94a3b8;margin-bottom:28px;line-height:1.5}
+.ob-step{display:none}
+.ob-step.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ob-field-label{display:block;font-size:.75rem;font-weight:600;color:#475569;margin-bottom:6px}
+.ob-select-wrap{position:relative;margin-bottom:16px}
+.ob-select{width:100%;padding:13px 44px 13px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:.88rem;font-family:inherit;color:#0f172a;background:white;appearance:none;outline:none;cursor:pointer;transition:border-color .2s;font-weight:500}
+.ob-select:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.ob-select:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+.ob-select-arrow{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;font-size:.8rem}
+.ob-level-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.ob-level-card{border:2px solid #f1f5f9;border-radius:14px;padding:18px 12px;cursor:pointer;text-align:center;background:#fafafa;position:relative;transition:all .2s}
+.ob-level-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);background:white}
+.ob-level-card.sel{background:white;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
+.ob-level-emoji{font-size:1.8rem;display:block;margin-bottom:7px}
+.ob-level-name{font-size:.83rem;font-weight:800;margin-bottom:3px}
+.ob-level-desc{font-size:.62rem;color:#94a3b8;line-height:1.4}
+.ob-level-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.54rem;color:white;opacity:0;transform:scale(0);transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.ob-level-card.sel .ob-level-check{opacity:1;transform:scale(1)}
+.ob-btn-row{display:flex;gap:9px;justify-content:flex-end;align-items:center}
+.ob-btn-next{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;border:none;padding:12px 28px;border-radius:11px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(37,99,235,.3);transition:all .2s;display:flex;align-items:center;gap:7px}
+.ob-btn-next:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(37,99,235,.4)}
+.ob-btn-next:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.ob-btn-back{background:none;border:1.5px solid #e2e8f0;color:#64748b;padding:12px 18px;border-radius:11px;font-size:.83rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+.ob-btn-back:hover{background:#f8fafc}
+.ob-btn-skip{background:none;border:none;color:#94a3b8;font-size:.76rem;cursor:pointer;font-family:inherit;margin-right:auto;text-decoration:underline;padding:0}
+.ob-summary{background:linear-gradient(135deg,#f0f9ff,#faf5ff);border:1.5px solid #bfdbfe;border-radius:12px;padding:13px 16px;margin-bottom:18px;display:none}
+.ob-summary-lbl{font-size:.68rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
+.ob-summary-item{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:600;color:#1e293b;margin-bottom:4px}
+.ob-summary-item:last-child{margin-bottom:0}
+.ob-dot-sm{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ob-success{text-align:center;padding:20px 0}
+.ob-success-icon{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#059669,#0891b2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:white;margin:0 auto 18px;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 24px rgba(5,150,105,.3)}
+@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.ob-stags{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0 22px}
+.ob-stag{padding:5px 14px;border-radius:20px;font-size:.73rem;font-weight:700;background:#f1f5f9;color:#475569}
+.ob-info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:.78rem;color:#1e40af;display:flex;align-items:flex-start;gap:8px}
+@media(max-width:520px){.ob-card{padding:24px 18px}.ob-level-grid{grid-template-columns:1fr 1fr}.ob-title{font-size:1.25rem}}
+</style>
 </head>
 <body>
 <div class="ob-wrap">
 
-    <a href="/" class="ob-logo">
-        <div class="ob-logo-icon"><i class="fas fa-brain"></i></div>
-        <span class="ob-logo-text">AI Learn</span>
-    </a>
+  <a href="/" class="ob-logo">
+    <div class="ob-logo-icon"><i class="fas fa-brain"></i></div>
+    <span class="ob-logo-text">AI Learn</span>
+  </a>
 
-    <div class="ob-card">
-
-        <div class="ob-progress">
-            <div class="ob-progress-fill" id="progressFill"
-                 style="width:33%;"></div>
-        </div>
-
-        <div class="step-dots">
-            <div class="dot active" id="dot0"></div>
-            <div class="dot"        id="dot1"></div>
-            <div class="dot"        id="dot2"></div>
-        </div>
-
-        <!-- ══ STEP 1 — Field ══ -->
-        <div class="step-panel active" id="step1">
-            <p class="ob-eyebrow">Welcome, {{ user_name }}! 👋</p>
-            <h1 class="ob-title">What field would you like to study?</h1>
-            <p class="ob-subtitle">
-                Law, BBA, CSS, IT, Medical — any field you like.<br>
-                We'll recommend videos based on that.
-            </p>
-
-            <input type="text" class="field-search"
-                   id="fieldSearch"
-                   placeholder="🔍 Search field... (e.g. Law, BBA, CSS, Python)"
-                   oninput="filterFields(this.value)">
-
-            <div class="field-grid" id="fieldGrid">
-                {% for f in fields %}
-                <div class="field-card"
-                     data-id="{{ f.id }}"
-                     data-label="{{ f.label }}"
-                     data-search="{{ f.label|lower }}"
-                     onclick="selectField(this)">
-                    <div class="field-check"
-                         style="background:{{ f.color }};">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <div class="field-icon-wrap"
-                         style="background:{{ f.color }}18;
-                                color:{{ f.color }};">
-                        <i class="{{ f.icon }}"></i>
-                    </div>
-                    <div class="field-label">{{ f.label }}</div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <!-- Selected field display -->
-            <div id="selectedFieldDisplay"
-                 style="display:none;margin-bottom:16px;
-                        padding:10px 14px;background:#f0fdf4;
-                        border-radius:10px;border:1px solid #bbf7d0;
-                        font-size:0.82rem;color:#059669;font-weight:600;">
-                ✅ Selected: <span id="selectedFieldName"></span>
-            </div>
-
-            <div class="ob-btn-row">
-                <button class="ob-btn-skip"
-                        onclick="skipOnboarding()">
-                    Skip setup
-                </button>
-                <button class="ob-btn-next" id="nextBtn1"
-                        disabled onclick="goToStep(2)">
-                    Next <i class="fas fa-arrow-right"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ══ STEP 2 — Level ══ -->
-        <div class="step-panel" id="step2">
-            <p class="ob-eyebrow">Almost done!</p>
-            <h1 class="ob-title">What is your current level?</h1>
-            <p class="ob-subtitle">
-                We'll set the difficulty of videos based on this.
-            </p>
-
-            <div class="level-grid">
-                {% for l in levels %}
-                <div class="level-card"
-                     data-id="{{ l.id }}"
-                     onclick="selectLevel(this)"
-                     style="--lc: {{ l.color }};">
-                    <div class="level-check"
-                         style="background:{{ l.color }};">
-                        <i class="fas fa-check"></i>
-                    </div>
-                    <span class="level-icon">
-                        <i class="{{ l.icon }}"
-                           style="color:{{ l.color }};"></i>
-                    </span>
-                    <div class="level-name">{{ l.label }}</div>
-                    <div class="level-desc">{{ l.desc }}</div>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="ob-btn-row">
-                <button class="ob-btn-skip"
-                        onclick="skipOnboarding()">
-                    Skip setup
-                </button>
-                <button class="ob-btn-back" onclick="goToStep(1)">
-                    <i class="fas fa-arrow-left me-1"></i> Back
-                </button>
-                <button class="ob-btn-next" id="nextBtn2"
-                        disabled onclick="saveAndFinish()">
-                    <span id="saveLabel">Finish Setup</span>
-                    <i class="fas fa-check" id="saveIcon"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ══ STEP 3 — Success ══ -->
-        <div class="step-panel" id="step3">
-            <div class="success-screen">
-                <div class="success-icon">
-                    <i class="fas fa-check"></i>
-                </div>
-                <h2 style="font-size:1.4rem;font-weight:800;
-                           color:#0f172a;margin-bottom:6px;">
-                    All set, {{ user_name }}! 🎉
-                </h2>
-                <p style="font-size:0.84rem;color:#94a3b8;margin:0;">
-                    Preferences save ho gayi. Dashboard load ho raha hai...
-                </p>
-                <div class="success-tags" id="successTags"></div>
-                <div style="margin-top:12px;">
-                    <div class="spinner-border"
-                         style="width:1.5rem;height:1.5rem;
-                                color:#7c3aed;"></div>
-                </div>
-            </div>
-        </div>
-
+  <div class="ob-card">
+    <div class="ob-prog"><div class="ob-prog-fill" id="progFill" style="width:25%;"></div></div>
+    <div class="ob-dots">
+      <div class="ob-dot active" id="dot0"></div>
+      <div class="ob-dot"        id="dot1"></div>
+      <div class="ob-dot"        id="dot2"></div>
+      <div class="ob-dot"        id="dot3"></div>
     </div>
+
+    <!-- STEP 0: Education Category -->
+    <div class="ob-step active" id="step0">
+      <p class="ob-eyebrow">Welcome, {{ user_name }}! 👋</p>
+      <h1 class="ob-title">What is your education level?</h1>
+      <p class="ob-sub">Select your category — we'll customize everything for you.</p>
+
+      <label class="ob-field-label">Education Category</label>
+      <div class="ob-select-wrap">
+        <select class="ob-select" id="catSelect" onchange="onCatChange(this)">
+          <option value="">— Select your education level —</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}"
+                  data-name="{{ c.name }}"
+                  data-color="{{ c.color }}"
+                  data-emoji="{{ c.emoji }}">
+            {{ c.emoji }} &nbsp;{{ c.name }} — {{ c.desc }}
+          </option>
+          {% endfor %}
+        </select>
+        <i class="fas fa-chevron-down ob-select-arrow"></i>
+      </div>
+
+      <div class="ob-btn-row">
+        <button class="ob-btn-skip" onclick="skipOnboarding()">Skip setup</button>
+        <button class="ob-btn-next" id="next0" disabled onclick="goStep(1)">
+          Next <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 1: Class / Group / Dept+Field -->
+    <div class="ob-step" id="step1">
+      <p class="ob-eyebrow" id="s1eye">Step 2 of 4</p>
+      <h1 class="ob-title" id="s1title">Select Your Class</h1>
+      <p class="ob-sub">Choose the one that matches your current study.</p>
+
+      <!-- Non-university dropdown -->
+      <div id="classWrap">
+        <label class="ob-field-label" id="classLbl">Class / Group</label>
+        <div class="ob-select-wrap">
+          <select class="ob-select" id="classSelect" onchange="onClassChange(this)">
+            <option value="">— Select —</option>
+          </select>
+          <i class="fas fa-chevron-down ob-select-arrow"></i>
+        </div>
+      </div>
+
+      <!-- University: dept + field -->
+      <div id="uniWrap" style="display:none;">
+        <label class="ob-field-label">Department</label>
+        <div class="ob-select-wrap">
+          <select class="ob-select" id="deptSelect" onchange="onDeptChange(this)">
+            <option value="">— Select Department —</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}" data-name="{{ d.name }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+          <i class="fas fa-chevron-down ob-select-arrow"></i>
+        </div>
+
+        <label class="ob-field-label">Field of Study</label>
+        <div class="ob-select-wrap">
+          <select class="ob-select" id="fieldSelect" disabled onchange="onFieldChange(this)">
+            <option value="">— Select Department first —</option>
+          </select>
+          <i class="fas fa-chevron-down ob-select-arrow"></i>
+        </div>
+      </div>
+
+      <div class="ob-btn-row">
+        <button class="ob-btn-skip" onclick="skipOnboarding()">Skip setup</button>
+        <button class="ob-btn-back" onclick="goStep(0)"><i class="fas fa-arrow-left me-1"></i>Back</button>
+        <button class="ob-btn-next" id="next1" disabled onclick="goStep(2)">
+          Next <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Level -->
+    <div class="ob-step" id="step2">
+      <p class="ob-eyebrow">Almost there!</p>
+      <h1 class="ob-title">What is your current level?</h1>
+      <p class="ob-sub">We'll set the right difficulty for videos and quizzes.</p>
+
+      <div class="ob-level-grid">
+        {% for l in levels %}
+        <div class="ob-level-card" data-id="{{ l.id }}" onclick="selectLevel(this)">
+          <div class="ob-level-check" style="background:{{ l.color }};"><i class="fas fa-check"></i></div>
+          <span class="ob-level-emoji">{{ l.emoji }}</span>
+          <div class="ob-level-name" style="color:{{ l.color }};">{{ l.label }}</div>
+          <div class="ob-level-desc">{{ l.desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Summary of selections -->
+      <div class="ob-summary" id="selSummary">
+        <div class="ob-summary-lbl">Your Selections</div>
+        <div id="summaryContent"></div>
+      </div>
+
+      <div class="ob-btn-row">
+        <button class="ob-btn-skip" onclick="skipOnboarding()">Skip setup</button>
+        <button class="ob-btn-back" onclick="goStep(1)"><i class="fas fa-arrow-left me-1"></i>Back</button>
+        <button class="ob-btn-next" id="next2" disabled onclick="saveAndFinish()">
+          <span id="saveLabel">Finish Setup</span>
+          <i class="fas fa-check" id="saveIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Success -->
+    <div class="ob-step" id="step3">
+      <div class="ob-success">
+        <div class="ob-success-icon">🎉</div>
+        <h2 style="font-size:1.3rem;font-weight:900;color:#0f172a;margin-bottom:5px;">
+          All set, {{ user_name }}!
+        </h2>
+        <p style="font-size:.83rem;color:#94a3b8;margin:0;">
+          Your personalized learning path is ready!
+        </p>
+        <div class="ob-stags" id="successTags"></div>
+        <div style="margin-top:10px;">
+          <div class="spinner-border" style="width:1.4rem;height:1.4rem;color:#7c3aed;"></div>
+          <p style="font-size:.72rem;color:#94a3b8;margin-top:6px;">Loading dashboard...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-var selectedField = null;
-var selectedLevel = null;
+var CATEGORY_CLASSES = {{ category_classes | tojson }};
+var UNI_CAT_ID       = {{ uni_cat_id }};
 
-// ── Field selection ───────────────────────────────────────
-function selectField(el) {
-    document.querySelectorAll('.field-card').forEach(function(c) {
-        c.classList.remove('selected');
-        c.style.borderColor = '#f1f5f9';
-        c.style.boxShadow   = '';
+var S = {
+  catId:null, catName:'', catColor:'#2563eb', catEmoji:'',
+  classId:'', classLabel:'',
+  deptId:null, deptName:'',
+  fieldId:null, fieldName:'',
+  level:''
+};
+
+// Step 0: category change
+function onCatChange(sel){
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt.value){ S.catId=null; document.getElementById('next0').disabled=true; return; }
+  S.catId    = parseInt(opt.value);
+  S.catName  = opt.dataset.name  || '';
+  S.catColor = opt.dataset.color || '#2563eb';
+  S.catEmoji = opt.dataset.emoji || '';
+  document.getElementById('next0').disabled = false;
+}
+
+// Prepare step 1
+function prepStep1(){
+  var isUni = (S.catId === UNI_CAT_ID);
+  document.getElementById('classWrap').style.display = isUni ? 'none' : 'block';
+  document.getElementById('uniWrap').style.display   = isUni ? 'block' : 'none';
+
+  var titles = {
+    'Primary':'Select Your Class',
+    'Secondary':'Select Your Class',
+    'Matriculation':'Select Your Class & Group',
+    'Intermediate':'Select Your Group',
+    'University':'Select Department & Field of Study',
+    'Professional':'Select Your Exam / Program'
+  };
+  document.getElementById('s1title').textContent = titles[S.catName] || 'Select';
+
+  if(!isUni){
+    var items = CATEGORY_CLASSES[S.catName] || [];
+    var sel = document.getElementById('classSelect');
+    sel.innerHTML = '<option value="">— Select —</option>';
+    items.forEach(function(c){
+      var op = document.createElement('option');
+      op.value          = c.id;
+      op.dataset.label  = c.label;
+      op.dataset.topics = JSON.stringify(c.topics||[]);
+      op.textContent    = c.emoji + ' ' + c.label;
+      sel.appendChild(op);
     });
+    S.classId=''; S.classLabel='';
+    document.getElementById('next1').disabled=true;
+  } else {
+    S.deptId=null; S.deptName=''; S.fieldId=null; S.fieldName='';
+    document.getElementById('deptSelect').value='';
+    var fs=document.getElementById('fieldSelect');
+    fs.innerHTML='<option value="">— Select Department first —</option>';
+    fs.disabled=true;
+    document.getElementById('next1').disabled=true;
+  }
+}
 
-    el.classList.add('selected');
-    var color = el.querySelector('.field-icon-wrap').style.color;
-    el.style.borderColor = color;
-    el.style.boxShadow   = '0 8px 20px rgba(0,0,0,0.1)';
+// Class change
+function onClassChange(sel){
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt.value){ S.classId=''; S.classLabel=''; document.getElementById('next1').disabled=true; return; }
+  S.classId    = opt.value;
+  S.classLabel = opt.dataset.label || opt.textContent.trim();
+  document.getElementById('next1').disabled=false;
+}
 
-    selectedField = el.dataset.id;
-
-    var name = el.dataset.label;
-    var disp = document.getElementById('selectedFieldDisplay');
-    var nameEl = document.getElementById('selectedFieldName');
-    if (disp && nameEl) {
-        nameEl.textContent = name;
-        disp.style.display = 'block';
+// Dept change
+async function onDeptChange(sel){
+  var opt=sel.options[sel.selectedIndex];
+  var fs=document.getElementById('fieldSelect');
+  if(!opt.value){
+    S.deptId=null; S.deptName='';
+    fs.innerHTML='<option value="">— Select Department first —</option>';
+    fs.disabled=true;
+    document.getElementById('next1').disabled=true;
+    return;
+  }
+  S.deptId   = parseInt(opt.value);
+  S.deptName = opt.dataset.name || opt.textContent.trim();
+  S.fieldId  = null; S.fieldName='';
+  fs.disabled=true;
+  fs.innerHTML='<option value="">Loading fields...</option>';
+  document.getElementById('next1').disabled=true;
+  try{
+    var r    = await fetch('/onboarding/get-fields/'+S.deptId);
+    var data = await r.json();
+    if(data.success && data.fields.length){
+      fs.innerHTML='<option value="">— Select Field of Study —</option>';
+      data.fields.forEach(function(f){
+        var op=document.createElement('option');
+        op.value        = f.id;
+        op.dataset.name = f.field_name;
+        op.textContent  = f.field_name;
+        fs.appendChild(op);
+      });
+      fs.disabled=false;
+    } else {
+      fs.innerHTML='<option value="">No fields found</option>';
     }
-
-    document.getElementById('nextBtn1').disabled = false;
+  }catch(e){ fs.innerHTML='<option value="">Error loading</option>'; }
 }
 
-// ── Field search filter ───────────────────────────────────
-function filterFields(q) {
-    var cards = document.querySelectorAll('.field-card');
-    var search = q.toLowerCase().trim();
-    cards.forEach(function(c) {
-        var label = c.dataset.search || '';
-        c.style.display = (!search || label.includes(search)) ?
-                          '' : 'none';
-    });
+// Field change
+function onFieldChange(sel){
+  var opt=sel.options[sel.selectedIndex];
+  if(!opt.value){ S.fieldId=null; S.fieldName=''; document.getElementById('next1').disabled=true; return; }
+  S.fieldId   = parseInt(opt.value);
+  S.fieldName = opt.dataset.name || opt.textContent.trim();
+  document.getElementById('next1').disabled=false;
 }
 
-// ── Level selection ───────────────────────────────────────
-function selectLevel(el) {
-    document.querySelectorAll('.level-card').forEach(function(c) {
-        c.classList.remove('selected');
-        c.style.borderColor = '#f1f5f9';
-        c.style.boxShadow   = '';
-    });
+// Level select
+function selectLevel(el){
+  document.querySelectorAll('.ob-level-card').forEach(function(c){
+    c.classList.remove('sel'); c.style.borderColor='#f1f5f9';
+  });
+  el.classList.add('sel');
+  var colors={Beginner:'#059669',Intermediate:'#d97706',Advanced:'#7c3aed'};
+  el.style.borderColor = colors[el.dataset.id]||'#2563eb';
+  S.level = el.dataset.id;
+  document.getElementById('next2').disabled=false;
 
-    el.classList.add('selected');
-    var icon  = el.querySelector('.level-icon i');
-    var color = icon ? icon.style.color : '#7c3aed';
-    el.style.borderColor = color;
-    el.style.boxShadow   = '0 8px 20px rgba(0,0,0,0.1)';
-
-    selectedLevel = el.dataset.id;
-    document.getElementById('nextBtn2').disabled = false;
+  // Update summary
+  var sum = document.getElementById('selSummary');
+  var con = document.getElementById('summaryContent');
+  var html='';
+  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:'+S.catColor+';"></div>'+S.catEmoji+' '+S.catName+'</div>';
+  if(S.catId===UNI_CAT_ID){
+    if(S.deptName)  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#2563eb;"></div>🏛️ '+S.deptName+'</div>';
+    if(S.fieldName) html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#7c3aed;"></div>📚 '+S.fieldName+'</div>';
+  } else if(S.classLabel){
+    html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#0891b2;"></div>📖 '+S.classLabel+'</div>';
+  }
+  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:'+(colors[S.level]||'#2563eb')+';"></div>📊 '+S.level+' Level</div>';
+  con.innerHTML=html;
+  sum.style.display='block';
 }
 
-// ── Step navigation ───────────────────────────────────────
-function goToStep(n) {
-    document.querySelectorAll('.step-panel').forEach(function(p) {
-        p.classList.remove('active');
-    });
-    document.getElementById('step' + n).classList.add('active');
+// Navigate steps
+function goStep(n){
+  if(n===1) prepStep1();
+  document.querySelectorAll('.ob-step').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('step'+n).classList.add('active');
+  for(var i=0;i<4;i++){
+    var d=document.getElementById('dot'+i);
+    d.classList.remove('active','done');
+    if(i<n) d.classList.add('done');
+    else if(i===n) d.classList.add('active');
+  }
+  document.getElementById('progFill').style.width=((n+1)/4*100)+'%';
+}
 
-    for (var i = 0; i < 3; i++) {
-        var d = document.getElementById('dot' + i);
-        d.classList.remove('active', 'done');
-        if (i < n - 1)       d.classList.add('done');
-        else if (i === n - 1) d.classList.add('active');
+// Save
+async function saveAndFinish(){
+  if(!S.catId||!S.level) return;
+  var btn=document.getElementById('next2');
+  var lbl=document.getElementById('saveLabel');
+  var ico=document.getElementById('saveIcon');
+  btn.disabled=true; lbl.textContent='Saving...'; ico.className='fas fa-spinner fa-spin';
+  try{
+    var r=await fetch('/onboarding/save',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        category_id:S.catId, category_name:S.catName,
+        class_id:S.classId,  class_label:S.classLabel,
+        dept_id:S.deptId,    dept_name:S.deptName,
+        field_id:S.fieldId,  field_name:S.fieldName,
+        level:S.level
+      })
+    });
+    var data=await r.json();
+    if(data.success){
+      goStep(3);
+      var tags=document.getElementById('successTags');
+      var html='<span class="ob-stag">'+S.catEmoji+' '+S.catName+'</span>';
+      if(S.catId===UNI_CAT_ID){
+        if(S.deptName)  html+='<span class="ob-stag">🏛️ '+S.deptName+'</span>';
+        if(S.fieldName) html+='<span class="ob-stag">📚 '+S.fieldName+'</span>';
+      } else if(S.classLabel){
+        html+='<span class="ob-stag">📖 '+S.classLabel+'</span>';
+      }
+      html+='<span class="ob-stag">📊 '+S.level+'</span>';
+      tags.innerHTML=html;
+      setTimeout(function(){ window.location.href='/dashboard'; },2000);
+    } else {
+      btn.disabled=false; lbl.textContent='Finish Setup'; ico.className='fas fa-check';
     }
-
-    document.getElementById('progressFill').style.width =
-        ((n / 3) * 100) + '%';
+  }catch(e){
+    btn.disabled=false; lbl.textContent='Finish Setup'; ico.className='fas fa-check';
+  }
 }
 
-// ── Save preferences ──────────────────────────────────────
-async function saveAndFinish() {
-    if (!selectedField || !selectedLevel) return;
-
-    var btn  = document.getElementById('nextBtn2');
-    var lbl  = document.getElementById('saveLabel');
-    var icon = document.getElementById('saveIcon');
-    btn.disabled    = true;
-    lbl.textContent = 'Saving...';
-    icon.className  = 'fas fa-spinner fa-spin';
-
-    try {
-        var res = await fetch('/onboarding/save', {
-            method : 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body   : JSON.stringify({
-                field: selectedField,
-                level: selectedLevel
-            })
-        });
-        var data = await res.json();
-
-        if (data.success) {
-            goToStep(3);
-
-            var tags = document.getElementById('successTags');
-            // Find field label
-            var fieldCard = document.querySelector(
-                '.field-card[data-id="' + selectedField + '"]'
-            );
-            var fieldLabel = fieldCard ?
-                fieldCard.dataset.label : selectedField;
-
-            tags.innerHTML =
-                '<span class="stag">' +
-                '<i class="fas fa-graduation-cap me-1"></i>' +
-                fieldLabel + '</span>' +
-                '<span class="stag">' +
-                '<i class="fas fa-signal me-1"></i>' +
-                selectedLevel + '</span>';
-
-            setTimeout(function() {
-                window.location.href = '/dashboard';
-            }, 2200);
-        } else {
-            btn.disabled    = false;
-            lbl.textContent = 'Finish Setup';
-            icon.className  = 'fas fa-check';
-        }
-    } catch(e) {
-        btn.disabled    = false;
-        lbl.textContent = 'Finish Setup';
-        icon.className  = 'fas fa-check';
-    }
-}
-
-// ── Skip ──────────────────────────────────────────────────
-async function skipOnboarding() {
-    try {
-        await fetch('/onboarding/skip', {
-            method : 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body   : JSON.stringify({})
-        });
-    } catch(e) {}
-    window.location.href = '/dashboard';
+// Skip
+async function skipOnboarding(){
+  try{ await fetch('/onboarding/skip',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); }catch(e){}
+  window.location.href='/dashboard';
 }
 </script>
 </body>
