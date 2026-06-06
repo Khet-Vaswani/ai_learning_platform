@@ -319,84 +319,167 @@ def related_videos():
 # ── Add this route inside youtube.py ─────────────────────
 # (Keep all your existing routes, just ADD this one)
 
+# ============================================================
+# ADD THIS ROUTE TO app/routes/youtube.py
+# Paste inside youtube.py (after imports, with other routes)
+# ============================================================
+
 @youtube_bp.route('/youtube/transcript')
 @login_required
 def get_transcript():
+    """
+    Extract transcript from YouTube video.
+    Priority:
+    1. DB cache (instant)
+    2. YouTube captions API
+    3. Video description fallback
+    """
     video_id = request.args.get('video_id', '').strip()
     if not video_id:
-        return jsonify({'success': False, 'message': 'No video_id'})
+        return jsonify({'success': False, 'message': 'video_id required'})
 
-    # ── Try youtube-transcript-api ────────────────────────
+    # ── Step 1: Check DB cache ────────────────────────────
     try:
-        from youtube_transcript_api import YouTubeTranscriptApi
+        cached = execute_query(
+            """SELECT transcript_text, source, word_count
+               FROM video_transcripts
+               WHERE video_id = %s""",
+            (video_id,), fetch=True
+        )
+        if cached and cached[0]['transcript_text']:
+            print(f"✅ Transcript from DB cache: {video_id}")
+            return jsonify({
+                'success'   : True,
+                'transcript': cached[0]['transcript_text'],
+                'source'    : cached[0]['source'],
+                'length'    : cached[0]['word_count'],
+                'cached'    : True,
+            })
+    except Exception as e:
+        print(f"⚠️ Cache check error: {e}")
 
-        # Try English first, then any available
-        try:
-            transcript_list = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=['en', 'en-US', 'en-GB']
-            )
-        except Exception:
-            # Try auto-generated
-            try:
-                transcript_list = YouTubeTranscriptApi.get_transcript(
-                    video_id,
-                    languages=['en-auto', 'a.en']
-                )
-            except Exception:
-                # Get whatever is available
-                try:
-                    available = YouTubeTranscriptApi.list_transcripts(video_id)
-                    transcript_obj = next(iter(available))
-                    transcript_list = transcript_obj.fetch()
-                except Exception as e:
-                    return jsonify({
-                        'success'   : False,
-                        'message'   : f'No transcript: {str(e)}',
-                        'transcript': ''
-                    })
-
-        # Join all text
-        full_text = ' '.join([
-            item['text'].strip()
-            for item in transcript_list
-            if item.get('text', '').strip()
-        ])
-
-        # Clean up
-        full_text = (full_text
-            .replace('\n', ' ')
-            .replace('  ', ' ')
-            .replace('[Music]', '')
-            .replace('[Applause]', '')
-            .replace('[music]', '')
-            .strip()
+    # ── Step 2: YouTube captions ──────────────────────────
+    try:
+        from youtube_transcript_api import (
+            YouTubeTranscriptApi,
+            TranscriptsDisabled,
+            NoTranscriptFound,
         )
 
-        if len(full_text) < 50:
+        transcript_text = ''
+        source          = 'youtube_captions'
+
+        try:
+            # Try manual captions first (more accurate)
+            segments = YouTubeTranscriptApi.get_transcript(
+                video_id,
+                languages=['en', 'en-US', 'en-GB', 'en-IN']
+            )
+            transcript_text = ' '.join(s['text'] for s in segments)
+
+        except NoTranscriptFound:
+            # Try auto-generated captions
+            try:
+                all_t    = YouTubeTranscriptApi.list_transcripts(video_id)
+                auto     = all_t.find_generated_transcript(['en'])
+                segments = auto.fetch()
+                transcript_text = ' '.join(s['text'] for s in segments)
+                source   = 'youtube_auto_captions'
+            except Exception:
+                pass
+
+        if transcript_text and len(transcript_text) > 100:
+            # Clean transcript
+            import re
+            cleaned = re.sub(r'\[.*?\]', '', transcript_text)
+            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+            word_count = len(cleaned.split())
+
+            # Save to cache
+            _save_transcript_cache(video_id, cleaned, source, word_count)
+
+            print(f"✅ YouTube transcript: {word_count} words ({source})")
             return jsonify({
-                'success'   : False,
-                'message'   : 'Transcript too short',
-                'transcript': ''
+                'success'   : True,
+                'transcript': cleaned,
+                'source'    : source,
+                'length'    : word_count,
+                'cached'    : False,
             })
 
-        return jsonify({
-            'success'   : True,
-            'transcript': full_text,
-            'length'    : len(full_text),
-            'segments'  : len(transcript_list)
-        })
-
     except ImportError:
-        return jsonify({
-            'success': False,
-            'message': 'youtube-transcript-api not installed. Run: pip install youtube-transcript-api',
-            'transcript': ''
-        })
-
+        print("⚠️ youtube-transcript-api not installed")
+        print("   Run: pip install youtube-transcript-api")
+    except TranscriptsDisabled:
+        print(f"⚠️ Transcripts disabled for: {video_id}")
     except Exception as e:
-        return jsonify({
-            'success'   : False,
-            'message'   : str(e),
-            'transcript': ''
-        })
+        print(f"⚠️ Caption extraction failed: {e}")
+
+    # ── Step 3: Video description fallback ───────────────
+    try:
+        yt = build('youtube', 'v3',
+                   developerKey=os.getenv('YOUTUBE_API_KEY'))
+        resp = yt.videos().list(
+            part='snippet',
+            id  = video_id
+        ).execute()
+
+        if resp.get('items'):
+            snippet = resp['items'][0]['snippet']
+            desc    = snippet.get('description', '')
+            title   = snippet.get('title', '')
+            tags    = ', '.join(snippet.get('tags', [])[:10])
+
+            if desc and len(desc) > 100:
+                fallback_text = (
+                    f"Video Title: {title}\n\n"
+                    f"Description: {desc[:2000]}\n\n"
+                    f"Tags: {tags}"
+                )
+                word_count = len(fallback_text.split())
+                _save_transcript_cache(video_id, fallback_text, 'description', word_count)
+
+                print(f"✅ Description fallback: {word_count} words")
+                return jsonify({
+                    'success'   : True,
+                    'transcript': fallback_text,
+                    'source'    : 'description',
+                    'length'    : word_count,
+                    'cached'    : False,
+                })
+    except Exception as e:
+        print(f"⚠️ Description fallback error: {e}")
+
+    # ── Nothing worked ────────────────────────────────────
+    print(f"❌ No transcript available for: {video_id}")
+    return jsonify({
+        'success'   : False,
+        'transcript': '',
+        'source'    : 'none',
+        'length'    : 0,
+        'message'   : 'Transcript not available for this video',
+    })
+
+
+def _save_transcript_cache(
+    video_id  : str,
+    text      : str,
+    source    : str,
+    word_count: int
+):
+    """Save transcript to DB cache."""
+    try:
+        execute_query(
+            """INSERT INTO video_transcripts
+               (video_id, transcript_text, source, word_count)
+               VALUES (%s, %s, %s, %s)
+               ON DUPLICATE KEY UPDATE
+               transcript_text = VALUES(transcript_text),
+               source          = VALUES(source),
+               word_count      = VALUES(word_count),
+               created_at      = NOW()""",
+            (video_id, text, source, word_count)
+        )
+    except Exception as e:
+        print(f"⚠️ Transcript cache save error: {e}")

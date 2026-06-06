@@ -5,3 +5,4 @@ bcrypt
 google-genai
 groq
 youtube-transcript-api
+yt-dlp

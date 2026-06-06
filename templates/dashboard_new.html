@@ -1,0 +1,529 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — AI Learning Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════════
+   DASHBOARD — Clean Learning Hub
+═══════════════════════════════════════════════ */
+
+body { background: #f8fafc; }
+
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Hero Banner */
+.hero-banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    border-radius: 18px;
+    padding: 32px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.3;
+}
+
+.hero-orb-1 {
+    top: -80px;
+    right: -80px;
+    width: 300px;
+    height: 300px;
+    background: rgba(37, 99, 235, 0.15);
+    animation: orbFloat 6s ease-in-out infinite;
+}
+
+.hero-orb-2 {
+    bottom: -60px;
+    left: 30%;
+    width: 200px;
+    height: 200px;
+    background: rgba(124, 58, 237, 0.12);
+    animation: orbFloat 8s ease-in-out infinite reverse;
+}
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, -20px); }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-greeting {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 5px;
+}
+
+.hero-title {
+    font-size: 2rem;
+    font-weight: 900;
+    color: white;
+    margin: 0;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.hero-title span {
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.hero-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(124, 58, 237, 0.2);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    color: #c4b5fd;
+}
+
+.hero-stats {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    z-index: 2;
+}
+
+.hero-stat {
+    text-align: center;
+    padding: 0 10px;
+}
+
+.hero-stat-num {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    display: block;
+}
+
+.hero-stat-label {
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.36);
+    margin-top: 3px;
+    display: block;
+    font-weight: 500;
+}
+
+.hero-stat-div {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.07);
+    margin: 2px 0;
+}
+
+/* Metric Cards */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 13px;
+    padding: 18px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.22s;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 13px 13px 0 0;
+}
+
+.metric-card.blue::before { background: linear-gradient(90deg, #2563eb, #7c3aed); }
+.metric-card.green::before { background: linear-gradient(90deg, #059669, #0891b2); }
+.metric-card.orange::before { background: linear-gradient(90deg, #d97706, #dc2626); }
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.metric-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.metric-card.blue .metric-icon { background: #eff6ff; color: #2563eb; }
+.metric-card.green .metric-icon { background: #f0fdf4; color: #059669; }
+.metric-card.orange .metric-icon { background: #fffbeb; color: #d97706; }
+
+.metric-num {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1;
+    display: block;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-top: 3px;
+    display: block;
+}
+
+/* Section Header */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+.section-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: color 0.22s;
+}
+
+.section-link:hover { color: #1d4ed8; }
+
+/* Content Sections */
+.content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.content-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.22s;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+}
+
+.content-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+.content-icon {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+}
+
+.content-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.22s;
+    text-decoration: none;
+}
+
+.btn-action:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.btn-action-primary {
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: white;
+    border: none;
+}
+
+.btn-action-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.empty-state-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+
+.empty-state-text {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-container { padding: 12px; }
+    .hero-banner { padding: 20px; }
+    .hero-title { font-size: 1.5rem; }
+    .hero-stats { grid-template-columns: 1fr 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .hero-banner { padding: 16px; }
+    .hero-title { font-size: 1.25rem; }
+    .metrics-grid { grid-template-columns: 1fr; }
+    .content-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+
+        <div class="hero-content">
+            <div class="hero-greeting">Welcome back</div>
+            <h1 class="hero-title">
+                Hello, <span>{{ user_name or 'Learner' }}</span> 👋
+            </h1>
+
+            {% if field_of_interest %}
+            <div class="hero-badges">
+                <span class="hero-badge">
+                    <i class="fas fa-book"></i> {{ field_of_interest }}
+                </span>
+                {% if skill_level %}
+                <span class="hero-badge">
+                    <i class="fas fa-chart-line"></i> {{ skill_level }}
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-num" id="totalTopics">0</span>
+                    <span class="hero-stat-label">Topics</span>
+                </div>
+                <div class="hero-stat-div"></div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num" id="topicsCompleted">0</span>
+                    <span class="hero-stat-label">Completed</span>
+                </div>
+                <div class="hero-stat-div"></div>
+                <div class="hero-stat">
+                    <span class="hero-stat-num" id="userStreak">0</span>
+                    <span class="hero-stat-label">Day Streak</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card blue">
+            <div class="metric-icon">📊</div>
+            <span class="metric-num" id="avgScore">0%</span>
+            <span class="metric-label">Average Score</span>
+        </div>
+        <div class="metric-card green">
+            <div class="metric-icon">⏱️</div>
+            <span class="metric-num" id="hoursLearned">0h</span>
+            <span class="metric-label">Hours Learned</span>
+        </div>
+        <div class="metric-card orange">
+            <div class="metric-icon">🎯</div>
+            <span class="metric-num" id="questsCompleted">0</span>
+            <span class="metric-label">Quizzes Completed</span>
+        </div>
+    </div>
+
+    <!-- Recommended Topics -->
+    <div style="margin-bottom: 32px;">
+        <div class="section-header">
+            <h2 class="section-title">📚 Recommended Topics</h2>
+            <a href="/my_learning" class="section-link">View All →</a>
+        </div>
+        <div class="content-grid" id="recommendedTopics">
+            <div class="empty-state">
+                <div class="empty-state-icon">🎓</div>
+                <div class="empty-state-title">No Topics Yet</div>
+                <div class="empty-state-text">Complete your onboarding to see personalized recommendations</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Continue Learning -->
+    <div style="margin-bottom: 32px;">
+        <div class="section-header">
+            <h2 class="section-title">🚀 Continue Learning</h2>
+            <a href="/my_learning" class="section-link">Browse Topics →</a>
+        </div>
+        <div class="content-grid" id="continueTopics">
+            <div class="empty-state">
+                <div class="empty-state-icon">📖</div>
+                <div class="empty-state-title">Start Your Journey</div>
+                <div class="empty-state-text">Browse topics or check weak areas to get started</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 32px;">
+        <h2 class="section-title" style="margin-bottom: 16px;">Quick Links</h2>
+        <div class="action-buttons">
+            <a href="/my_learning" class="btn-action">📚 My Learning</a>
+            <a href="/weak_topics" class="btn-action">⚠️ Weak Topics</a>
+            <a href="/progress" class="btn-action">📊 Progress</a>
+            <a href="/quiz_history" class="btn-action">📝 Quiz History</a>
+            <a href="/settings" class="btn-action">⚙️ Settings</a>
+        </div>
+    </div>
+
+    <!-- Weak Topics Alert -->
+    <div id="weakTopicsAlert" style="display: none; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px; margin-bottom: 32px;">
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+            <div style="font-size: 1.5rem;">⚠️</div>
+            <div>
+                <h3 style="color: #92400e; font-weight: 700; margin-bottom: 4px;">Topics Need Review</h3>
+                <p style="color: #b45309; font-size: 0.9rem; margin-bottom: 10px;">You have weak topics that need attention.</p>
+                <a href="/weak_topics" class="btn-action" style="font-size: 0.8rem;">Review Weak Topics →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+});
+
+function loadDashboardData() {
+    fetch('/api/dashboard-stats')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('totalTopics').textContent = data.total_topics || 0;
+                document.getElementById('topicsCompleted').textContent = data.topics_completed || 0;
+                document.getElementById('userStreak').textContent = data.streak_days || 0;
+                document.getElementById('avgScore').textContent = Math.round(data.avg_score || 0) + '%';
+                document.getElementById('hoursLearned').textContent = (data.hours_learned || 0).toFixed(1) + 'h';
+                document.getElementById('questsCompleted').textContent = data.quizzes_completed || 0;
+
+                if (data.weak_topics_count > 0) {
+                    document.getElementById('weakTopicsAlert').style.display = 'block';
+                }
+
+                loadRecommendedTopics(data.recommended_topics);
+                loadContinueTopics(data.continue_topics);
+            }
+        })
+        .catch(err => console.error(err));
+}
+
+function loadRecommendedTopics(topics) {
+    const container = document.getElementById('recommendedTopics');
+    if (!topics || topics.length === 0) return;
+
+    container.innerHTML = topics.map(topic => `
+        <a href="/topic/${topic.id}" class="content-card">
+            <div class="content-icon">${topic.emoji || '📚'}</div>
+            <div class="content-name">${topic.name}</div>
+        </a>
+    `).join('');
+}
+
+function loadContinueTopics(topics) {
+    const container = document.getElementById('continueTopics');
+    if (!topics || topics.length === 0) return;
+
+    container.innerHTML = topics.map(topic => `
+        <a href="/topic/${topic.id}" class="content-card">
+            <div class="content-icon">${topic.emoji || '📖'}</div>
+            <div class="content-name">${topic.name}</div>
+        </a>
+    `).join('');
+}
+</script>
+{% endblock %}
