@@ -98,6 +98,27 @@ def _preprocess(text: str, max_chars: int = 4000) -> dict:
     }
 
 
+def _detect_language(text: str) -> str:
+    """Detect the primary language of the content from text script and keywords."""
+    if not text or not text.strip():
+        return 'English'
+
+    text = text.strip()
+
+    # Hindi uses Devanagari script
+    if re.search(r'[\u0900-\u097F]', text):
+        return 'Hindi'
+
+    # Arabic-based scripts for Urdu/Sindhi
+    if re.search(r'[\u0600-\u06FF]', text):
+        # Sindhi-specific characters
+        if re.search(r'[ڄڪڍڳڻڦڙ]', text):
+            return 'Sindhi'
+        return 'Urdu'
+
+    return 'English'
+
+
 def _format_notes_html(raw_notes: str) -> str:
     """Convert markdown notes to clean HTML for display."""
     html = raw_notes
@@ -163,6 +184,15 @@ Topic: {topic}"""
     else:
         print(f"⚠️ No transcript available — using title fallback")
 
+    # ── Detect language and prompt guidance ─────────────
+    language = _detect_language(transcript or video_title or topic)
+    language_note = (
+        "Use the same language as the source content. Support Sindhi, English, Urdu, and Hindi. "
+        "If the transcript is in Sindhi, Urdu, or Hindi, generate the notes in that language and preserve the same script."
+        if language != 'English' else
+        "Use English for the notes."
+    )
+
     # ── Build prompt ──────────────────────────────────────
     source_instruction = (
         "Base ALL notes ONLY on the transcript content above. "
@@ -178,6 +208,9 @@ Topic: {topic}"""
 
 Content:
 {content_block}
+
+Language: {language}
+{language_note}
 
 RULES:
 1. Write notes ONLY based on the content provided
@@ -259,6 +292,7 @@ Notes should be 400-600 words total. Be specific and educational."""
             'notes'     : raw_notes,
             'notes_html': notes_html,
             'source'    : content_source,
+            'language'  : language,
             'word_count': wc,
         }
 

@@ -61,6 +61,21 @@ def _generate(prompt: str, max_tokens: int = 3500) -> str:
 
 
 # ── Text preprocessor ─────────────────────────────────────
+def _detect_language(text: str) -> str:
+    """Detect the primary language of the content from text script and keywords."""
+    if not text or not text.strip():
+        return 'English'
+
+    text = text.strip()
+    if re.search(r'[\u0900-\u097F]', text):
+        return 'Hindi'
+    if re.search(r'[\u0600-\u06FF]', text):
+        if re.search(r'[ڄڪڍڳڻڦڙ]', text):
+            return 'Sindhi'
+        return 'Urdu'
+    return 'English'
+
+
 def _preprocess(text: str, max_chars: int = 3500) -> dict:
     """Clean transcript for quiz generation."""
     if not text or len(text.strip()) < 50:
@@ -199,6 +214,14 @@ def generate_quiz(
         difficulty = _get_adaptive_difficulty(user_id, topic)
         print(f"🎯 Adaptive difficulty: {difficulty} for topic '{topic}'")
 
+    language = _detect_language(transcript or video_title or topic)
+    language_note = (
+        "Use the same language as the source content. Support Sindhi, English, Urdu, and Hindi. "
+        "If the transcript is in Sindhi, Urdu, or Hindi, generate questions in that language and preserve the same script."
+        if language != 'English' else
+        "Use English for the questions."
+    )
+
     diff_guide = {
         'Easy'  : 'Simple recall questions — definitions, basic facts, simple identification.',
         'Medium': 'Understanding questions — explain concepts, compare ideas, apply knowledge.',
@@ -238,6 +261,9 @@ Topic: {topic}"""
 
 Content:
 {content_block}
+
+Language: {language}
+{language_note}
 
 Difficulty Level: {difficulty}
 Difficulty Guide: {diff_guide.get(difficulty, diff_guide['Medium'])}
@@ -318,6 +344,7 @@ Generate exactly {num_questions} questions now:"""
             'quiz_id'   : quiz_id,
             'total'     : len(questions),
             'difficulty': difficulty,
+            'language'  : language,
             'source'    : content_source,
         }
 

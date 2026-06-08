@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, session
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
 from googleapiclient.discovery import build
-import os, time
+import os, time, re
 
 youtube_bp = Blueprint('youtube', __name__)
 
@@ -347,11 +347,13 @@ def get_transcript():
             (video_id,), fetch=True
         )
         if cached and cached[0]['transcript_text']:
-            print(f"✅ Transcript from DB cache: {video_id}")
+            language = _detect_language(cached[0]['transcript_text'])
+            print(f"✅ Transcript from DB cache: {video_id} | language={language}")
             return jsonify({
                 'success'   : True,
                 'transcript': cached[0]['transcript_text'],
                 'source'    : cached[0]['source'],
+                'language'  : language,
                 'length'    : cached[0]['word_count'],
                 'cached'    : True,
             })
@@ -373,7 +375,7 @@ def get_transcript():
             # Try manual captions first (more accurate)
             segments = YouTubeTranscriptApi.get_transcript(
                 video_id,
-                languages=['en', 'en-US', 'en-GB', 'en-IN']
+                languages=['en', 'en-US', 'en-GB', 'en-IN', 'hi', 'ur', 'sd', 'ur-PK', 'sd-PK', 'hi-IN']
             )
             transcript_text = ' '.join(s['text'] for s in segments)
 
@@ -381,7 +383,9 @@ def get_transcript():
             # Try auto-generated captions
             try:
                 all_t    = YouTubeTranscriptApi.list_transcripts(video_id)
-                auto     = all_t.find_generated_transcript(['en'])
+                auto     = all_t.find_generated_transcript(
+                    ['en', 'hi', 'ur', 'sd', 'ur-PK', 'sd-PK', 'hi-IN']
+                )
                 segments = auto.fetch()
                 transcript_text = ' '.join(s['text'] for s in segments)
                 source   = 'youtube_auto_captions'
@@ -395,15 +399,17 @@ def get_transcript():
             cleaned = re.sub(r'\s+', ' ', cleaned).strip()
 
             word_count = len(cleaned.split())
+            language   = _detect_language(cleaned)
 
             # Save to cache
             _save_transcript_cache(video_id, cleaned, source, word_count)
 
-            print(f"✅ YouTube transcript: {word_count} words ({source})")
+            print(f"✅ YouTube transcript: {word_count} words ({source}) | language={language}")
             return jsonify({
                 'success'   : True,
                 'transcript': cleaned,
                 'source'    : source,
+                'language'  : language,
                 'length'    : word_count,
                 'cached'    : False,
             })
@@ -438,13 +444,15 @@ def get_transcript():
                     f"Tags: {tags}"
                 )
                 word_count = len(fallback_text.split())
+                language   = _detect_language(fallback_text)
                 _save_transcript_cache(video_id, fallback_text, 'description', word_count)
 
-                print(f"✅ Description fallback: {word_count} words")
+                print(f"✅ Description fallback: {word_count} words | language={language}")
                 return jsonify({
                     'success'   : True,
                     'transcript': fallback_text,
                     'source'    : 'description',
+                    'language'  : language,
                     'length'    : word_count,
                     'cached'    : False,
                 })
@@ -460,6 +468,21 @@ def get_transcript():
         'length'    : 0,
         'message'   : 'Transcript not available for this video',
     })
+
+
+def _detect_language(text: str) -> str:
+    """Detect the primary language of transcript or description text."""
+    if not text or not text.strip():
+        return 'English'
+
+    text = text.strip()
+    if re.search(r'[\u0900-\u097F]', text):
+        return 'Hindi'
+    if re.search(r'[\u0600-\u06FF]', text):
+        if re.search(r'[ڄڪڍڳڻڦڙ]', text):
+            return 'Sindhi'
+        return 'Urdu'
+    return 'English'
 
 
 def _save_transcript_cache(

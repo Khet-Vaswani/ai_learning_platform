@@ -77,7 +77,7 @@ async function openVideo(videoId, title, topic) {
 //  FETCH TRANSCRIPT FROM YOUTUBE
 // ══════════════════════════════════════════════════════════
 async function fetchTranscript(videoId) {
-    const srcEl = document.getElementById('notesSource');
+    const srcBadge = document.getElementById('notesSourceBadge');
 
     try {
         // Try backend transcript endpoint
@@ -89,10 +89,12 @@ async function fetchTranscript(videoId) {
             console.log('✅ Transcript loaded:', currentTranscript.length, 'chars');
 
             // Show transcript indicator
-            if (srcEl) {
-                srcEl.textContent = '📄 From Transcript';
-                srcEl.style.background = '#f0fdf4';
-                srcEl.style.color = '#059669';
+            if (srcBadge) {
+                srcBadge.textContent = data.language
+                    ? `📄 Transcript (${data.language})`
+                    : '📄 From Transcript';
+                srcBadge.style.background = '#f0fdf4';
+                srcBadge.style.color = '#059669';
             }
 
             // Unlock quiz immediately if transcript available
@@ -105,10 +107,10 @@ async function fetchTranscript(videoId) {
 
     // Fallback — use video title
     currentTranscript = '';
-    if (srcEl) {
-        srcEl.textContent = '📝 From Video Title';
-        srcEl.style.background = '#eff6ff';
-        srcEl.style.color = '#2563eb';
+    if (srcBadge) {
+        srcBadge.textContent = '📝 From Video Title';
+        srcBadge.style.background = '#eff6ff';
+        srcBadge.style.color = '#2563eb';
     }
 }
 
@@ -156,10 +158,10 @@ function unlockQuizWithTranscript() {
 //  GENERATE NOTES (transcript-based)
 // ══════════════════════════════════════════════════════════
 async function generateNotes() {
-    const btn     = document.getElementById('notesBtn');
-    const section = document.getElementById('notesSection');
-    const content = document.getElementById('notesContent');
-    const srcEl   = document.getElementById('notesSource');
+    const btn      = document.getElementById('notesBtn');
+    const section  = document.getElementById('notesSection');
+    const content  = document.getElementById('notesContent');
+    const srcBadge = document.getElementById('notesSourceBadge');
 
     if (!btn) return;
 
@@ -178,9 +180,9 @@ async function generateNotes() {
         // Add transcript if available
         if (currentTranscript && currentTranscript.length > 100) {
             payload.transcript = currentTranscript.substring(0, 4000);
-            if (srcEl) srcEl.textContent = '📄 From Transcript';
+            if (srcBadge) srcBadge.textContent = '📄 From Transcript';
         } else {
-            if (srcEl) srcEl.textContent = '📝 From Video Title';
+            if (srcBadge) srcBadge.textContent = '📝 From Video Title';
         }
 
         const data = await fetch('/gemini/generate-notes', {
@@ -196,6 +198,12 @@ async function generateNotes() {
             section.style.display = 'block';
             btn.innerHTML = '<i class="fas fa-check me-1"></i>Notes Ready ✅';
             btn.disabled  = false;
+
+            if (srcBadge) {
+                srcBadge.textContent = data.language
+                    ? `📄 Notes (${data.language})`
+                    : '📄 Notes';
+            }
 
             // Scroll into view
             section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
