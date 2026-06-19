@@ -363,50 +363,8 @@
     <!-- ── MAIN CONTENT ───────────────────────────── -->
     <div id="content">
 
-        <!-- Top Navbar -->
-        <nav class="top-navbar">
-            <button id="sidebarToggle" onclick="toggleSidebar()"
-                    style="background:none;border:none;
-                           font-size:1.1rem;color:#475569;
-                           cursor:pointer;padding:6px;">
-                <i class="fas fa-bars"></i>
-            </button>
-
-            <!-- Desktop Search -->
-            <div class="search-container" style="flex:1;">
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="globalSearch"
-                           placeholder="Search any topic..."
-                           autocomplete="off">
-                    <button class="search-btn"
-                            onclick="performSearch()">
-                        Search
-                    </button>
-                </div>
-            </div>
-
-            <div class="navbar-right">
-                <div class="nav-icon">
-                    <i class="fas fa-bell"></i>
-                    <span class="notif-dot"></span>
-                </div>
-                <div class="nav-user">
-                    <div class="nav-avatar">
-                        {{ session.user_name[0]|upper }}
-                    </div>
-                    <span>{{ session.user_name.split()[0] }}</span>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Mobile Search Bar -->
-        <div class="mobile-search-bar">
-            <input type="text" id="mobileSearch"
-                   class="mobile-search-input"
-                   placeholder="Search any topic..."
-                   autocomplete="off">
-        </div>
+        <!-- Modern Top Navbar -->
+        {% include 'navbar.html' %}
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -540,10 +498,14 @@ function toggleSidebar() {
     var sidebar  = document.getElementById('sidebar');
     var overlay  = document.getElementById('sidebarOverlay');
     var isMobile = window.innerWidth <= 768;
+    var hamburger = document.getElementById('hamburgerBtn');
 
     if (isMobile) {
         sidebar.classList.toggle('mobile-open');
         overlay.classList.toggle('active');
+        if (hamburger) {
+            hamburger.classList.toggle('active');
+        }
     } else {
         sidebar.classList.toggle('collapsed');
         document.getElementById('content')
@@ -556,6 +518,8 @@ function closeSidebar() {
     var overlay = document.getElementById('sidebarOverlay');
     if (sidebar) sidebar.classList.remove('mobile-open');
     if (overlay) overlay.classList.remove('active');
+    var hamburger = document.getElementById('hamburgerBtn');
+    if (hamburger) hamburger.classList.remove('active');
 }
 
 // Close sidebar on resize to desktop

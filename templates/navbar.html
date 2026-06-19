@@ -1,0 +1,261 @@
+<!-- Modern AI Learning Platform Navbar -->
+<nav class="navbar-modern" id="mainNavbar">
+    <div class="navbar-container">
+        <!-- Left Section: Brand Identity -->
+        <div class="navbar-left">
+            <button class="nav-action-btn sidebar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" title="Toggle Sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="/" class="navbar-brand">
+                <div class="brand-logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                </div>
+                <span class="brand-name">AI Learn</span>
+            </a>
+        </div>
+
+        <!-- Center Section: Smart Search Bar -->
+        <div class="navbar-center">
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <span class="search-icon">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input 
+                        type="text" 
+                        class="search-input" 
+                        id="searchInput"
+                        placeholder="Search videos, topics, courses, or notes..."
+                        autocomplete="off"
+                    >
+                    <button class="voice-search-btn" id="voiceSearchBtn" title="Voice Search">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <div class="search-suggestions" id="searchSuggestions" style="display: none;">
+                        <div class="suggestions-header">
+                            <span class="recent-label">Recent Searches</span>
+                        </div>
+                        <div class="suggestions-list" id="suggestionsList"></div>
+                        <div class="suggestions-divider"></div>
+                        <div class="suggestions-header">
+                            <span class="trending-label">Trending Topics</span>
+                        </div>
+                        <div class="trending-list" id="trendingList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: User Actions -->
+        <div class="navbar-right">
+            <!-- Mobile Search Trigger -->
+            <button class="nav-action-btn mobile-search-trigger" id="mobileSearchTriggerBtn" title="Search">
+                <i class="fas fa-search"></i>
+            </button>
+
+            <!-- AI Assistant Button -->
+            <button class="nav-action-btn ai-assistant-btn" id="aiAssistantBtn" title="Ask AI Tutor">
+                <i class="fas fa-robot"></i>
+                <span class="nav-action-tooltip">Ask AI Tutor</span>
+            </button>
+
+            <!-- Notifications -->
+            <div class="nav-action-item notifications-container">
+                <button class="nav-action-btn notification-btn" id="notificationBtn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">3</span>
+                </button>
+                <div class="dropdown-panel notification-panel" id="notificationPanel" style="display: none;">
+                    <div class="panel-header">
+                        <h6>Notifications</h6>
+                        <button class="close-panel-btn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="notification-item unread">
+                            <div class="notification-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="notification-content">
+                                <p class="notification-title">Quiz Completed!</p>
+                                <p class="notification-message">You scored 92% on Python Basics Quiz</p>
+                                <span class="notification-time">2 mins ago</span>
+                            </div>
+                            <button class="dismiss-notification-btn" title="Mark as read">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="notification-item unread">
+                            <div class="notification-icon">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <div class="notification-content">
+                                <p class="notification-title">New Course Available</p>
+                                <p class="notification-message">Advanced Machine Learning - Just released!</p>
+                                <span class="notification-time">1 hour ago</span>
+                            </div>
+                            <button class="dismiss-notification-btn" title="Mark as read">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="fas fa-award"></i>
+                            </div>
+                            <div class="notification-content">
+                                <p class="notification-title">Achievement Unlocked</p>
+                                <p class="notification-message">You've completed 10 lessons this week!</p>
+                                <span class="notification-time">5 hours ago</span>
+                            </div>
+                            <button class="dismiss-notification-btn" title="Mark as read">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <a href="/notifications" class="view-all-link">View All Notifications</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dark/Light Mode Toggle -->
+            <button class="nav-action-btn theme-toggle-btn" id="themeToggleBtn" title="Toggle Dark Mode">
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+            </button>
+
+            <!-- User Profile -->
+            <div class="nav-action-item profile-container">
+                <button class="nav-action-btn profile-btn" id="profileBtn" title="Profile Menu">
+                    <div class="profile-avatar">
+                        <img src="https://ui-avatars.com/api/?name={{ session.user_name|urlencode }}&background=7C3AED&color=fff&bold=true" alt="Profile">
+                        <span class="online-indicator"></span>
+                    </div>
+                </button>
+                <div class="dropdown-panel profile-panel" id="profilePanel" style="display: none;">
+                    <div class="panel-header profile-header">
+                        <div class="profile-info">
+                            <img src="https://ui-avatars.com/api/?name={{ session.user_name|urlencode }}&background=7C3AED&color=fff&bold=true" alt="Profile" class="profile-img">
+                            <div>
+                                <p class="profile-name">{{ session.user_name }}</p>
+                                <p class="profile-email">{{ session.user_email }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="/dashboard" class="dropdown-item">
+                            <i class="fas fa-book-open"></i>
+                            <span>My Learning</span>
+                        </a>
+                        <a href="/progress" class="dropdown-item">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Progress & Analytics</span>
+                        </a>
+                        <a href="/learning-preferences" class="dropdown-item">
+                            <i class="fas fa-sliders-h"></i>
+                            <span>AI Learning Preferences</span>
+                        </a>
+                        <a href="/quiz-history" class="dropdown-item">
+                            <i class="fas fa-history"></i>
+                            <span>Quiz History</span>
+                        </a>
+                        <a href="/watch-history" class="dropdown-item">
+                            <i class="fas fa-clock"></i>
+                            <span>Watch History</span>
+                        </a>
+                        <a href="/saved-videos" class="dropdown-item">
+                            <i class="fas fa-bookmark"></i>
+                            <span>Saved Videos</span>
+                        </a>
+                    </div>
+                    <div class="panel-divider"></div>
+                    <div class="panel-body">
+                        <a href="/settings" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </div>
+                    <div class="panel-footer">
+                        <button class="logout-btn" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="nav-action-btn hamburger-btn" id="hamburgerBtn" title="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Search Panel -->
+<div class="mobile-search-panel" id="mobileSearchPanel" style="display: none;">
+    <div class="mobile-search-wrapper">
+        <button class="close-search-btn" id="closeSearchBtn">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <input 
+            type="text" 
+            class="mobile-search-input" 
+            id="mobileSearchInput"
+            placeholder="Search..."
+            autocomplete="off"
+        >
+        <button class="mobile-voice-btn" id="mobileVoiceBtn">
+            <i class="fas fa-microphone"></i>
+        </button>
+    </div>
+    <div class="mobile-suggestions" id="mobileSuggestions"></div>
+</div>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu-overlay" id="mobileMenuOverlay" style="display: none;">
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-header">
+            <h6>Menu</h6>
+            <button class="close-menu-btn" id="closeMenuBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mobile-menu-items">
+            <a href="/dashboard" class="mobile-menu-item">
+                <i class="fas fa-book-open"></i>
+                <span>My Learning</span>
+            </a>
+            <a href="/progress" class="mobile-menu-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Progress</span>
+            </a>
+            <a href="/quiz-history" class="mobile-menu-item">
+                <i class="fas fa-history"></i>
+                <span>Quiz History</span>
+            </a>
+            <a href="/saved-videos" class="mobile-menu-item">
+                <i class="fas fa-bookmark"></i>
+                <span>Saved Videos</span>
+            </a>
+            <a href="/settings" class="mobile-menu-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Load CSS and JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+<script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
