@@ -43,6 +43,8 @@ class NavbarManager {
         this.recognition = null;
         this.activeSuggestionIndex = -1;
         this.originalSearchQuery = '';
+        this.searchTimeout = null;
+        this.mobileSearchTimeout = null;
 
         // Sample Data
         this.trendingTopics = [
@@ -185,26 +187,54 @@ class NavbarManager {
 
     handleSearchInput(e) {
         const query = e.target.value.trim();
+        clearTimeout(this.searchTimeout);
         if (query.length > 0) {
-            this.filterSuggestions(query);
+            this.searchTimeout = setTimeout(() => {
+                this.filterSuggestions(query);
+            }, 150);
         } else {
             this.populateSuggestions();
         }
     }
 
-    filterSuggestions(query) {
-        const filtered = this.trendingTopics.filter(topic =>
-            topic.toLowerCase().includes(query.toLowerCase())
-        );
+    async filterSuggestions(query) {
+        try {
+            const response = await fetch(`/api/search-suggestions?q=${encodeURIComponent(query)}`);
+            const suggestions = await response.json();
 
-        this.trendingList.innerHTML = '';
-        filtered.forEach(topic => {
-            const item = document.createElement('div');
-            item.className = 'trending-item';
-            item.innerHTML = `<i class="fas fa-search"></i><span>${this.highlightMatch(topic, query)}</span>`;
-            item.addEventListener('click', () => this.selectSuggestion(topic));
-            this.trendingList.appendChild(item);
-        });
+            // Hide headers & divider in suggestions dropdown
+            const headers = this.searchSuggestions.querySelectorAll('.suggestions-header, .suggestions-divider');
+            headers.forEach(h => h.style.display = 'none');
+
+            this.trendingList.innerHTML = '';
+            this.suggestionsList.innerHTML = '';
+            this.activeSuggestionIndex = -1;
+
+            if (suggestions.length === 0) {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item disabled';
+                item.style.cursor = 'default';
+                item.style.justifyContent = 'center';
+                item.style.color = 'var(--text-light)';
+                item.innerHTML = '<span>No matching suggestions</span>';
+                this.suggestionsList.appendChild(item);
+                return;
+            }
+
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.innerHTML = `
+                    <i class="${suggestion.icon}"></i>
+                    <span>${this.highlightMatch(suggestion.text, query)}</span>
+                    <span class="suggestion-tag-badge">${suggestion.type}</span>
+                `;
+                item.addEventListener('click', () => this.selectSuggestion(suggestion.text));
+                this.suggestionsList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Error fetching suggestions:', error);
+        }
     }
 
     highlightMatch(text, query) {
@@ -298,8 +328,13 @@ class NavbarManager {
 
     handleMobileSearchInput(e) {
         const query = e.target.value.trim();
+        clearTimeout(this.mobileSearchTimeout);
         if (query.length > 0) {
-            this.filterMobileSuggestions(query);
+            this.mobileSearchTimeout = setTimeout(() => {
+                this.filterMobileSuggestions(query);
+            }, 150);
+        } else {
+            this.mobileSuggestions.innerHTML = '';
         }
     }
 
@@ -316,24 +351,52 @@ class NavbarManager {
         }
     }
 
-    filterMobileSuggestions(query) {
-        const filtered = this.trendingTopics.filter(topic =>
-            topic.toLowerCase().includes(query.toLowerCase())
-        );
+    async filterMobileSuggestions(query) {
+        try {
+            const response = await fetch(`/api/search-suggestions?q=${encodeURIComponent(query)}`);
+            const suggestions = await response.json();
 
-        this.mobileSuggestions.innerHTML = '';
-        filtered.forEach(topic => {
-            const item = document.createElement('div');
-            item.className = 'mobile-suggestion-item';
-            item.textContent = topic;
-            item.addEventListener('click', () => {
-                this.mobileSearchInput.value = topic;
-                this.addToRecentSearches(topic);
-                this.performSearch(topic);
-                this.closeMobileSearch();
+            this.mobileSuggestions.innerHTML = '';
+
+            if (suggestions.length === 0) {
+                const item = document.createElement('div');
+                item.className = 'mobile-suggestion-item disabled';
+                item.style.color = 'var(--text-light)';
+                item.style.textAlign = 'center';
+                item.style.padding = '12px 16px';
+                item.textContent = 'No matching suggestions';
+                this.mobileSuggestions.appendChild(item);
+                return;
+            }
+
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('div');
+                item.className = 'mobile-suggestion-item';
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.justifyContent = 'space-between';
+                item.style.padding = '12px 16px';
+                item.style.borderBottom = '1px solid var(--border-light)';
+                item.style.cursor = 'pointer';
+
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="${suggestion.icon}" style="font-size: 14px; opacity: 0.6;"></i>
+                        <span>${suggestion.text}</span>
+                    </div>
+                    <span style="font-size: 10px; background: rgba(37,99,235,0.06); color: var(--primary-blue); padding: 2px 6px; border-radius: 10px; font-weight: 600; text-transform: uppercase;">${suggestion.type}</span>
+                `;
+                item.addEventListener('click', () => {
+                    this.mobileSearchInput.value = suggestion.text;
+                    this.addToRecentSearches(suggestion.text);
+                    this.performSearch(suggestion.text);
+                    this.closeMobileSearch();
+                });
+                this.mobileSuggestions.appendChild(item);
             });
-            this.mobileSuggestions.appendChild(item);
-        });
+        } catch (error) {
+            console.error('Error fetching mobile suggestions:', error);
+        }
     }
 
     // ===== VOICE SEARCH =====

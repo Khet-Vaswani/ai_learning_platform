@@ -125,6 +125,185 @@ body { background: var(--bg); }
   .hero-name { font-size:1.3rem; }
   .hero-stats { grid-template-columns:1fr auto 1fr; }
 }
+
+/* Notion-inspired Notes Styling */
+.notion-notes {
+  background: #ffffff;
+  color: #37352f;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+  padding: 18px 22px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.notion-h1, .notion-h2, .notion-h3 {
+  font-weight: 700;
+  color: #37352f;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.notion-h2 {
+  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+  padding-bottom: 5px;
+  color: #1e293b;
+}
+.notion-callout {
+  display: flex;
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  margin: 12px 0;
+  font-size: 0.82rem;
+  align-items: flex-start;
+}
+.notion-callout-emoji {
+  margin-right: 12px;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.notion-callout-text {
+  color: #4b5563;
+  line-height: 1.5;
+}
+.notion-list-item {
+  margin-left: 14px;
+  padding-left: 2px;
+  margin-bottom: 5px;
+  list-style-type: disc;
+  font-size: 0.81rem;
+  color: #374151;
+  line-height: 1.6;
+}
+.notion-toggle {
+  margin-top: 10px;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  background: #fafaf9;
+  padding: 8px 12px;
+}
+.notion-toggle summary {
+  cursor: pointer;
+  font-weight: 600;
+  outline: none;
+  user-select: none;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  color: #1f2937;
+}
+
+/* Premium Interactive Quiz Option */
+.quiz-option-premium {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 15px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+.quiz-option-premium:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+.quiz-option-premium.selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.08), 0 2px 4px -1px rgba(59, 130, 246, 0.04);
+}
+.quiz-option-premium .badge-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  flex-shrink: 0;
+  background: transparent;
+  transition: all 0.2s;
+}
+.quiz-option-premium.selected .badge-circle {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* Premium Interactive Quiz Result Styles */
+.quiz-feedback-box {
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.quiz-feedback-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+.quiz-feedback-danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+/* Loading animations */
+.ai-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px dashed #3b82f6;
+  margin: 10px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.loading-pulse-text {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.8rem;
+  margin-top: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.loading-subtext {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+.pulse-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-ring 1.8s infinite ease-in-out;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.92); opacity: 0.6; box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3); }
+  50% { transform: scale(1.06); opacity: 1; box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+  100% { transform: scale(0.92); opacity: 0.6; box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+}
 </style>
 {% endblock %}
 
@@ -526,17 +705,30 @@ body { background: var(--bg); }
               </div>
             </div>
 
-            <!-- Notes Section (below player) -->
-            <div id="notesSection" style="display:none;">
-              <div style="margin:10px 14px;border:1px solid var(--border);border-radius:9px;overflow:hidden;">
-                <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);color:white;padding:8px 13px;font-weight:600;font-size:.77rem;display:flex;align-items:center;justify-content:space-between;">
-                  <span><i class="fas fa-sticky-note me-2"></i>AI Study Notes</span>
-                  <span id="notesSourceBadge" style="background:rgba(255,255,255,.15);padding:2px 9px;border-radius:6px;font-size:.6rem;font-weight:500;"></span>
+            <!-- AI Generation Loading Spinner -->
+            <div id="aiLoadingSection" style="display:none;">
+              <div class="ai-loading-container">
+                <div class="pulse-circle">
+                  <i class="fas fa-brain" style="color:#2563eb; font-size:1.3rem;"></i>
                 </div>
-                <div id="notesContent" style="padding:12px;font-size:.78rem;max-height:220px;overflow-y:auto;line-height:1.75;"></div>
+                <div class="loading-pulse-text" id="aiLoadingTitle">Curating Learning Content...</div>
+                <div class="loading-subtext" id="aiLoadingSubtitle">This can take up to 30 seconds for speech-to-text voice extraction</div>
               </div>
             </div>
 
+            <!-- Notes Section (below player) -->
+            <div id="notesSection" style="display:none; margin:10px 14px;">
+              <div class="notion-notes">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid rgba(55,53,47,0.09); padding-bottom:10px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.4rem;">📝</span>
+                    <h5 style="font-size:1.05rem; font-weight:700; color:#37352f; margin:0;">AI Study Notes</h5>
+                  </div>
+                  <span id="notesSourceBadge" style="background:#eff6ff; color:#2563eb; padding:2px 8px; border-radius:6px; font-size:0.62rem; font-weight:600; border:1px solid #bfdbfe;"></span>
+                </div>
+                <div id="notesContent" style="font-size:0.8rem; line-height:1.75; color:#37352f; max-height:280px; overflow-y:auto; padding-right:4px;"></div>
+              </div>
+            </div>
           </div><!-- /col-lg-8 -->
 
           <!-- RIGHT: Related Videos ONLY -->

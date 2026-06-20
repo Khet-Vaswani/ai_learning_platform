@@ -55,10 +55,16 @@ async function openVideo(videoId, title, topic) {
     const modalEl = document.getElementById('videoModal');
     if (modalEl) new bootstrap.Modal(modalEl).show();
 
-    // ── Load details, related, transcript ─────────────────
+    // ── Load details, related ─────────────────────────────
     loadVideoDetails(videoId, topic);
     loadRelatedVideos(topic);
-    fetchTranscript(videoId);
+
+    // ── Load notes automatically ──────────────────────────
+    loadOrCreateNotes(videoId, title, topic);
+
+    // ── Fetch transcript and set up watch timer ───────────
+    await fetchTranscript(videoId);
+    startWatchTimer();
 
     // ── Mark as watched ───────────────────────────────────
     try {
@@ -68,8 +74,6 @@ async function openVideo(videoId, title, topic) {
             topic   : topic
         });
     } catch(e) {}
-
-    startWatchTimer();
 }
 
 
@@ -102,10 +106,9 @@ async function fetchTranscript(videoId) {
             return;
         }
     } catch(e) {
-        console.log('Transcript API not available, using title-based generation');
+        console.log('Transcript API not available, using watch timer to unlock');
     }
 
-    // Fallback — use video title
     currentTranscript = '';
     if (srcBadge) {
         srcBadge.textContent = '📝 From Video Title';
@@ -114,486 +117,105 @@ async function fetchTranscript(videoId) {
     }
 }
 
-
-// ══════════════════════════════════════════════════════════
-//  UNLOCK QUIZ (transcript available)
-// ══════════════════════════════════════════════════════════
 function unlockQuizWithTranscript() {
-    const btn       = document.getElementById('quizBtn');
-    const lockIcon  = document.getElementById('quizLockIcon');
-    const btnLabel  = document.getElementById('quizBtnLabel');
+    const btn      = document.getElementById('quizBtn');
+    const lockIcon = document.getElementById('quizLockIcon');
+    const btnLabel = document.getElementById('quizBtnLabel');
 
     if (!btn) return;
 
     btn.disabled = false;
-    if (lockIcon) lockIcon.className = 'fas fa-clipboard-check me-1';
-    if (btnLabel) btnLabel.textContent = 'Generate Quiz';
+    if (lockIcon) lockIcon.className = 'fas fa-unlock me-1';
+    if (btnLabel) btnLabel.textContent = 'Take Quiz';
     btn.style.opacity = '1';
     btn.style.cursor  = 'pointer';
-    btn.onclick = generateQuiz;
+    btn.onclick       = () => { if (window.generateQuiz) window.generateQuiz(); };
 
-    // Update quiz placeholder
-    const placeholder = document.getElementById('quizPlaceholder');
-    if (placeholder) {
-        placeholder.innerHTML = `
-            <div style="font-size:1.4rem;margin-bottom:8px;">📝</div>
-            <div style="font-size:0.74rem;font-weight:700;color:#059669;margin-bottom:4px;">
-                Quiz Ready!
-            </div>
-            <div style="font-size:0.65rem;color:#94a3b8;margin-bottom:12px;">
-                Generated from video transcript
-            </div>
-            <button onclick="generateQuiz()"
-                    style="background:linear-gradient(135deg,#059669,#047857);
-                           color:white;border:none;padding:8px 16px;
-                           border-radius:8px;font-size:0.75rem;font-weight:700;
-                           cursor:pointer;font-family:inherit;">
-                <i class="fas fa-play me-1"></i>Start Quiz
-            </button>`;
+    // Update quiz ready banner in sidebar if exists
+    const readyBanner = document.getElementById('quizReadyBanner');
+    const readyBtn    = document.getElementById('quizReadyBtn');
+    if (readyBanner) {
+        readyBanner.style.display = 'block';
+    }
+    if (readyBtn) {
+        readyBtn.onclick = () => { if (window.generateQuiz) window.generateQuiz(); };
     }
 }
 
+async function loadOrCreateNotes(videoId, title, topic) {
+    const notesSection   = document.getElementById('notesSection');
+    const notesContent   = document.getElementById('notesContent');
+    const srcBadge       = document.getElementById('notesSourceBadge');
+    const loadingSection = document.getElementById('aiLoadingSection');
+    const loadingTitle   = document.getElementById('aiLoadingTitle');
+    const loadingSub     = document.getElementById('aiLoadingSubtitle');
 
-// ══════════════════════════════════════════════════════════
-//  GENERATE NOTES (transcript-based)
-// ══════════════════════════════════════════════════════════
-async function generateNotes() {
-    const btn      = document.getElementById('notesBtn');
-    const section  = document.getElementById('notesSection');
-    const content  = document.getElementById('notesContent');
-    const srcBadge = document.getElementById('notesSourceBadge');
+    if (notesSection) notesSection.style.display = 'none';
+    if (notesContent) notesContent.innerHTML = '';
 
-    if (!btn) return;
-
-    // Loading state
-    const orig = btn.innerHTML;
-    btn.disabled  = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    // Show notes loading spinner inside the notes area
+    if (loadingSection) {
+        if (loadingTitle) loadingTitle.textContent = "Curating AI Notes...";
+        if (loadingSub) loadingSub.textContent = "Checking database cache or generating study guide...";
+        loadingSection.style.display = 'flex';
+    }
 
     try {
-        const payload = {
-            video_id   : currentVideo.id,
-            video_title: currentVideo.title,
-            topic      : currentVideo.topic,
-        };
-
-        // Add transcript if available
-        if (currentTranscript && currentTranscript.length > 100) {
-            payload.transcript = currentTranscript.substring(0, 4000);
-            if (srcBadge) srcBadge.textContent = '📄 From Transcript';
-        } else {
-            if (srcBadge) srcBadge.textContent = '📝 From Video Title';
-        }
-
-        const data = await fetch('/gemini/generate-notes', {
+        const notesRes = await fetch('/gemini/generate-notes', {
             method : 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify(payload)
+            body   : JSON.stringify({ video_id: videoId, video_title: title, topic: topic })
         }).then(r => r.json());
 
-        if (data.success) {
-            // Format notes
-            const html = formatNotes(data.notes);
-            content.innerHTML     = html;
-            section.style.display = 'block';
-            btn.innerHTML = '<i class="fas fa-check me-1"></i>Notes Ready ✅';
-            btn.disabled  = false;
+        if (loadingSection) loadingSection.style.display = 'none';
 
+        if (notesRes.success) {
+            if (notesContent) notesContent.innerHTML = formatNotesNotion(notesRes.notes);
             if (srcBadge) {
-                srcBadge.textContent = data.language
-                    ? `📄 Notes (${data.language})`
-                    : '📄 Notes';
+                srcBadge.textContent = notesRes.from_cache ? "📄 Loaded from DB" : "📄 Generated via AI";
+                srcBadge.style.background = '#f0fdf4';
+                srcBadge.style.color = '#059669';
             }
-
-            // Scroll into view
-            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (notesSection) notesSection.style.display = 'block';
         } else {
-            btn.innerHTML = orig;
-            btn.disabled  = false;
-            showToast('Notes failed. Please try again.', 'warning');
-        }
-    } catch(e) {
-        btn.innerHTML = orig;
-        btn.disabled  = false;
-        showToast('Error generating notes.', 'danger');
-    }
-}
-
-
-// ══════════════════════════════════════════════════════════
-//  GENERATE QUIZ (transcript-based)
-// ══════════════════════════════════════════════════════════
-async function generateQuiz() {
-    const btn       = document.getElementById('quizBtn');
-    const lockIcon  = document.getElementById('quizLockIcon');
-    const btnLabel  = document.getElementById('quizBtnLabel');
-
-    if (!btn) return;
-
-    // Loading
-    btn.disabled = true;
-    if (lockIcon) lockIcon.className = 'fas fa-spinner fa-spin me-1';
-    if (btnLabel) btnLabel.textContent = 'Generating Quiz...';
-
-    try {
-        const payload = {
-            video_id   : currentVideo.id,
-            video_title: currentVideo.title,
-            topic      : currentVideo.topic,
-        };
-
-        // Transcript-based quiz
-        if (currentTranscript && currentTranscript.length > 100) {
-            payload.transcript = currentTranscript.substring(0, 4000);
-        }
-
-        const data = await fetch('/gemini/generate-quiz', {
-            method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify(payload)
-        }).then(r => r.json());
-
-        if (data.success) {
-            btn.disabled = false;
-            if (lockIcon) lockIcon.className = 'fas fa-check me-1';
-            if (btnLabel) btnLabel.textContent = 'Quiz Ready ✅';
-
-            // Show quiz inline in modal
-            renderQuizInModal(data);
-
-            // Also open in new tab
-            setTimeout(() => {
-                window.open(`/quiz/page/${data.quiz_id}`, '_blank');
-            }, 600);
-        } else {
-            btn.disabled = false;
-            if (lockIcon) lockIcon.className = 'fas fa-clipboard-check me-1';
-            if (btnLabel) btnLabel.textContent = 'Retry Quiz';
-            showToast(data.message || 'Quiz failed. Try again.', 'warning');
-        }
-    } catch(e) {
-        btn.disabled = false;
-        if (lockIcon) lockIcon.className = 'fas fa-clipboard-check me-1';
-        if (btnLabel) btnLabel.textContent = 'Retry Quiz';
-        showToast('Error generating quiz.', 'danger');
-    }
-}
-
-
-// ══════════════════════════════════════════════════════════
-//  RENDER QUIZ INLINE IN MODAL (below related videos)
-// ══════════════════════════════════════════════════════════
-function renderQuizInModal(data) {
-    const placeholder = document.getElementById('quizPlaceholder');
-    const container   = document.getElementById('quizContainer');
-
-    if (placeholder) placeholder.style.display = 'none';
-    if (!container)  return;
-
-    container.style.display = 'block';
-
-    const diff = data.difficulty || 'Medium';
-    const diffConfig = {
-        Easy  : { icon: '🟢', color: '#059669', bg: '#f0fdf4', border: '#bbf7d0' },
-        Medium: { icon: '🟡', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-        Hard  : { icon: '🔴', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
-    };
-    const dc = diffConfig[diff] || diffConfig.Medium;
-    const source = currentTranscript ? '📄 Transcript-based' : '📝 Title-based';
-
-    container.innerHTML = `
-        <!-- Quiz Header -->
-        <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);
-                    color:white;padding:10px 14px;border-radius:10px 10px 0 0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <div style="font-size:0.78rem;font-weight:700;">
-                    <i class="fas fa-brain me-2"></i>${currentVideo.topic || 'Quiz'}
-                </div>
-                <span style="background:${dc.bg};color:${dc.color};
-                             padding:2px 9px;border-radius:9px;
-                             font-size:0.66rem;font-weight:700;">
-                    ${dc.icon} ${diff}
-                </span>
-            </div>
-            <div style="font-size:0.63rem;color:rgba(255,255,255,0.45);margin-top:3px;">
-                ${data.total} questions • ${source}
-                ${data.attempts > 0 ? ` • Attempt #${data.attempts + 1}` : ' • First attempt'}
-            </div>
-        </div>
-
-        <!-- Questions -->
-        <div style="max-height:320px;overflow-y:auto;padding:10px 12px;" id="quizQWrap">
-            ${(data.questions || []).map((q, i) => `
-                <div style="margin-bottom:14px;padding-bottom:12px;
-                            border-bottom:1px solid #f1f5f9;">
-                    <p style="font-size:0.79rem;font-weight:600;
-                              color:#1e293b;margin:0 0 7px;line-height:1.45;">
-                        Q${i+1}. ${q.question}
-                    </p>
-                    ${Object.entries(q.options || {}).map(([key, val]) => `
-                        <div id="opt_${i}_${key}"
-                             onclick="pickOpt(${i},'${key}',this)"
-                             style="display:flex;align-items:center;gap:7px;
-                                    padding:6px 10px;border-radius:7px;
-                                    border:1.5px solid #f1f5f9;
-                                    cursor:pointer;margin-bottom:4px;
-                                    transition:all 0.18s;background:white;
-                                    font-size:0.76rem;color:#475569;">
-                            <span style="width:20px;height:20px;border-radius:50%;
-                                         border:1.5px solid #cbd5e1;
-                                         display:flex;align-items:center;
-                                         justify-content:center;
-                                         font-size:0.62rem;font-weight:700;
-                                         flex-shrink:0;color:#64748b;"
-                                  id="optBadge_${i}_${key}">
-                                ${key}
-                            </span>
-                            ${val}
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('')}
-
-            <button onclick="submitInlineQuiz()"
-                    style="width:100%;padding:10px;
-                           background:linear-gradient(135deg,#2563eb,#7c3aed);
-                           color:white;border:none;border-radius:9px;
-                           font-size:0.8rem;font-weight:700;cursor:pointer;
-                           font-family:inherit;margin-top:4px;">
-                <i class="fas fa-paper-plane me-1"></i>Submit Quiz
-            </button>
-
-            <a href="/quiz/page/${data.quiz_id}" target="_blank"
-               style="display:block;text-align:center;margin-top:8px;
-                      font-size:0.7rem;color:#7c3aed;font-weight:600;
-                      text-decoration:none;">
-                <i class="fas fa-external-link-alt me-1"></i>Open full quiz page
-            </a>
-        </div>`;
-
-    // Store quiz data for submission
-    window._inlineQuiz = {
-        quiz_id  : data.quiz_id,
-        questions: data.questions || [],
-        answers  : {},
-        topic    : currentVideo.topic
-    };
-
-    // Scroll to quiz section
-    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-
-// ── Pick option in inline quiz ────────────────────────────
-function pickOpt(qIdx, key, el) {
-    if (!window._inlineQuiz) return;
-    window._inlineQuiz.answers[qIdx] = key;
-
-    // Update visuals for this question
-    const q = window._inlineQuiz.questions[qIdx];
-    if (!q) return;
-
-    Object.keys(q.options || {}).forEach(k => {
-        const optEl   = document.getElementById(`opt_${qIdx}_${k}`);
-        const badgeEl = document.getElementById(`optBadge_${qIdx}_${k}`);
-        if (!optEl) return;
-
-        if (k === key) {
-            optEl.style.borderColor   = '#2563eb';
-            optEl.style.background    = '#eff6ff';
-            optEl.style.color         = '#1e40af';
-            if (badgeEl) {
-                badgeEl.style.background  = '#2563eb';
-                badgeEl.style.borderColor = '#2563eb';
-                badgeEl.style.color       = 'white';
-            }
-        } else {
-            optEl.style.borderColor   = '#f1f5f9';
-            optEl.style.background    = 'white';
-            optEl.style.color         = '#475569';
-            if (badgeEl) {
-                badgeEl.style.background  = 'transparent';
-                badgeEl.style.borderColor = '#cbd5e1';
-                badgeEl.style.color       = '#64748b';
+            if (notesSection) {
+                notesSection.style.display = 'block';
+                if (notesContent) notesContent.innerHTML = `<div class="text-danger">Failed to generate study notes: ${notesRes.message || 'AI error'}</div>`;
             }
         }
-    });
-}
-
-
-// ── Submit inline quiz ─────────────────────────────────────
-async function submitInlineQuiz() {
-    const iq = window._inlineQuiz;
-    if (!iq) return;
-
-    const totalQ = iq.questions.length;
-    const answered = Object.keys(iq.answers).length;
-
-    if (answered < totalQ) {
-        showToast(`Please answer all ${totalQ} questions! (${answered}/${totalQ} done)`, 'warning');
-        return;
-    }
-
-    const container = document.getElementById('quizContainer');
-    if (container) {
-        container.innerHTML = `
-            <div style="text-align:center;padding:24px;">
-                <div class="spinner-border" style="width:1.6rem;height:1.6rem;color:#7c3aed;"></div>
-                <div style="font-size:0.76rem;color:#94a3b8;margin-top:8px;">Submitting...</div>
-            </div>`;
-    }
-
-    try {
-        const data = await fetch('/gemini/submit-quiz', {
-            method : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body   : JSON.stringify({
-                quiz_id: iq.quiz_id,
-                answers: iq.answers,
-                topic  : iq.topic
-            })
-        }).then(r => r.json());
-
-        if (data.success) {
-            renderInlineResult(data);
-        } else {
-            showToast('Submission failed. Try again.', 'danger');
-        }
-    } catch(e) {
-        showToast('Error submitting quiz.', 'danger');
+    } catch (e) {
+        if (loadingSection) loadingSection.style.display = 'none';
+        console.error('Error loading notes:', e);
     }
 }
 
+function formatNotesNotion(text) {
+    if (!text) return '';
+    let formatted = text;
+    
+    // Replace Headers
+    formatted = formatted.replace(/## 📌 Topic Overview/g, '<h6 class="notion-h2">📌 Topic Overview</h6>');
+    formatted = formatted.replace(/## 🔑 Key Concepts/g, '<h6 class="notion-h2">🔑 Key Concepts</h6>');
+    formatted = formatted.replace(/## 📖 Important Definitions/g, '<h6 class="notion-h2">📖 Important Definitions</h6>');
+    formatted = formatted.replace(/## 💡 Examples & Applications/g, '<h6 class="notion-h2">💡 Examples & Applications</h6>');
+    formatted = formatted.replace(/## ⚡ Key Takeaways/g, '<h6 class="notion-h2">⚡ Key Takeaways</h6>');
+    formatted = formatted.replace(/## 📝 Summary/g, '<h6 class="notion-h2">📝 Summary</h6>');
+    
+    // General H2s & H3s
+    formatted = formatted.replace(/## (.*)/g, '<h6 class="notion-h2">$1</h6>');
+    formatted = formatted.replace(/### (.*)/g, '<strong style="color:#1f2937; margin-top:12px; display:block; font-size:0.88rem;">$1</strong>');
+    
+    // Bullet points with Notion list item styling
+    formatted = formatted.replace(/^- (.*)/gm, '<div class="notion-list-item">$1</div>');
+    
+    // Bold text
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Newlines to breaks
+    formatted = formatted.replace(/\n\n/g, '<br>');
+    formatted = formatted.replace(/\n/g, '<br>');
 
-// ── Render inline quiz result ─────────────────────────────
-function renderInlineResult(data) {
-    const container = document.getElementById('quizContainer');
-    if (!container) return;
-
-    const pct   = data.percentage || 0;
-    const emoji = pct >= 70 ? '🎉' : pct >= 40 ? '😊' : '😔';
-    const color = pct >= 70 ? '#059669' : pct >= 40 ? '#d97706' : '#dc2626';
-    const bg    = pct >= 70 ? '#f0fdf4' : pct >= 40 ? '#fffbeb' : '#fef2f2';
-    const border= pct >= 70 ? '#bbf7d0' : pct >= 40 ? '#fde68a' : '#fecaca';
-
-    const newDiff = data.new_difficulty || 'Medium';
-    const diffIco = { Easy:'🟢', Medium:'🟡', Hard:'🔴' };
-    const safeTopic = (data.topic || '').replace(/'/g, "\\'");
-
-    container.innerHTML = `
-        <div style="padding:16px 14px;">
-
-            <!-- Score circle -->
-            <div style="text-align:center;margin-bottom:14px;">
-                <div style="font-size:2.2rem;margin-bottom:6px;">${emoji}</div>
-                <div style="font-size:2rem;font-weight:900;color:${color};line-height:1;">
-                    ${data.score}/${data.total}
-                </div>
-                <div style="font-size:0.78rem;color:#64748b;margin-top:3px;">
-                    ${pct}% — ${pct >= 70 ? 'Excellent!' : pct >= 40 ? 'Good Job!' : 'Keep Practicing!'}
-                </div>
-            </div>
-
-            <!-- Status cards -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-                <div style="background:${bg};border:1px solid ${border};
-                            border-radius:8px;padding:9px;text-align:center;">
-                    <div style="font-size:0.62rem;color:#94a3b8;margin-bottom:2px;">RESULT</div>
-                    <div style="font-size:0.82rem;font-weight:700;color:${color};">
-                        ${data.is_weak ? '⚠️ Weak Topic' : '✅ Strong!'}
-                    </div>
-                </div>
-                <div style="background:#faf5ff;border:1px solid #e9d5ff;
-                            border-radius:8px;padding:9px;text-align:center;">
-                    <div style="font-size:0.62rem;color:#94a3b8;margin-bottom:2px;">NEXT LEVEL</div>
-                    <div style="font-size:0.82rem;font-weight:700;color:#7c3aed;">
-                        ${diffIco[newDiff] || '🟡'} ${newDiff}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Review answers -->
-            <div style="max-height:180px;overflow-y:auto;margin-bottom:12px;">
-                ${(data.results || []).map((r, i) => `
-                    <div style="padding:7px 9px;border-radius:7px;margin-bottom:5px;
-                                background:${r.is_correct ? 'rgba(5,150,105,0.07)' : 'rgba(220,38,38,0.07)'};
-                                border:1px solid ${r.is_correct ? '#bbf7d0' : '#fecaca'};">
-                        <div style="font-size:0.73rem;font-weight:600;color:#1e293b;margin-bottom:2px;">
-                            Q${i+1}. ${r.question.substring(0, 60)}${r.question.length > 60 ? '...' : ''}
-                        </div>
-                        <div style="font-size:0.67rem;color:#64748b;">
-                            You: <strong>${r.user_answer || '?'}</strong> |
-                            Ans: <strong>${r.correct}</strong>
-                            ${r.is_correct ? '✅' : '❌'}
-                        </div>
-                        ${r.explanation ? `
-                        <div style="font-size:0.63rem;color:#94a3b8;margin-top:2px;">
-                            💡 ${r.explanation.substring(0, 80)}${r.explanation.length > 80 ? '...' : ''}
-                        </div>` : ''}
-                    </div>
-                `).join('')}
-            </div>
-
-            <!-- Action buttons -->
-            <div style="display:flex;flex-direction:column;gap:6px;">
-                ${data.is_weak ? `
-                <button onclick="findVideosForTopic('${safeTopic}')"
-                        style="width:100%;padding:9px;
-                               background:linear-gradient(135deg,#fef9c3,#fef08a);
-                               color:#92400e;border:1px solid #fde68a;
-                               border-radius:8px;font-size:0.77rem;font-weight:700;
-                               cursor:pointer;font-family:inherit;">
-                    <i class="fas fa-search me-1"></i>Find Easier Videos for "${data.topic}"
-                </button>` : `
-                <button onclick="findNextLevelVideos('${safeTopic}')"
-                        style="width:100%;padding:9px;
-                               background:linear-gradient(135deg,#eff6ff,#faf5ff);
-                               color:#2563eb;border:1px solid #bfdbfe;
-                               border-radius:8px;font-size:0.77rem;font-weight:700;
-                               cursor:pointer;font-family:inherit;">
-                    <i class="fas fa-arrow-up me-1"></i>Find Advanced Videos
-                </button>`}
-
-                <button onclick="retakeQuiz()"
-                        style="width:100%;padding:9px;
-                               background:#f8fafc;color:#64748b;
-                               border:1.5px solid #e2e8f0;
-                               border-radius:8px;font-size:0.77rem;font-weight:700;
-                               cursor:pointer;font-family:inherit;">
-                    <i class="fas fa-redo me-1"></i>Retake Quiz
-                </button>
-            </div>
-        </div>`;
-
-    // If weak — also load simpler videos in related section
-    if (data.is_weak && data.topic) {
-        loadRelatedVideos(data.topic + ' simplified beginners');
-    }
-}
-
-
-// ── Find videos after quiz ────────────────────────────────
-function findVideosForTopic(topic) {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('videoModal'));
-    if (modal) modal.hide();
-    setTimeout(() => {
-        window.location.href = `/dashboard?search=${encodeURIComponent(topic + ' simplified beginners')}`;
-    }, 300);
-}
-
-function findNextLevelVideos(topic) {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('videoModal'));
-    if (modal) modal.hide();
-    setTimeout(() => {
-        window.location.href = `/dashboard?search=${encodeURIComponent(topic + ' advanced')}`;
-    }, 300);
-}
-
-function retakeQuiz() {
-    if (window._inlineQuiz) {
-        window._inlineQuiz.answers = {};
-        generateQuiz();
-    }
+    return formatted;
 }
 
 
@@ -1005,19 +627,45 @@ function lockQuizButton() {
     btn.style.opacity = '0.55';
     btn.style.cursor  = 'not-allowed';
     btn.onclick       = null;
+
+    const readyBanner = document.getElementById('quizReadyBanner');
+    if (readyBanner) readyBanner.style.display = 'none';
 }
 
 function startWatchTimer() {
+    if (currentTranscript && currentTranscript.trim().length > 100) {
+        return;
+    }
+
     let secs = 0;
+    const progressWrap = document.getElementById('watchProgressWrap');
+    const progressFill = document.getElementById('watchProgressFill');
+    const progressLabel = document.getElementById('watchProgressLabel');
+    
+    if (progressWrap) progressWrap.style.display = 'block';
+    if (progressFill) progressFill.style.width = '0%';
+    if (progressLabel) progressLabel.innerHTML = '<i class="fas fa-clock me-1"></i>60s to unlock quiz';
+
     watchCheckTimer = setInterval(() => {
         secs++;
-        // After 60 seconds, auto-unlock
-        if (secs >= 60 && !videoWatched) {
+        const pct = Math.min(100, (secs / 60) * 100);
+        if (progressFill) progressFill.style.width = `${pct}%`;
+        if (progressLabel) {
+            const left = Math.max(0, 60 - secs);
+            if (left > 0) {
+                progressLabel.innerHTML = `<i class="fas fa-clock me-1"></i>${left}s to unlock quiz`;
+            } else {
+                progressLabel.innerHTML = `<i class="fas fa-unlock me-1"></i>Quiz unlocked!`;
+            }
+        }
+
+        if (secs >= 60) {
             clearInterval(watchCheckTimer);
+            watchCheckTimer = null;
             videoWatched = true;
-            // Only unlock if transcript not already loaded
-            if (!currentTranscript) {
-                unlockQuizWithTranscript();
+            unlockQuizWithTranscript();
+            if (progressWrap) {
+                setTimeout(() => { progressWrap.style.display = 'none'; }, 2000);
             }
         }
     }, 1000);
@@ -1028,20 +676,18 @@ function resetModalPanels() {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
-    const ph = document.getElementById('quizPlaceholder');
-    if (ph) {
-        ph.style.display = 'block';
-        ph.innerHTML = `
-            <div style="font-size:1.5rem;margin-bottom:5px;">📝</div>
-            <div style="font-size:0.72rem;font-weight:600;color:#64748b;">Auto Quiz</div>
-            <div style="font-size:0.64rem;margin-top:2px;">Watch video to unlock</div>`;
-    }
+    
+    const progressWrap = document.getElementById('watchProgressWrap');
+    if (progressWrap) progressWrap.style.display = 'none';
+
+    const readyBanner = document.getElementById('quizReadyBanner');
+    if (readyBanner) readyBanner.style.display = 'none';
 
     const nb = document.getElementById('notesBtn');
     if (nb) {
         nb.disabled  = false;
         nb.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Notes';
-        nb.onclick   = generateNotes;
+        nb.onclick   = () => { if (window.generateNotes) window.generateNotes(); };
     }
 
     ['viewCount','likeCount'].forEach(id => {

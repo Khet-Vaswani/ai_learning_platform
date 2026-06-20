@@ -422,6 +422,46 @@ def get_transcript():
     except Exception as e:
         print(f"⚠️ Caption extraction failed: {e}")
 
+    # ── Step 2.5: Whisper Speech-to-Text Fallback ──────────
+    try:
+        from app.ai.audio_extractor  import download_audio
+        from app.ai.speech_to_text   import transcribe_with_whisper
+
+        print(f"🎵 Captions unavailable. Downloading audio for Whisper: {video_id}")
+        audio_path = download_audio(video_id)
+
+        if audio_path and os.path.exists(audio_path):
+            print(f"🤖 Running Whisper STT...")
+            whisper_text = transcribe_with_whisper(audio_path)
+
+            if whisper_text and len(whisper_text) > 200:
+                cleaned = re.sub(r'\[.*?\]', '', whisper_text)
+                cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+                word_count = len(cleaned.split())
+                language   = _detect_language(cleaned)
+
+                # Save to cache
+                _save_transcript_cache(video_id, cleaned, 'whisper', word_count)
+
+                # Cleanup audio file
+                try:
+                    os.remove(audio_path)
+                except Exception:
+                    pass
+
+                print(f"✅ Whisper transcript: {word_count} words | language={language}")
+                return jsonify({
+                    'success'   : True,
+                    'transcript': cleaned,
+                    'source'    : 'whisper',
+                    'language'  : language,
+                    'length'    : word_count,
+                    'cached'    : False,
+                })
+    except Exception as e:
+        print(f"⚠️ Whisper STT fallback failed: {e}")
+
     # ── Step 3: Video description fallback ───────────────
     try:
         yt = build('youtube', 'v3',
@@ -506,3 +546,121 @@ def _save_transcript_cache(
         )
     except Exception as e:
         print(f"⚠️ Transcript cache save error: {e}")
+
+
+# ============================================================
+# SEARCH SUGGESTIONS API
+# ============================================================
+@youtube_bp.route('/api/search-suggestions')
+@login_required
+def search_suggestions():
+    q = request.args.get('q', '').strip().lower()
+    if not q:
+        return jsonify([])
+
+    suggestions = []
+    seen_texts = set()
+
+    # 1. Match from search history cache (search_cache table)
+    try:
+        cache_queries = execute_query(
+            "SELECT DISTINCT query FROM search_cache WHERE LOWER(query) LIKE %s LIMIT 5",
+            (f"%{q}%",), fetch=True
+        )
+        if cache_queries:
+            for row in cache_queries:
+                val = row['query'].strip()
+                val_lower = val.lower()
+                if val_lower not in seen_texts:
+                    seen_texts.add(val_lower)
+                    suggestions.append({
+                        'text': val,
+                        'type': 'history',
+                        'icon': 'fas fa-history'
+                    })
+    except Exception as e:
+        print(f"Error querying search cache suggestions: {e}")
+
+    # 2. Match from university_fields_of_study
+    try:
+        fields = execute_query(
+            "SELECT DISTINCT field_name FROM university_fields_of_study WHERE LOWER(field_name) LIKE %s LIMIT 5",
+            (f"%{q}%",), fetch=True
+        )
+        if fields:
+            for row in fields:
+                val = row['field_name'].strip()
+                val_lower = val.lower()
+                if val_lower not in seen_texts:
+                    seen_texts.add(val_lower)
+                    suggestions.append({
+                        'text': val,
+                        'type': 'subject',
+                        'icon': 'fas fa-graduation-cap'
+                    })
+    except Exception as e:
+        print(f"Error querying university fields suggestions: {e}")
+
+    # 3. Match from watched video titles
+    try:
+        videos = execute_query(
+            "SELECT DISTINCT video_title FROM watched_videos WHERE LOWER(video_title) LIKE %s LIMIT 5",
+            (f"%{q}%",), fetch=True
+        )
+        if videos:
+            for row in videos:
+                val = row['video_title'].strip()
+                val_lower = val.lower()
+                if val_lower not in seen_texts:
+                    seen_texts.add(val_lower)
+                    suggestions.append({
+                        'text': val,
+                        'type': 'video',
+                        'icon': 'fas fa-video'
+                    })
+    except Exception as e:
+        print(f"Error querying watched videos suggestions: {e}")
+
+    # 4. Match from video topics
+    try:
+        topics = execute_query(
+            "SELECT DISTINCT topic FROM watched_videos WHERE LOWER(topic) LIKE %s LIMIT 5",
+            (f"%{q}%",), fetch=True
+        )
+        if topics:
+            for row in topics:
+                val = row['topic'].strip()
+                val_lower = val.lower()
+                if val_lower not in seen_texts:
+                    seen_texts.add(val_lower)
+                    suggestions.append({
+                        'text': val,
+                        'type': 'topic',
+                        'icon': 'fas fa-brain'
+                    })
+    except Exception as e:
+        print(f"Error querying video topics suggestions: {e}")
+
+    # 5. Fallback or general trending matches (like categories or default trending)
+    trending_matches = [
+        'Python Programming', 'Machine Learning', 'Data Science', 'Algorithms', 'Web Development', 'Flask', 'JavaScript'
+    ]
+    for item in trending_matches:
+        if q in item.lower() and item.lower() not in seen_texts:
+            seen_texts.add(item.lower())
+            suggestions.append({
+                'text': item,
+                'type': 'trending',
+                'icon': 'fas fa-fire'
+            })
+
+    # Prioritize exact or prefix matches
+    def match_score(item):
+        text = item['text'].lower()
+        if text.startswith(q):
+            return 0  # Highest priority
+        return 1  # Contains search but doesn't start with it
+
+    suggestions.sort(key=match_score)
+
+    return jsonify(suggestions[:8])

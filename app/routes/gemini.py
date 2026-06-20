@@ -98,6 +98,14 @@ def generate_notes_route():
     transcript  = data.get('transcript', '')
     user_id     = session['user_id']
 
+    if not transcript:
+        cached_trans = execute_query(
+            "SELECT transcript_text FROM video_transcripts WHERE video_id = %s",
+            (video_id,), fetch=True
+        )
+        if cached_trans:
+            transcript = cached_trans[0]['transcript_text']
+
     print(f"\n📝 Notes request: '{topic}' | transcript={len(transcript)} chars")
 
     try:
@@ -148,6 +156,14 @@ def generate_quiz_route():
     topic       = data.get('topic', '')
     transcript  = data.get('transcript', '')
     user_id     = session['user_id']
+
+    if not transcript:
+        cached_trans = execute_query(
+            "SELECT transcript_text FROM video_transcripts WHERE video_id = %s",
+            (video_id,), fetch=True
+        )
+        if cached_trans:
+            transcript = cached_trans[0]['transcript_text']
 
     print(f"\n📋 Quiz request: '{topic}' | transcript={len(transcript)} chars")
 

@@ -1,373 +1,398 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>{% block title %}AI Learning Platform{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
     <style>
-    /* ── Mobile Overlay ──────────────────────────────── */
-    .sidebar-overlay {
-        display        : none;
-        position       : fixed;
-        inset          : 0;
-        background     : rgba(0,0,0,0.5);
-        z-index        : 998;
-        backdrop-filter: blur(2px);
-    }
-    .sidebar-overlay.active { display: block; }
-
-    /* ── Mobile Bottom Nav ───────────────────────────── */
-    .mobile-bottom-nav {
-        display        : none;
-        position       : fixed;
-        bottom         : 0;
-        left           : 0;
-        right          : 0;
-        height         : 60px;
-        background     : white;
-        border-top     : 1px solid #e2e8f0;
-        z-index        : 999;
-        box-shadow     : 0 -4px 20px rgba(0,0,0,0.08);
-    }
-
-    .mobile-nav-items {
-        display        : flex;
-        align-items    : center;
-        justify-content: space-around;
-        height         : 100%;
-        padding        : 0 8px;
-    }
-
-    .mobile-nav-item {
-        display        : flex;
-        flex-direction : column;
-        align-items    : center;
-        justify-content: center;
-        gap            : 2px;
-        padding        : 6px 12px;
-        border-radius  : 10px;
-        text-decoration: none;
-        color          : #94a3b8;
-        font-size      : 0.6rem;
-        font-weight    : 500;
-        transition     : all 0.2s;
-        min-width      : 48px;
-    }
-
-    .mobile-nav-item i {
-        font-size: 1.1rem;
-    }
-
-    .mobile-nav-item.active,
-    .mobile-nav-item:hover {
-        color: #2563eb;
-    }
-
-    .mobile-nav-item.active i {
-        color: #2563eb;
-    }
-
-    /* ── Mobile Search ───────────────────────────────── */
-    .mobile-search-bar {
-        display   : none;
-        padding   : 10px 16px;
-        background: white;
-        border-top: 1px solid #f1f5f9;
-    }
-
-    .mobile-search-input {
-        width        : 100%;
-        padding      : 9px 14px;
-        border       : 1.5px solid #e2e8f0;
-        border-radius: 10px;
-        font-size    : 0.85rem;
-        outline      : none;
-        font-family  : inherit;
-    }
-
-    .mobile-search-input:focus {
-        border-color: #2563eb;
-    }
-
-    /* ── Top Navbar Mobile ───────────────────────────── */
-    .top-navbar {
-        display        : flex;
-        align-items    : center;
-        gap            : 12px;
-        padding        : 0 20px;
-        height         : 60px;
-        background     : white;
-        border-bottom  : 1px solid #f1f5f9;
-        position       : sticky;
-        top            : 0;
-        z-index        : 100;
-        box-shadow     : 0 1px 3px rgba(0,0,0,0.06);
-    }
-
-    /* ── Main Content Mobile Padding ─────────────────── */
-    @media (max-width: 768px) {
-        /* Show mobile nav */
-        .mobile-bottom-nav { display: block; }
-
-        /* Add bottom padding for mobile nav */
-        .main-content {
-            padding-bottom: 80px !important;
+        /* ── Mobile Overlay ──────────────────────────────── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            backdrop-filter: blur(2px);
         }
 
-        /* Hide desktop search in navbar */
-        .search-container { display: none !important; }
-
-        /* Show mobile search */
-        .mobile-search-bar { display: block; }
-
-        /* Sidebar hidden by default on mobile */
-        #sidebar {
-            position  : fixed !important;
-            left      : -280px !important;
-            top       : 0 !important;
-            height    : 100vh !important;
-            z-index   : 999 !important;
-            transition: left 0.3s ease !important;
-            width     : 260px !important;
+        .sidebar-overlay.active {
+            display: block;
         }
 
-        #sidebar.mobile-open {
-            left: 0 !important;
+        /* ── Mobile Bottom Nav ───────────────────────────── */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            z-index: 999;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
         }
 
-        /* Content full width on mobile */
-        #content {
-            margin-left : 0 !important;
-            width       : 100% !important;
+        .mobile-nav-items {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            height: 100%;
+            padding: 0 8px;
         }
 
-        /* Dashboard page padding */
-        .dashboard-page {
-            padding: 16px !important;
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #94a3b8;
+            font-size: 0.6rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            min-width: 48px;
         }
 
-        /* Hero banner mobile */
-        .hero-banner {
-            padding      : 20px !important;
-            border-radius: 14px !important;
+        .mobile-nav-item i {
+            font-size: 1.1rem;
         }
 
-        .hero-name {
-            font-size: 1.3rem !important;
+        .mobile-nav-item.active,
+        .mobile-nav-item:hover {
+            color: #2563eb;
         }
 
-        .hero-stats {
-            grid-template-columns: repeat(3,1fr) !important;
-            gap: 8px !important;
+        .mobile-nav-item.active i {
+            color: #2563eb;
         }
 
-        .hero-stat-num {
-            font-size: 1.2rem !important;
+        /* ── Mobile Search ───────────────────────────────── */
+        .mobile-search-bar {
+            display: none;
+            padding: 10px 16px;
+            background: white;
+            border-top: 1px solid #f1f5f9;
         }
 
-        /* Metric cards mobile */
-        .metric-card {
-            padding: 14px !important;
+        .mobile-search-input {
+            width: 100%;
+            padding: 9px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            outline: none;
+            font-family: inherit;
         }
 
-        .metric-num {
-            font-size: 1.5rem !important;
+        .mobile-search-input:focus {
+            border-color: #2563eb;
         }
 
-        /* Video modal full screen */
-        .modal-dialog.modal-xl {
-            margin   : 0 !important;
-            max-width: 100% !important;
-            height   : 100vh !important;
-        }
-
-        .modal-content {
-            height       : 100vh !important;
-            border-radius: 0 !important;
-        }
-
-        /* Video modal columns stack */
-        .modal-body .row.g-0 {
-            flex-direction: column !important;
-        }
-
-        .modal-body .col-lg-8,
-        .modal-body .col-md-8 {
-            width: 100% !important;
-        }
-
-        .modal-body .col-lg-4,
-        .modal-body .col-md-4 {
-            width     : 100% !important;
-            max-height: 300px !important;
-        }
-
-        /* Video player mobile */
-        .video-player-wrapper,
-        .video-player-wrapper iframe {
-            height: 220px !important;
-        }
-
-        /* Section cards mobile */
-        .section-card-body {
-            padding: 12px !important;
-        }
-
-        /* Two column → single column */
-        .row.g-4 {
-            flex-direction: column !important;
-        }
-
-        .col-lg-8, .col-lg-4 {
-            width: 100% !important;
-        }
-
-        /* Top navbar mobile */
+        /* ── Top Navbar Mobile ───────────────────────────── */
         .top-navbar {
-            padding: 0 12px !important;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            height: 60px;
+            background: white;
+            border-bottom: 1px solid #f1f5f9;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         }
 
-        .navbar-right .nav-user span {
-            display: none !important;
+        /* ── Main Content Mobile Padding ─────────────────── */
+        @media (max-width: 768px) {
+
+            /* Show mobile nav */
+            .mobile-bottom-nav {
+                display: block;
+            }
+
+            /* Add bottom padding for mobile nav */
+            .main-content {
+                padding-bottom: 80px !important;
+            }
+
+            /* Hide desktop search in navbar */
+            .search-container {
+                display: none !important;
+            }
+
+            /* Show mobile search */
+            .mobile-search-bar {
+                display: block;
+            }
+
+            /* Sidebar hidden by default on mobile */
+            #sidebar {
+                position: fixed !important;
+                left: -280px !important;
+                top: 0 !important;
+                height: 100vh !important;
+                z-index: 999 !important;
+                transition: left 0.3s ease !important;
+                width: 260px !important;
+            }
+
+            #sidebar.mobile-open {
+                left: 0 !important;
+            }
+
+            /* Content full width on mobile */
+            #content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+
+            /* Dashboard page padding */
+            .dashboard-page {
+                padding: 16px !important;
+            }
+
+            /* Hero banner mobile */
+            .hero-banner {
+                padding: 20px !important;
+                border-radius: 14px !important;
+            }
+
+            .hero-name {
+                font-size: 1.3rem !important;
+            }
+
+            .hero-stats {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            .hero-stat-num {
+                font-size: 1.2rem !important;
+            }
+
+            /* Metric cards mobile */
+            .metric-card {
+                padding: 14px !important;
+            }
+
+            .metric-num {
+                font-size: 1.5rem !important;
+            }
+
+            /* Video modal full screen */
+            .modal-dialog.modal-xl {
+                margin: 0 !important;
+                max-width: 100% !important;
+                height: 100vh !important;
+            }
+
+            .modal-content {
+                height: 100vh !important;
+                border-radius: 0 !important;
+            }
+
+            /* Video modal columns stack */
+            .modal-body .row.g-0 {
+                flex-direction: column !important;
+            }
+
+            .modal-body .col-lg-8,
+            .modal-body .col-md-8 {
+                width: 100% !important;
+            }
+
+            .modal-body .col-lg-4,
+            .modal-body .col-md-4 {
+                width: 100% !important;
+                max-height: 300px !important;
+            }
+
+            /* Video player mobile */
+            .video-player-wrapper,
+            .video-player-wrapper iframe {
+                height: 220px !important;
+            }
+
+            /* Section cards mobile */
+            .section-card-body {
+                padding: 12px !important;
+            }
+
+            /* Two column → single column */
+            .row.g-4 {
+                flex-direction: column !important;
+            }
+
+            .col-lg-8,
+            .col-lg-4 {
+                width: 100% !important;
+            }
+
+            /* Top navbar mobile */
+            .top-navbar {
+                padding: 0 12px !important;
+            }
+
+            .navbar-right .nav-user span {
+                display: none !important;
+            }
+
+            /* Quiz page mobile */
+            .quiz-page-wrapper {
+                padding: 12px !important;
+            }
+
+            .question-wrap {
+                padding: 16px !important;
+            }
+
+            /* Progress page mobile */
+            .chart-card {
+                padding: 14px !important;
+            }
+
+            /* Admin mobile */
+            .admin-main {
+                padding: 12px !important;
+            }
+
+            .admin-topbar {
+                padding: 0 12px !important;
+            }
         }
 
-        /* Quiz page mobile */
-        .quiz-page-wrapper {
-            padding: 12px !important;
+        @media (max-width: 480px) {
+            .hero-name {
+                font-size: 1.1rem !important;
+            }
+
+            .hero-banner {
+                padding: 16px !important;
+            }
+
+            .metric-num {
+                font-size: 1.3rem !important;
+            }
+
+            .hero-stats {
+                margin-top: 12px !important;
+            }
+
+            .vid-card .vid-info {
+                padding: 8px !important;
+            }
+
+            .vid-title {
+                font-size: 0.78rem !important;
+            }
+
+            /* Stack metric cards 2x2 */
+            .col-md-3.col-6 {
+                width: 50% !important;
+            }
         }
-
-        .question-wrap {
-            padding: 16px !important;
-        }
-
-        /* Progress page mobile */
-        .chart-card {
-            padding: 14px !important;
-        }
-
-        /* Admin mobile */
-        .admin-main {
-            padding: 12px !important;
-        }
-
-        .admin-topbar {
-            padding: 0 12px !important;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .hero-name { font-size: 1.1rem !important; }
-        .hero-banner { padding: 16px !important; }
-        .metric-num  { font-size: 1.3rem !important; }
-        .hero-stats  { margin-top: 12px !important; }
-
-        .vid-card .vid-info { padding: 8px !important; }
-        .vid-title { font-size: 0.78rem !important; }
-
-        /* Stack metric cards 2x2 */
-        .col-md-3.col-6 { width: 50% !important; }
-    }
     </style>
 </head>
+
 <body>
 
-{% if session.user_id %}
-<!-- ── Sidebar Overlay (Mobile) ─────────────────────── -->
-<div class="sidebar-overlay" id="sidebarOverlay"
-     onclick="closeSidebar()"></div>
+    {% if session.user_id %}
+    <!-- ── Sidebar Overlay (Mobile) ─────────────────────── -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-<div class="wrapper">
-    <!-- ── SIDEBAR ─────────────────────────────────── -->
-    <nav id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <i class="fas fa-brain"></i>
+    <div class="wrapper">
+        <!-- ── SIDEBAR ─────────────────────────────────── -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h4>AI Learn</h4>
+                <p>Smart Learning</p>
             </div>
-            <h4>AI Learn</h4>
-            <p>Smart Learning</p>
-        </div>
-        <ul class="sidebar-nav">
-            <li>
-                <a href="{{ url_for('dashboard.index') }}"
-                   class="{{ 'active' if request.endpoint == 'dashboard.index' else '' }}">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-            <li>
-                <a href="/my-learning"
-                   class="{{ 'active' if request.path == '/my-learning' else '' }}">
-                    <i class="fas fa-play-circle"></i>
-                    <span>My Learning</span>
-                </a>
-            </li>
-            <li>
-                <a href="/weak-topics"
-                   class="{{ 'active' if request.path == '/weak-topics' else '' }}">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Weak Topics</span>
-                    <span class="sidebar-badge" id="weakCount"></span>
-                </a>
-            </li>
-            <li>
-                <a href="/quiz-history"
-                   class="{{ 'active' if request.path == '/quiz-history' else '' }}">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Quiz History</span>
-                </a>
-            </li>
-            <li>
-                <a href="/progress"
-                   class="{{ 'active' if request.path == '/progress' else '' }}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Progress</span>
-                </a>
-            </li>
-            <li>
-                <a href="/chatbot"
-                   class="{{ 'active' if request.path == '/chatbot' else '' }}">
-                    <i class="fas fa-robot"></i>
-                    <span>AI Chatbot</span>
-                </a>
-            </li>
-            <li>
-    <!-- <a href="/evaluation/report"
+            <ul class="sidebar-nav">
+                <li>
+                    <a href="{{ url_for('dashboard.index') }}"
+                        class="{{ 'active' if request.endpoint == 'dashboard.index' else '' }}">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/my-learning" class="{{ 'active' if request.path == '/my-learning' else '' }}">
+                        <i class="fas fa-play-circle"></i>
+                        <span>My Learning</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/weak-topics" class="{{ 'active' if request.path == '/weak-topics' else '' }}">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Weak Topics</span>
+                        <span class="sidebar-badge" id="weakCount"></span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/quiz-history" class="{{ 'active' if request.path == '/quiz-history' else '' }}">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Quiz History</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/progress" class="{{ 'active' if request.path == '/progress' else '' }}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Progress</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/chatbot" class="{{ 'active' if request.path == '/chatbot' else '' }}">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Chatbot</span>
+                    </a>
+                </li>
+                <li>
+                    <!-- <a href="/evaluation/report"
        class="{{ 'active' if request.path == '/evaluation/report' else '' }}">
         <i class="fas fa-chart-bar"></i>
         <span>Evaluation</span>
     </a> -->
-</li>
-        </ul>
-        <div class="sidebar-footer">
-            <div class="sidebar-user">
-                <div class="user-avatar">
-                    {{ session.user_name[0]|upper }}
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="user-avatar">
+                        {{ session.user_name[0]|upper }}
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ session.user_name }}</span>
+                        <span class="user-role">Student</span>
+                    </div>
                 </div>
-                <div class="user-info">
-                    <span class="user-name">{{ session.user_name }}</span>
-                    <span class="user-role">Student</span>
-                </div>
+                <a href="{{ url_for('auth.logout') }}" class="sidebar-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
             </div>
-            <a href="{{ url_for('auth.logout') }}"
-               class="sidebar-logout">
-                <i class="fas fa-sign-out-alt"></i>
-            </a>
-        </div>
-    </nav>
+        </nav>
 
-    <!-- ── MAIN CONTENT ───────────────────────────── -->
-    <div id="content">
+        <!-- ── MAIN CONTENT ───────────────────────────── -->
+        <div id="content">
 
-        <!-- Modern Top Navbar -->
-        {% include 'navbar.html' %}
+            <!-- Modern Top Navbar -->
+            {% include 'navbar.html' %}
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             <div class="px-3 pt-3">
                 {% for category, message in messages %}
@@ -376,198 +401,189 @@
                             rounded-3">
                     <i class="fas fa-info-circle me-2"></i>
                     {{ message }}
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="alert">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert">
                     </button>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
-        {% endwith %}
+            {% endwith %}
 
-        <div class="main-content">
+            <div class="main-content">
 
-{% else %}
-<!-- ── AUTH NAVBAR ────────────────────────────────── -->
-<nav class="auth-navbar navbar navbar-expand-lg">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="/">
-            <i class="fas fa-brain me-2 text-primary"></i>
-            AI Learn
-        </a>
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#authNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="authNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">
-                        <i class="fas fa-home me-1"></i>Home
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/login">
-                        <i class="fas fa-sign-in-alt me-1"></i>Login
-                    </a>
-                </li>
-                <li class="nav-item ms-2">
-                    <a class="btn btn-primary px-4" href="/register">
-                        <i class="fas fa-user-plus me-1"></i>Sign Up
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
+                {% else %}
+                <!-- ── AUTH NAVBAR ────────────────────────────────── -->
+                <nav class="auth-navbar navbar navbar-expand-lg">
+                    <div class="container">
+                        <a class="navbar-brand fw-bold" href="/">
+                            <i class="fas fa-brain me-2 text-primary"></i>
+                            AI Learn
+                        </a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#authNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="authNav">
+                            <ul class="navbar-nav ms-auto align-items-center">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/">
+                                        <i class="fas fa-home me-1"></i>Home
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/login">
+                                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                                    </a>
+                                </li>
+                                <li class="nav-item ms-2">
+                                    <a class="btn btn-primary px-4" href="/register">
+                                        <i class="fas fa-user-plus me-1"></i>Sign Up
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="container mt-3">
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="container mt-3">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}
                     alert-dismissible fade show">
-            <i class="fas fa-info-circle me-2"></i>
-            {{ message }}
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="alert">
-            </button>
-        </div>
-        {% endfor %}
-    </div>
+                        <i class="fas fa-info-circle me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert">
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <div class="auth-page-content">
+                    {% endif %}
+
+                    <!-- ── PAGE CONTENT ───────────────────────────────── -->
+                    {% block content %}{% endblock %}
+
+                    {% if session.user_id %}
+                </div><!-- end main-content -->
+            </div><!-- end content -->
+        </div><!-- end wrapper -->
+
+        <!-- ── Mobile Bottom Navigation ───────────────────── -->
+        <nav class="mobile-bottom-nav">
+            <div class="mobile-nav-items">
+                <a href="/dashboard" class="mobile-nav-item {{ 'active' if request.path == '/dashboard' else '' }}">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="/my-learning" class="mobile-nav-item {{ 'active' if request.path == '/my-learning' else '' }}">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Learning</span>
+                </a>
+                <a href="/progress" class="mobile-nav-item {{ 'active' if request.path == '/progress' else '' }}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Progress</span>
+                </a>
+                <a href="/weak-topics" class="mobile-nav-item {{ 'active' if request.path == '/weak-topics' else '' }}">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Weak</span>
+                </a>
+                <a href="/chatbot" class="mobile-nav-item {{ 'active' if request.path == '/chatbot' else '' }}">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Chat</span>
+                </a>
+            </div>
+        </nav>
+
+        {% else %}
+    </div><!-- end auth-page-content -->
     {% endif %}
-{% endwith %}
 
-<div class="auth-page-content">
-{% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    {% block extra_js %}{% endblock %}
 
-<!-- ── PAGE CONTENT ───────────────────────────────── -->
-{% block content %}{% endblock %}
+    <script>
+        // ── Sidebar Toggle ────────────────────────────────────────
+        function toggleSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            var isMobile = window.innerWidth <= 768;
+            var hamburger = document.getElementById('hamburgerBtn');
 
-{% if session.user_id %}
-        </div><!-- end main-content -->
-    </div><!-- end content -->
-</div><!-- end wrapper -->
-
-<!-- ── Mobile Bottom Navigation ───────────────────── -->
-<nav class="mobile-bottom-nav">
-    <div class="mobile-nav-items">
-        <a href="/dashboard"
-           class="mobile-nav-item {{ 'active' if request.path == '/dashboard' else '' }}">
-            <i class="fas fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="/my-learning"
-           class="mobile-nav-item {{ 'active' if request.path == '/my-learning' else '' }}">
-            <i class="fas fa-play-circle"></i>
-            <span>Learning</span>
-        </a>
-        <a href="/progress"
-           class="mobile-nav-item {{ 'active' if request.path == '/progress' else '' }}">
-            <i class="fas fa-chart-bar"></i>
-            <span>Progress</span>
-        </a>
-        <a href="/weak-topics"
-           class="mobile-nav-item {{ 'active' if request.path == '/weak-topics' else '' }}">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>Weak</span>
-        </a>
-        <a href="/chatbot"
-           class="mobile-nav-item {{ 'active' if request.path == '/chatbot' else '' }}">
-            <i class="fas fa-robot"></i>
-            <span>AI Chat</span>
-        </a>
-    </div>
-</nav>
-
-{% else %}
-</div><!-- end auth-page-content -->
-{% endif %}
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/api.js') }}"></script>
-{% block extra_js %}{% endblock %}
-
-<script>
-// ── Sidebar Toggle ────────────────────────────────────────
-function toggleSidebar() {
-    var sidebar  = document.getElementById('sidebar');
-    var overlay  = document.getElementById('sidebarOverlay');
-    var isMobile = window.innerWidth <= 768;
-    var hamburger = document.getElementById('hamburgerBtn');
-
-    if (isMobile) {
-        sidebar.classList.toggle('mobile-open');
-        overlay.classList.toggle('active');
-        if (hamburger) {
-            hamburger.classList.toggle('active');
-        }
-    } else {
-        sidebar.classList.toggle('collapsed');
-        document.getElementById('content')
-                .classList.toggle('expanded');
-    }
-}
-
-function closeSidebar() {
-    var sidebar = document.getElementById('sidebar');
-    var overlay = document.getElementById('sidebarOverlay');
-    if (sidebar) sidebar.classList.remove('mobile-open');
-    if (overlay) overlay.classList.remove('active');
-    var hamburger = document.getElementById('hamburgerBtn');
-    if (hamburger) hamburger.classList.remove('active');
-}
-
-// Close sidebar on resize to desktop
-window.addEventListener('resize', function() {
-    if (window.innerWidth > 768) {
-        closeSidebar();
-    }
-});
-
-// ── Search ────────────────────────────────────────────────
-function performSearch() {
-    var q = document.getElementById('globalSearch')?.value.trim();
-    if (!q) return;
-    window.location.href = '/dashboard?search=' +
-                           encodeURIComponent(q);
-}
-
-document.getElementById('globalSearch')
-    ?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') performSearch();
-});
-
-// Mobile search
-document.getElementById('mobileSearch')
-    ?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        var q = this.value.trim();
-        if (q) window.location.href =
-            '/dashboard?search=' + encodeURIComponent(q);
-    }
-});
-
-// ── Weak Count Badge ──────────────────────────────────────
-async function loadWeakCount() {
-    try {
-        var r = await fetch('/recommend/weak-topics');
-        var d = await r.json();
-        if (d.success && d.weak_topics.length > 0) {
-            var el = document.getElementById('weakCount');
-            if (el) {
-                el.textContent = d.weak_topics.length;
-                el.style.display = 'inline';
+            if (isMobile) {
+                sidebar.classList.toggle('mobile-open');
+                overlay.classList.toggle('active');
+                if (hamburger) {
+                    hamburger.classList.toggle('active');
+                }
+            } else {
+                sidebar.classList.toggle('collapsed');
+                document.getElementById('content')
+                    .classList.toggle('expanded');
             }
         }
-    } catch(e) {}
-}
 
-loadWeakCount();
-</script>
+        function closeSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+            if (overlay) overlay.classList.remove('active');
+            var hamburger = document.getElementById('hamburgerBtn');
+            if (hamburger) hamburger.classList.remove('active');
+        }
+
+        // Close sidebar on resize to desktop
+        window.addEventListener('resize', function () {
+            if (window.innerWidth > 768) {
+                closeSidebar();
+            }
+        });
+
+        // ── Search ────────────────────────────────────────────────
+        function performSearch() {
+            var q = document.getElementById('globalSearch')?.value.trim();
+            if (!q) return;
+            window.location.href = '/dashboard?search=' +
+                encodeURIComponent(q);
+        }
+
+        document.getElementById('globalSearch')
+            ?.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') performSearch();
+            });
+
+        // Mobile search
+        document.getElementById('mobileSearch')
+            ?.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    var q = this.value.trim();
+                    if (q) window.location.href =
+                        '/dashboard?search=' + encodeURIComponent(q);
+                }
+            });
+
+        // ── Weak Count Badge ──────────────────────────────────────
+        async function loadWeakCount() {
+            try {
+                var r = await fetch('/recommend/weak-topics');
+                var d = await r.json();
+                if (d.success && d.weak_topics.length > 0) {
+                    var el = document.getElementById('weakCount');
+                    if (el) {
+                        el.textContent = d.weak_topics.length;
+                        el.style.display = 'inline';
+                    }
+                }
+            } catch (e) { }
+        }
+
+        loadWeakCount();
+    </script>
 </body>
+
 </html>

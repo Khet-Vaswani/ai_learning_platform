@@ -290,13 +290,29 @@ body.dark-mode .suggestions-header {
     gap: 8px;
     font-size: 14px;
 }
-
 .suggestion-item:hover,
 .trending-item:hover {
     background: rgba(37, 99, 235, 0.08);
     color: var(--primary-blue);
 }
 
+.suggestion-item .suggestion-tag-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    color: var(--text-light);
+    background: rgba(37, 99, 235, 0.06);
+    transition: all var(--transition-fast);
+}
+
+.suggestion-item:hover .suggestion-tag-badge {
+    background: var(--primary-blue);
+    color: white;
+}
 .suggestion-item i,
 .trending-item i {
     font-size: 12px;
