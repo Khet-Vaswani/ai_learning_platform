@@ -146,6 +146,14 @@ def _parse_quiz_json(raw: str) -> list:
         # Add explanation if missing
         if 'explanation' not in q:
             q['explanation'] = f"The correct answer is {q['correct']}."
+        # Validate or assign difficulty to ensure balanced distribution fallback
+        if 'difficulty' not in q or q['difficulty'] not in ['Easy', 'Medium', 'Hard']:
+            if i < int(len(questions) * 0.4):
+                q['difficulty'] = 'Easy'
+            elif i < int(len(questions) * 0.8):
+                q['difficulty'] = 'Medium'
+            else:
+                q['difficulty'] = 'Hard'
         valid.append(q)
 
     return valid
@@ -214,6 +222,22 @@ def generate_quiz(
         difficulty = _get_adaptive_difficulty(user_id, topic)
         print(f"🎯 Adaptive difficulty: {difficulty} for topic '{topic}'")
 
+    # Load student details from DB
+    student_category = 'General'
+    student_class_dept = 'General'
+    student_level = 'Intermediate'
+    try:
+        user_details = execute_query(
+            "SELECT education_category, field_of_interest, skill_level FROM users WHERE id = %s",
+            (user_id,), fetch=True
+        )
+        if user_details:
+            student_category = user_details[0].get('education_category') or 'General'
+            student_class_dept = user_details[0].get('field_of_interest') or 'General'
+            student_level = user_details[0].get('skill_level') or 'Intermediate'
+    except Exception as e:
+        print(f"⚠️ Error loading student details: {e}")
+
     language = _detect_language(transcript or video_title or topic)
     language_note = (
         "Use the same language as the source content. Support Sindhi, English, Urdu, and Hindi. "
@@ -221,12 +245,6 @@ def generate_quiz(
         if language != 'English' else
         "Use English for the questions."
     )
-
-    diff_guide = {
-        'Easy'  : 'Simple recall questions — definitions, basic facts, simple identification.',
-        'Medium': 'Understanding questions — explain concepts, compare ideas, apply knowledge.',
-        'Hard'  : 'Analysis questions — evaluate scenarios, solve problems, deep understanding.',
-    }
 
     # ── Determine content source ──────────────────────────
     content_source = 'title'
@@ -247,34 +265,62 @@ Topic: {topic}"""
         print(f"⚠️ No transcript — using title fallback")
 
     # ── Build prompt ──────────────────────────────────────
-    source_instruction = (
-        "ALL questions MUST be based on the transcript content above. "
-        "Test what the tutor actually explained — not general knowledge."
-        if content_source == 'transcript'
-        else
-        f"Generate educational MCQ questions about the topic: {topic}."
-    )
+    prompt = f"""You are an expert AI educational quiz generator.
 
-    prompt = f"""You are an expert educational quiz generator for students.
+Your task is to analyze the provided educational transcript/content and generate a high-quality quiz based only on the concepts explained by the tutor. Do not add information that is not present in the provided content.
 
-{source_instruction}
+Student Details:
+- Educational Category: {student_category}
+- Class/Department: {student_class_dept}
+- Learning Level: {student_level}
 
-Content:
+Topic:
+{topic}
+
+Transcript/Content:
 {content_block}
 
-Language: {language}
-{language_note}
+Generate a comprehensive quiz according to the student's educational level.
 
-Difficulty Level: {difficulty}
-Difficulty Guide: {diff_guide.get(difficulty, diff_guide['Medium'])}
+Requirements:
+
+1. Generate {num_questions} multiple-choice questions (MCQs).
+
+2. Each question must include:
+   - A clear and meaningful question.
+   - Exactly four options (A, B, C, D).
+   - Only one correct answer.
+   - A short explanation of why the answer is correct.
+   - Difficulty level:
+     - Easy
+     - Medium
+     - Hard
+
+3. Adapt the question complexity based on the student's level:
+   - Primary students: Use simple language and basic concepts.
+   - Secondary/Matriculation: Use moderate-level conceptual questions.
+   - Intermediate: Include analytical and application-based questions.
+   - University/Professional: Include advanced, critical-thinking, and practical scenario-based questions.
+
+4. Maintain a balanced difficulty distribution:
+   - 40% Easy questions
+   - 40% Medium questions
+   - 20% Hard questions
+
+5. Ensure the quiz evaluates:
+   - Concept understanding
+   - Logical thinking
+   - Application of concepts
+   - Important definitions and examples discussed in the content
 
 STRICT RULES:
-1. Generate EXACTLY {num_questions} questions
-2. Every question must test a DIFFERENT concept
-3. Questions must be based ONLY on the content provided
-4. Wrong options (distractors) must be plausible but incorrect
-5. No repeated or similar questions
-6. No trick questions — focus on genuine learning
+1. Generate EXACTLY {num_questions} questions.
+2. Every question must test a DIFFERENT concept.
+3. Questions must be based ONLY on the content provided above.
+4. Wrong options (distractors) must be plausible but incorrect.
+5. No repeated or similar questions.
+6. No trick questions — focus on genuine learning.
+7. Language: {language}. {language_note}
 
 Return ONLY a valid JSON array with NO other text, NO markdown:
 [
@@ -287,7 +333,8 @@ Return ONLY a valid JSON array with NO other text, NO markdown:
       "D": "another option"
     }},
     "correct"    : "A",
-    "explanation": "Explanation based on the content above"
+    "explanation": "Explanation based on the content above",
+    "difficulty" : "Easy"
   }}
 ]
 
@@ -353,7 +400,8 @@ Generate exactly {num_questions} questions now:"""
         # Retry with simpler prompt
         return _retry_simple_quiz(
             video_id, video_title, topic, user_id,
-            content_block, difficulty, num_questions, content_source
+            content_block, difficulty, num_questions, content_source,
+            student_category, student_class_dept, student_level
         )
     except Exception as e:
         print(f"❌ Quiz generation error: {e}")
@@ -365,7 +413,8 @@ Generate exactly {num_questions} questions now:"""
 # ── Retry with simpler prompt if JSON fails ───────────────
 def _retry_simple_quiz(
     video_id, video_title, topic, user_id,
-    content_block, difficulty, num_questions, source
+    content_block, difficulty, num_questions, source,
+    student_category, student_class_dept, student_level
 ) -> dict:
     """Simpler retry prompt when JSON parsing fails."""
     print("🔄 Retrying with simpler prompt...")
@@ -374,8 +423,24 @@ def _retry_simple_quiz(
 
 Based on: {content_block[:500]}
 
+Student Details:
+- Category: {student_category}
+- Class/Dept: {student_class_dept}
+- Level: {student_level}
+
+Requirements:
+- Balanced difficulty: 40% Easy, 40% Medium, 20% Hard.
+
 Return ONLY JSON array:
-[{{"question":"Q?","options":{{"A":"opt1","B":"opt2","C":"opt3","D":"opt4"}},"correct":"A","explanation":"reason"}}]"""
+[
+  {{
+    "question": "Q?",
+    "options": {{"A":"opt1","B":"opt2","C":"opt3","D":"opt4"}},
+    "correct": "A",
+    "explanation": "reason",
+    "difficulty": "Easy"
+  }}
+]"""
 
     try:
         raw       = _generate(simple_prompt, max_tokens=3000)
@@ -448,6 +513,7 @@ def submit_quiz(
             'is_correct' : is_correct,
             'explanation': question.get('explanation', ''),
             'options'    : question.get('options', {}),
+            'difficulty' : question.get('difficulty', 'Medium'),
         })
 
     total      = len(questions)

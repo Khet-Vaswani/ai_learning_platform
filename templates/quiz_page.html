@@ -296,6 +296,18 @@
     align-items  : center;
     gap          : 4px;
 }
+.diff-badge.diff-easy {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+.diff-badge.diff-medium {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+.diff-badge.diff-hard {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
 </style>
 {% endblock %}
 
@@ -326,7 +338,7 @@
         <div class="quiz-progress-bar mt-3">
             <div class="quiz-progress-fill"
                  id="progressFill"
-                 style="width:{{ (1/total*100)|int }}%">
+                 style="width: 0%;">
             </div>
         </div>
         <div style="display:flex; justify-content:space-between;
@@ -355,9 +367,7 @@
 <input type="hidden" id="quizId"    value="{{ quiz_id }}">
 <input type="hidden" id="quizTopic" value="{{ quiz_topic }}">
 <input type="hidden" id="totalQ"    value="{{ total }}">
-<script>
-    const QUESTIONS = {{ questions|default([])|tojson }};
-</script>
+<div id="quizQuestionsData" data-questions="{{ questions|default([])|tojson | safe }}" style="display: none;"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -378,7 +388,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Quiz State ────────────────────────────────────────────
-const quizQuestions = QUESTIONS;
+const quizQuestions = JSON.parse(document.getElementById('quizQuestionsData').dataset.questions || '[]');
 const totalQ        = quizQuestions.length;
 const answers       = {};
 let   currentQ      = 0;
@@ -416,10 +426,14 @@ function showQuestion(idx) {
     const container = document.getElementById('questionContainer');
     container.innerHTML = `
         <div class="question-wrap">
-            <div class="question-num">
-                Question ${idx + 1} of ${totalQ}
+            <div class="question-num d-flex justify-content-between align-items-center">
+                <span>Question ${idx + 1} of ${totalQ}</span>
+                ${q.difficulty ? `
+                <span class="diff-badge diff-${q.difficulty.toLowerCase()}">
+                    ${q.difficulty}
+                </span>` : ''}
             </div>
-            <div class="question-text">${q.question}</div>
+            <div class="question-text" style="margin-top: 10px;">${q.question}</div>
             <div class="options-list">
                 ${Object.entries(q.options).map(([key, val]) => `
                 <button class="option-btn
@@ -645,8 +659,13 @@ function showResult(data) {
                 <div class="review-item ${r.is_correct ?
                      'review-correct' : 'review-wrong'}">
                     <div style="font-size:0.82rem; font-weight:600;
-                                color:#1e293b; margin-bottom:5px;">
-                        Q${i+1}. ${r.question}
+                                color:#1e293b; margin-bottom:5px;
+                                display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                        <span>Q${i+1}. ${r.question}</span>
+                        ${r.difficulty ? `
+                        <span class="diff-badge diff-${r.difficulty.toLowerCase()}" style="font-size: 0.62rem; padding: 2px 8px; flex-shrink: 0;">
+                            ${r.difficulty}
+                        </span>` : ''}
                     </div>
                     <div style="font-size:0.78rem; color:#64748b;">
                         Your answer:

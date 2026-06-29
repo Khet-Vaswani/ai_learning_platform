@@ -377,6 +377,7 @@ def chatbot_ask():
             elif file_type == 'application/pdf':
                 try:
                     import io
+                    # pyrefly: ignore [missing-import]
                     import PyPDF2
                     reader   = PyPDF2.PdfReader(io.BytesIO(file_bytes))
                     pdf_text = ''

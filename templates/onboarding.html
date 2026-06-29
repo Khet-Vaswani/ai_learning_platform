@@ -6,64 +6,460 @@
 <title>Setup Your Learning — AI Learn</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#f0f4ff 0%,#faf5ff 50%,#f0fdf4 100%);min-height:100vh}
-.ob-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px}
-.ob-logo{display:flex;align-items:center;gap:10px;margin-bottom:22px;text-decoration:none}
-.ob-logo-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;box-shadow:0 4px 14px rgba(37,99,235,.3)}
-.ob-logo-text{font-size:1.1rem;font-weight:800;color:#0f172a}
-.ob-card{background:white;border-radius:22px;border:1px solid #e2e8f0;box-shadow:0 8px 40px rgba(0,0,0,.08);width:100%;max-width:520px;padding:36px 40px}
-.ob-prog{height:4px;background:#f1f5f9;border-radius:4px;margin-bottom:22px;overflow:hidden}
-.ob-prog-fill{height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:4px;transition:width .5s ease}
-.ob-dots{display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:24px}
-.ob-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;transition:all .3s}
-.ob-dot.active{background:#7c3aed;width:24px;border-radius:4px}
-.ob-dot.done{background:#059669}
-.ob-eyebrow{text-align:center;font-size:.68rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
-.ob-title{text-align:center;font-size:1.45rem;font-weight:900;color:#0f172a;letter-spacing:-.03em;line-height:1.2;margin-bottom:5px}
-.ob-sub{text-align:center;font-size:.83rem;color:#94a3b8;margin-bottom:28px;line-height:1.5}
-.ob-step{display:none}
-.ob-step.active{display:block;animation:fadeUp .3s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.ob-field-label{display:block;font-size:.75rem;font-weight:600;color:#475569;margin-bottom:6px}
-.ob-select-wrap{position:relative;margin-bottom:16px}
-.ob-select{width:100%;padding:13px 44px 13px 16px;border:2px solid #e2e8f0;border-radius:12px;font-size:.88rem;font-family:inherit;color:#0f172a;background:white;appearance:none;outline:none;cursor:pointer;transition:border-color .2s;font-weight:500}
-.ob-select:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
-.ob-select:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
-.ob-select-arrow{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#94a3b8;pointer-events:none;font-size:.8rem}
-.ob-level-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-.ob-level-card{border:2px solid #f1f5f9;border-radius:14px;padding:18px 12px;cursor:pointer;text-align:center;background:#fafafa;position:relative;transition:all .2s}
-.ob-level-card:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);background:white}
-.ob-level-card.sel{background:white;transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.1)}
-.ob-level-emoji{font-size:1.8rem;display:block;margin-bottom:7px}
-.ob-level-name{font-size:.83rem;font-weight:800;margin-bottom:3px}
-.ob-level-desc{font-size:.62rem;color:#94a3b8;line-height:1.4}
-.ob-level-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.54rem;color:white;opacity:0;transform:scale(0);transition:all .2s cubic-bezier(.34,1.56,.64,1)}
-.ob-level-card.sel .ob-level-check{opacity:1;transform:scale(1)}
-.ob-btn-row{display:flex;gap:9px;justify-content:flex-end;align-items:center}
-.ob-btn-next{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;border:none;padding:12px 28px;border-radius:11px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(37,99,235,.3);transition:all .2s;display:flex;align-items:center;gap:7px}
-.ob-btn-next:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 18px rgba(37,99,235,.4)}
-.ob-btn-next:disabled{opacity:.35;cursor:not-allowed;transform:none}
-.ob-btn-back{background:none;border:1.5px solid #e2e8f0;color:#64748b;padding:12px 18px;border-radius:11px;font-size:.83rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
-.ob-btn-back:hover{background:#f8fafc}
-.ob-btn-skip{background:none;border:none;color:#94a3b8;font-size:.76rem;cursor:pointer;font-family:inherit;margin-right:auto;text-decoration:underline;padding:0}
-.ob-summary{background:linear-gradient(135deg,#f0f9ff,#faf5ff);border:1.5px solid #bfdbfe;border-radius:12px;padding:13px 16px;margin-bottom:18px;display:none}
-.ob-summary-lbl{font-size:.68rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
-.ob-summary-item{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:600;color:#1e293b;margin-bottom:4px}
-.ob-summary-item:last-child{margin-bottom:0}
-.ob-dot-sm{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.ob-success{text-align:center;padding:20px 0}
-.ob-success-icon{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#059669,#0891b2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:white;margin:0 auto 18px;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 24px rgba(5,150,105,.3)}
-@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
-.ob-stags{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0 22px}
-.ob-stag{padding:5px 14px;border-radius:20px;font-size:.73rem;font-weight:700;background:#f1f5f9;color:#475569}
-.ob-info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:.78rem;color:#1e40af;display:flex;align-items:flex-start;gap:8px}
-@media(max-width:520px){.ob-card{padding:24px 18px}.ob-level-grid{grid-template-columns:1fr 1fr}.ob-title{font-size:1.25rem}}
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary: #8b5cf6;
+  --accent: #10b981;
+  --dark-bg: #0b0f19;
+  --card-bg: rgba(17, 24, 39, 0.7);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-muted: #9ca3af;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+              var(--dark-bg);
+  min-height: 100vh;
+  color: #ffffff;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Background animated elements */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 1;
+}
+.orb-1 { width: 400px; height: 400px; background: var(--primary); top: -100px; left: -100px; animation: floatOrb 10s ease-in-out infinite alternate; }
+.orb-2 { width: 350px; height: 350px; background: var(--secondary); bottom: -100px; right: -100px; animation: floatOrb 12s ease-in-out infinite alternate-reverse; }
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 20px) scale(1.1); }
+}
+
+.particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+.particle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  animation: floatUp linear infinite;
+}
+@keyframes floatUp {
+  0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-100px) scale(1); opacity: 0; }
+}
+
+.ob-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.ob-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  text-decoration: none;
+}
+.ob-logo-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+}
+.ob-logo-text {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.ob-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 540px;
+  padding: 44px 40px;
+  animation: cardEntry 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardEntry {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ob-prog {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.ob-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.ob-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.ob-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ob-dot.active {
+  background: var(--primary);
+  width: 28px;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+}
+.ob-dot.done {
+  background: var(--accent);
+}
+
+.ob-eyebrow {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.ob-title {
+  text-align: center;
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.ob-sub {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.ob-step { display: none; }
+.ob-step.active { display: block; animation: stepFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+@keyframes stepFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ob-field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 8px;
+}
+
+.ob-select-wrap {
+  position: relative;
+  margin-bottom: 20px;
+}
+.ob-select {
+  width: 100%;
+  padding: 13px 44px 13px 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: white;
+  background: rgba(255, 255, 255, 0.03);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+.ob-select option {
+  background: #111827;
+  color: white;
+}
+.ob-select:focus {
+  border-color: var(--primary);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+.ob-select:disabled {
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.03);
+}
+.ob-select-arrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+
+.ob-level-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.ob-level-card {
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px 12px;
+  cursor: pointer;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.01);
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ob-level-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.ob-level-card.sel {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.ob-level-emoji {
+  font-size: 1.8rem;
+  display: block;
+  margin-bottom: 8px;
+}
+.ob-level-name {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.ob-level-desc {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.ob-level-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  color: white;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ob-level-card.sel .ob-level-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ob-btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.ob-btn-next {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border: none;
+  padding: 13px 28px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ob-btn-next:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+}
+.ob-btn-next:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.ob-btn-back {
+  background: none;
+  border: 1.5px solid var(--border-color);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ob-btn-back:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+.ob-btn-skip {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-right: auto;
+  text-decoration: underline;
+  padding: 0;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.ob-btn-skip:hover {
+  color: white;
+}
+
+/* Selections summary styling */
+.ob-summary {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: none;
+}
+.ob-summary-lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.ob-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+}
+.ob-summary-item:last-child { margin-bottom: 0; }
+.ob-dot-sm {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ob-success {
+  text-align: center;
+  padding: 24px 0;
+}
+.ob-success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #06b6d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: white;
+  margin: 0 auto 20px;
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+}
+@keyframes popIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.ob-stags {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 16px 0 28px;
+}
+.ob-stag {
+  padding: 6px 16px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@media(max-width:576px){
+  .ob-card { padding: 32px 24px; }
+  .ob-level-grid { grid-template-columns: 1fr; }
+  .ob-title { font-size: 1.35rem; }
+}
 </style>
 </head>
 <body>
+
+<!-- Background Details -->
+<div class="glow-orb orb-1"></div>
+<div class="glow-orb orb-2"></div>
+<div class="particles" id="particles"></div>
+
 <div class="ob-wrap">
 
   <a href="/" class="ob-logo">
@@ -160,7 +556,6 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#f0f4ff 0%
 
     <!-- STEP 2: Level -->
     <div class="ob-step" id="step2">
-      <p class="ob-eyebrow">Almost there!</p>
       <h1 class="ob-title">What is your current level?</h1>
       <p class="ob-sub">We'll set the right difficulty for videos and quizzes.</p>
 
@@ -195,16 +590,16 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#f0f4ff 0%
     <div class="ob-step" id="step3">
       <div class="ob-success">
         <div class="ob-success-icon">🎉</div>
-        <h2 style="font-size:1.3rem;font-weight:900;color:#0f172a;margin-bottom:5px;">
+        <h2 style="font-size:1.4rem;font-weight:800;color:#ffffff;margin-bottom:8px;">
           All set, {{ user_name }}!
         </h2>
-        <p style="font-size:.83rem;color:#94a3b8;margin:0;">
+        <p style="font-size:.85rem;color:var(--text-muted);margin:0;">
           Your personalized learning path is ready!
         </p>
         <div class="ob-stags" id="successTags"></div>
-        <div style="margin-top:10px;">
-          <div class="spinner-border" style="width:1.4rem;height:1.4rem;color:#7c3aed;"></div>
-          <p style="font-size:.72rem;color:#94a3b8;margin-top:6px;">Loading dashboard...</p>
+        <div style="margin-top:20px;">
+          <div class="spinner-border" style="width:1.5rem;height:1.5rem;color:var(--primary);"></div>
+          <p style="font-size:.76rem;color:var(--text-muted);margin-top:8px;">Loading dashboard...</p>
         </div>
       </div>
     </div>
@@ -223,7 +618,6 @@ var S = {
   level:''
 };
 
-// Step 0: category change
 function onCatChange(sel){
   var opt=sel.options[sel.selectedIndex];
   if(!opt.value){ S.catId=null; document.getElementById('next0').disabled=true; return; }
@@ -234,7 +628,6 @@ function onCatChange(sel){
   document.getElementById('next0').disabled = false;
 }
 
-// Prepare step 1
 function prepStep1(){
   var isUni = (S.catId === UNI_CAT_ID);
   document.getElementById('classWrap').style.display = isUni ? 'none' : 'block';
@@ -274,7 +667,6 @@ function prepStep1(){
   }
 }
 
-// Class change
 function onClassChange(sel){
   var opt=sel.options[sel.selectedIndex];
   if(!opt.value){ S.classId=''; S.classLabel=''; document.getElementById('next1').disabled=true; return; }
@@ -283,7 +675,6 @@ function onClassChange(sel){
   document.getElementById('next1').disabled=false;
 }
 
-// Dept change
 async function onDeptChange(sel){
   var opt=sel.options[sel.selectedIndex];
   var fs=document.getElementById('fieldSelect');
@@ -319,7 +710,6 @@ async function onDeptChange(sel){
   }catch(e){ fs.innerHTML='<option value="">Error loading</option>'; }
 }
 
-// Field change
 function onFieldChange(sel){
   var opt=sel.options[sel.selectedIndex];
   if(!opt.value){ S.fieldId=null; S.fieldName=''; document.getElementById('next1').disabled=true; return; }
@@ -328,13 +718,12 @@ function onFieldChange(sel){
   document.getElementById('next1').disabled=false;
 }
 
-// Level select
 function selectLevel(el){
   document.querySelectorAll('.ob-level-card').forEach(function(c){
-    c.classList.remove('sel'); c.style.borderColor='#f1f5f9';
+    c.classList.remove('sel'); c.style.borderColor='var(--border-color)';
   });
   el.classList.add('sel');
-  var colors={Beginner:'#059669',Intermediate:'#d97706',Advanced:'#7c3aed'};
+  var colors={Beginner:'#10b981',Intermediate:'#f59e0b',Advanced:'#8b5cf6'};
   el.style.borderColor = colors[el.dataset.id]||'#2563eb';
   S.level = el.dataset.id;
   document.getElementById('next2').disabled=false;
@@ -345,17 +734,16 @@ function selectLevel(el){
   var html='';
   html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:'+S.catColor+';"></div>'+S.catEmoji+' '+S.catName+'</div>';
   if(S.catId===UNI_CAT_ID){
-    if(S.deptName)  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#2563eb;"></div>🏛️ '+S.deptName+'</div>';
-    if(S.fieldName) html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#7c3aed;"></div>📚 '+S.fieldName+'</div>';
+    if(S.deptName)  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#3b82f6;"></div>🏛️ '+S.deptName+'</div>';
+    if(S.fieldName) html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#8b5cf6;"></div>📚 '+S.fieldName+'</div>';
   } else if(S.classLabel){
-    html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#0891b2;"></div>📖 '+S.classLabel+'</div>';
+    html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#06b6d4;"></div>📖 '+S.classLabel+'</div>';
   }
   html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:'+(colors[S.level]||'#2563eb')+';"></div>📊 '+S.level+' Level</div>';
   con.innerHTML=html;
   sum.style.display='block';
 }
 
-// Navigate steps
 function goStep(n){
   if(n===1) prepStep1();
   document.querySelectorAll('.ob-step').forEach(function(s){ s.classList.remove('active'); });
@@ -369,7 +757,6 @@ function goStep(n){
   document.getElementById('progFill').style.width=((n+1)/4*100)+'%';
 }
 
-// Save
 async function saveAndFinish(){
   if(!S.catId||!S.level) return;
   var btn=document.getElementById('next2');
@@ -409,11 +796,31 @@ async function saveAndFinish(){
   }
 }
 
-// Skip
 async function skipOnboarding(){
   try{ await fetch('/onboarding/skip',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); }catch(e){}
   window.location.href='/dashboard';
 }
+
+function createParticles() {
+  const container = document.getElementById('particles');
+  if (!container) return;
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    p.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      left: ${Math.random() * 100}%;
+      animation-duration: ${Math.random() * 12 + 8}s;
+      animation-delay: ${Math.random() * 8}s;
+      opacity: ${Math.random() * 0.4 + 0.1};
+    `;
+    container.appendChild(p);
+  }
+}
+
+createParticles();
 </script>
 </body>
 </html>

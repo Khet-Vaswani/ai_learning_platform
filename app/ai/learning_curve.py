@@ -222,33 +222,32 @@ class LearningCurveModel:
 
         return curves
 
-    # ── Save Curve to DB ──────────────────────────────────
     def save_curve(self, topic):
         """Save learning curve data to database"""
         curve = self.calculate_curve(topic)
 
         execute_query(
             """INSERT INTO learning_curves
-               (user_id, topic, attempts, current_score,
+               (user_id, topic, current_score,
                 predicted_next, learning_rate,
-                difficulty_level, curve_stage)
+                difficulty_level, curve_stage, mastery_eta)
                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                ON DUPLICATE KEY UPDATE
-               attempts         = %s,
                current_score    = %s,
                predicted_next   = %s,
                learning_rate    = %s,
                difficulty_level = %s,
                curve_stage      = %s,
+               mastery_eta      = %s,
                updated_at       = CURRENT_TIMESTAMP""",
             (
                 self.user_id, topic,
-                curve['attempts'], curve['current_score'],
+                curve['current_score'],
                 curve['predicted_next'], curve['learning_rate'],
-                curve['difficulty_level'], curve['curve_stage'],
-                curve['attempts'], curve['current_score'],
+                curve['difficulty_level'], curve['curve_stage'], curve['mastery_eta'],
+                curve['current_score'],
                 curve['predicted_next'], curve['learning_rate'],
-                curve['difficulty_level'], curve['curve_stage']
+                curve['difficulty_level'], curve['curve_stage'], curve['mastery_eta']
             )
         )
         return curve
