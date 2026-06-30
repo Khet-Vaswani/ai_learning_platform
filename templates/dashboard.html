@@ -778,7 +778,7 @@ body {
         <div class="row g-3">
           {% for v in recent_watched %}
           <div class="col-md-4 col-6">
-            <div class="vcard" onclick="openVideo('{{ v.video_id }}',{{ v.video_title|tojson }},'{{ v.topic }}')">
+            <div class="vcard" data-video-id="{{ v.video_id }}" data-video-title="{{ v.video_title }}" data-topic="{{ v.topic }}" onclick="openVideo(this.dataset.videoId, this.dataset.videoTitle, this.dataset.topic)">
               <div class="vthumb">
                 <img src="https://img.youtube.com/vi/{{ v.video_id }}/mqdefault.jpg" alt="" onerror="this.src='https://via.placeholder.com/320x180'">
                 <div class="voverlay"><div class="vplay"><i class="fas fa-play ms-1"></i></div></div>
@@ -1059,13 +1059,13 @@ if(d) d.textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year
 
 // Dashboard flask context config
 var DASH = {
-  isNewUser  : {{ 'true' if is_new_user else 'false' }},
-  hasPrefs   : {{ 'true' if field_of_interest else 'false' }},
-  hasQuiz    : {{ 'true' if has_quiz_attempts else 'false' }},
-  field      : {{ (field_of_interest or '')|tojson }},
-  level      : {{ (skill_level or 'Beginner')|tojson }},
-  category   : {{ (education_category or '')|tojson }},
-  searchQuery: {{ (search_query or '')|tojson }},
+  isNewUser  : "{{ 'true' if is_new_user else 'false' }}" === "true",
+  hasPrefs   : "{{ 'true' if field_of_interest else 'false' }}" === "true",
+  hasQuiz    : "{{ 'true' if has_quiz_attempts else 'false' }}" === "true",
+  field      : JSON.parse('{{ (field_of_interest or "")|tojson }}'),
+  level      : JSON.parse('{{ (skill_level or "Beginner")|tojson }}'),
+  category   : JSON.parse('{{ (education_category or "")|tojson }}'),
+  searchQuery: JSON.parse('{{ (search_query or "")|tojson }}'),
 };
 
 // Difficulty level tracker
