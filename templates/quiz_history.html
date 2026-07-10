@@ -50,11 +50,8 @@
                         </td>
                         <td>
                             <div class="progress" style="height:6px; width:80px;">
-                                <div class="progress-bar
-                                    {% if percentage >= 70 %}bg-success
-                                    {% elif percentage >= 40 %}bg-warning
-                                    {% else %}bg-danger{% endif %}"
-                                     style="width:{{ percentage }}%">
+                                <div class="progress-bar {% if percentage >= 70 %}bg-success{% elif percentage >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                                     style="width: {{ percentage }}%;">
                                 </div>
                             </div>
                             <small>{{ percentage }}%</small>
