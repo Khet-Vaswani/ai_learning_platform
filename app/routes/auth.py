@@ -67,9 +67,6 @@ def login():
         if user['role'] == 'admin':
             return redirect('/admin/dashboard')
 
-        if not user['onboarding_done']:
-            return redirect(url_for('onboarding.preferences'))
-
         return redirect(url_for('dashboard.index'))
 
     return render_template('login.html')

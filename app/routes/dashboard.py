@@ -69,18 +69,20 @@ def index():
 
     # ── User preferences ───────────────────────────────────
     user_prefs = execute_query(
-        """SELECT field_of_interest, skill_level, onboarding_done
+        """SELECT education_category, field_of_interest, skill_level, onboarding_done
            FROM users WHERE id=%s""",
         (user_id,), fetch=True
     )
-    field_of_interest = None
-    skill_level       = 'Beginner'
-    onboarding_done   = 0
+    education_category = None
+    field_of_interest  = None
+    skill_level        = 'Beginner'
+    onboarding_done    = 0
 
     if user_prefs:
-        field_of_interest = user_prefs[0].get('field_of_interest')
-        skill_level       = user_prefs[0].get('skill_level') or 'Beginner'
-        onboarding_done   = user_prefs[0].get('onboarding_done', 0)
+        education_category = user_prefs[0].get('education_category')
+        field_of_interest  = user_prefs[0].get('field_of_interest')
+        skill_level        = user_prefs[0].get('skill_level') or 'Beginner'
+        onboarding_done    = user_prefs[0].get('onboarding_done', 0)
 
     # ── Is new user? ───────────────────────────────────────
     is_new_user = (watched_count == 0 and not has_quiz_attempts)
@@ -111,6 +113,7 @@ def index():
         search_query            = search_query,
         field_of_interest       = field_of_interest,
         skill_level             = skill_level,
+        education_category      = education_category,
         is_new_user             = is_new_user,
         show_preference_videos  = show_preference_videos,
         show_moe_recommendations= show_moe_recommendations,

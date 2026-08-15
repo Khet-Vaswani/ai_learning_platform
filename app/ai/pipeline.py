@@ -253,15 +253,11 @@ Return ONLY a valid JSON array. No markdown, no extra text:
             raise ValueError("Empty questions list")
 
         # Save to database
-        quiz_id = execute_query(
-            """INSERT INTO video_quizzes
-               (user_id, video_id, video_title, topic, questions, total,
-                notes_source, transcript_length)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-            (user_id, video_id, video_title, topic,
-             json.dumps(questions), len(questions),
-             source, len(transcript) if transcript else 0)
-        )
+        from app.ai.quiz_generator import _save_quiz_to_db
+        quiz_id = _save_quiz_to_db(user_id, video_id, video_title, topic, questions, source, transcript)
+
+        if not quiz_id or isinstance(quiz_id, bool):
+            return {'success': False, 'message': 'Failed to save quiz record'}
 
         return {
             'success'   : True,

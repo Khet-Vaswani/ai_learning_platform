@@ -84,16 +84,18 @@ CREATE TABLE IF NOT EXISTS video_notes (
 
 -- TABLE 7: video_quizzes
 CREATE TABLE IF NOT EXISTS video_quizzes (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    user_id     INT NOT NULL,
-    video_id    VARCHAR(50) NOT NULL,
-    video_title VARCHAR(255),
-    topic       VARCHAR(100),
-    questions   LONGTEXT,
-    score       INT DEFAULT 0,
-    total       INT DEFAULT 0,
-    attempted   TINYINT(1) DEFAULT 0,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    user_id           INT NOT NULL,
+    video_id          VARCHAR(50) NOT NULL,
+    video_title       VARCHAR(255),
+    topic             VARCHAR(100),
+    questions         LONGTEXT,
+    score             INT DEFAULT 0,
+    total             INT DEFAULT 0,
+    attempted         TINYINT(1) DEFAULT 0,
+    notes_source      VARCHAR(50) DEFAULT 'transcript',
+    transcript_length INT DEFAULT 0,
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -138,13 +140,13 @@ CREATE TABLE IF NOT EXISTS learning_curves (
     id                INT AUTO_INCREMENT PRIMARY KEY,
     user_id           INT NOT NULL,
     topic             VARCHAR(100) NOT NULL,
-    curve_stage       ENUM('Beginner','Learning','Plateau','Struggling','Mastered') DEFAULT 'Beginner',
+    curve_stage       ENUM('Not Started','Initial Stage','Mastery','Rapid Growth','Steady Progress','Struggling','Plateau') DEFAULT 'Not Started',
     current_score     DECIMAL(5,2) DEFAULT 0,
     predicted_next    DECIMAL(5,2) DEFAULT 0,
-    difficulty_level  ENUM('Easy','Medium','Hard') DEFAULT 'Medium',
+    difficulty_level  ENUM('Easy','Medium','Hard','Unknown') DEFAULT 'Medium',
     learning_rate     DECIMAL(5,4) DEFAULT 0.0000,
-    last_updated      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                      ON UPDATE CURRENT_TIMESTAMP,
+    mastery_eta       VARCHAR(50) DEFAULT 'N/A',
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY unique_curve (user_id, topic),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_learning_curves_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

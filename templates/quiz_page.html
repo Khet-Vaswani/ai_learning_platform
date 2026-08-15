@@ -367,7 +367,6 @@
 <input type="hidden" id="quizId"    value="{{ quiz_id }}">
 <input type="hidden" id="quizTopic" value="{{ quiz_topic }}">
 <input type="hidden" id="totalQ"    value="{{ total }}">
-<div id="quizQuestionsData" data-questions="{{ questions|default([])|tojson | safe }}" style="display: none;"></div>
 {% endblock %}
 
 {% block extra_js %}
@@ -388,7 +387,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Quiz State ────────────────────────────────────────────
-const quizQuestions = JSON.parse(document.getElementById('quizQuestionsData').dataset.questions || '[]');
+const quizQuestions = {{ questions | default([]) | tojson | safe }};
 const totalQ        = quizQuestions.length;
 const answers       = {};
 let   currentQ      = 0;
@@ -397,6 +396,7 @@ let   submitted     = false;
 // ── Build Navigator ───────────────────────────────────────
 function buildNavigator() {
     const nav = document.getElementById('qNavigator');
+    if (!nav) return;
     nav.innerHTML = quizQuestions.map((_, i) => `
         <button class="q-nav-btn ${i === 0 ? 'current' : ''}"
                 id="navBtn-${i}"
@@ -408,8 +408,10 @@ function buildNavigator() {
 
 // ── Show Question ─────────────────────────────────────────
 function showQuestion(idx) {
+    if (!quizQuestions || !quizQuestions.length) return;
     currentQ = idx;
     const q  = quizQuestions[idx];
+    if (!q) return;
 
     // Update progress
     const pct = ((idx + 1) / totalQ) * 100;

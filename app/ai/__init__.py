@@ -15,6 +15,17 @@ STATIC_FOLDER   = os.path.join(BASE_DIR, 'static')
 
 
 def create_app():
+    # Run database migrations on startup
+    try:
+        import sys
+        import os
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        if base not in sys.path:
+            sys.path.insert(0, base)
+        import migrate_schema
+    except Exception as e:
+        print(f"❌ Failed to run auto-migrations: {e}")
+
     app = Flask(__name__,
         template_folder = TEMPLATE_FOLDER,
         static_folder   = STATIC_FOLDER

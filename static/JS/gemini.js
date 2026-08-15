@@ -58,7 +58,7 @@
 
         API.hideLoading(btn);
 
-        if (data.success) {
+        if (data.success && data.quiz_id && data.quiz_id !== 'false' && data.quiz_id !== false) {
             currentQuizId    = data.quiz_id;
             currentQuestions = data.questions;
             currentAnswers   = {};
@@ -76,11 +76,11 @@
 
         } else {
             API.showAlert(
-                data.message || 'Quiz failed. Wait 1 min & retry.',
+                data.message || 'Quiz generation failed. Please try again.',
                 'warning'
             );
             btn.innerHTML =
-                '<i class="fas fa-clipboard-check me-1"></i>Take Quiz';
+                '<i class="fas fa-bolt me-1"></i>Take Quiz';
         }
     }
     // ── Render Quiz ───────────────────────────────────────────

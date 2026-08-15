@@ -356,22 +356,14 @@ Generate exactly {num_questions} questions now:"""
         questions = questions[:num_questions]
 
         # ── Save to database ──────────────────────────────
-        quiz_id = execute_query(
-            """INSERT INTO video_quizzes
-               (user_id, video_id, video_title, topic, questions, total,
-                notes_source, transcript_length)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-            (
-                user_id,
-                video_id,
-                video_title,
-                topic,
-                json.dumps(questions),
-                len(questions),
-                content_source,
-                len(transcript) if transcript else 0,
-            )
-        )
+        quiz_id = _save_quiz_to_db(user_id, video_id, video_title, topic, questions, content_source, transcript)
+
+        if not quiz_id or isinstance(quiz_id, bool):
+            print("❌ Failed to insert quiz into database (quiz_id is invalid)")
+            return {
+                'success': False,
+                'message': 'Failed to save quiz record to database.'
+            }
 
         # ── Update topic_difficulty ───────────────────────
         execute_query(
@@ -383,7 +375,7 @@ Generate exactly {num_questions} questions now:"""
             (user_id, topic, difficulty)
         )
 
-        print(f"✅ Quiz saved: {len(questions)} questions | source='{content_source}' | difficulty='{difficulty}'")
+        print(f"✅ Quiz saved: id={quiz_id} | {len(questions)} questions | source='{content_source}' | difficulty='{difficulty}'")
 
         return {
             'success'   : True,
@@ -408,6 +400,43 @@ Generate exactly {num_questions} questions now:"""
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': str(e)}
+
+
+def _save_quiz_to_db(user_id, video_id, video_title, topic, questions, content_source, transcript):
+    """Safely insert generated quiz into database and return the quiz_id (int)."""
+    t_len = len(transcript) if transcript else 0
+    q_json = json.dumps(questions)
+    total_q = len(questions)
+
+    # 1. Try insert with notes_source & transcript_length
+    try:
+        res = execute_query(
+            """INSERT INTO video_quizzes
+               (user_id, video_id, video_title, topic, questions, total, notes_source, transcript_length)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (user_id, video_id, video_title, topic, q_json, total_q, content_source, t_len),
+            fetch=False
+        )
+        if res and not isinstance(res, bool):
+            return res
+    except Exception as e:
+        print(f"⚠️ Primary quiz INSERT failed: {e}")
+
+    # 2. Fallback insert without extra columns
+    try:
+        res = execute_query(
+            """INSERT INTO video_quizzes
+               (user_id, video_id, video_title, topic, questions, total)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (user_id, video_id, video_title, topic, q_json, total_q),
+            fetch=False
+        )
+        if res and not isinstance(res, bool):
+            return res
+    except Exception as e:
+        print(f"❌ Fallback quiz INSERT failed: {e}")
+
+    return None
 
 
 # ── Retry with simpler prompt if JSON fails ───────────────
@@ -447,14 +476,12 @@ Return ONLY JSON array:
         questions = _parse_quiz_json(raw)
 
         if questions:
-            quiz_id = execute_query(
-                """INSERT INTO video_quizzes
-                   (user_id, video_id, video_title, topic, questions, total,
-                    notes_source, transcript_length)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,0)""",
-                (user_id, video_id, video_title, topic,
-                 json.dumps(questions), len(questions), source)
-            )
+            quiz_id = _save_quiz_to_db(user_id, video_id, video_title, topic, questions, source, '')
+            if not quiz_id or isinstance(quiz_id, bool):
+                return {
+                    'success': False,
+                    'message': 'Failed to save quiz to database.'
+                }
             return {
                 'success'   : True,
                 'questions' : questions,

@@ -90,23 +90,38 @@
     padding: 14px 20px;
 }
 .ml-btn {
-    padding: 7px 14px;
-    border-radius: 8px;
+    padding: 7px 16px;
+    border-radius: 20px;
     font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 .ml-btn-notes {
-    background: #eff6ff;
-    color: #2563eb;
-    border: 1.5px solid #bfdbfe;
+    background: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+    border: 1px solid rgba(79, 70, 229, 0.25);
 }
 .ml-btn-quiz {
-    background: #f0fdf4;
+    background: rgba(16, 185, 129, 0.1);
     color: #059669;
-    border: 1.5px solid #bbf7d0;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.ml-pill-stat {
+    background: #f2f2f2;
+    color: #0f0f0f;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #e5e5e5;
 }
 .ml-btn:disabled {
     opacity: 0.5;
@@ -184,108 +199,107 @@
 <!-- VIDEO MODAL -->
 <div class="modal fade" id="mlVideoModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content ml-modal-content">
+        <div class="modal-content ml-modal-content" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
 
-            <div class="modal-header ml-modal-header">
-                <h5 class="modal-title" id="mlModalTitle" style="color:white;font-size:0.88rem;font-weight:600;margin:0;">
-                    Loading...
-                </h5>
+            <div class="modal-header ml-modal-header d-flex align-items-center justify-content-between" style="background: #0f0f0f; border-bottom: 1px solid #272727; padding: 12px 20px;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fab fa-youtube text-danger fs-5"></i>
+                    <h5 class="modal-title" id="mlModalTitle" style="color: white; font-size: 0.88rem; font-weight: 600; margin: 0;">
+                        Loading...
+                    </h5>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="mlStopVideo()"></button>
             </div>
 
             <div class="modal-body p-0">
                 <div class="row g-0">
 
-                    <!-- Left: Player -->
-                    <div class="col-lg-8" style="border-right:1px solid #f1f5f9;">
+                    <!-- Left: YouTube Watch Info & Player -->
+                    <div class="col-lg-8" style="border-right: 1px solid #e5e5e5;">
 
-                        <div style="position:relative;padding-bottom:56.25%;height:0;background:#000;">
-                            <iframe id="mlPlayer" src="" frameborder="0" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;"></iframe>
+                        <div style="position: relative; padding-bottom: 56.25%; height: 0; background: #000;">
+                            <iframe id="mlPlayer" src="" frameborder="0" allowfullscreen style="position: absolute; inset: 0; width: 100%; height: 100%;"></iframe>
                         </div>
 
                         <!-- Info -->
-                        <div style="padding:14px 16px;background:white;border-bottom:1px solid #f1f5f9;">
+                        <div style="padding: 18px 20px 14px; background: white;">
 
-                            <h6 id="mlVideoTitle" style="font-size:0.92rem;font-weight:700;color:#0f172a;margin:0 0 10px;line-height:1.4;"></h6>
+                            <!-- Video Title -->
+                            <h5 id="mlVideoTitle" style="font-size: 1.15rem; font-weight: 700; color: #0f0f0f; margin: 0 0 12px; line-height: 1.35; letter-spacing: -0.01em;"></h5>
 
-                            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid #f8fafc;">
-                                <div style="display:flex;gap:14px;flex:1;">
-                                    <span style="font-size:0.78rem;color:#64748b;display:flex;align-items:center;gap:4px;">
-                                        <i class="fas fa-eye" style="color:#94a3b8;"></i>
+                            <!-- Channel Bar & Action Pills (Single Row Flex Container) -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 12px;">
+                                
+                                <!-- Left: Channel Info -->
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div id="mlChannelAvatar" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.88rem; font-weight: 700; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">YT</div>
+                                    <div>
+                                        <div id="mlChannelName" style="font-size: 0.88rem; font-weight: 700; color: #0f0f0f; line-height: 1.2;"></div>
+                                        <div id="mlPublishDate" style="font-size: 0.72rem; color: #606060;"></div>
+                                    </div>
+                                    <button class="yt-sub-btn ms-2">Subscribe</button>
+                                </div>
+
+                                <!-- Right: Action Pills Bar (Placement of BOTH Notes & Quiz Buttons at the SAME PLACE!) -->
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <div class="ml-pill-stat">
+                                        <i class="fas fa-eye" style="color: #606060;"></i>
                                         <span id="mlViews">—</span>
-                                    </span>
-                                    <span style="font-size:0.78rem;color:#64748b;display:flex;align-items:center;gap:4px;">
-                                        <i class="fas fa-thumbs-up" style="color:#94a3b8;"></i>
+                                    </div>
+                                    <div class="ml-pill-stat">
+                                        <i class="fas fa-thumbs-up" style="color: #606060;"></i>
                                         <span id="mlLikes">—</span>
-                                    </span>
-                                    <span style="font-size:0.78rem;color:#64748b;display:flex;align-items:center;gap:4px;">
-                                        <i class="fas fa-comment" style="color:#94a3b8;"></i>
-                                        <span id="mlComments">—</span>
-                                    </span>
-                                </div>
-                                <div style="display:flex;gap:8px;">
+                                    </div>
+                                    
+                                    <!-- BOTH Notes and Quiz buttons placed side-by-side at the EXACT SAME PLACE -->
                                     <button onclick="mlGenerateNotes()" id="mlNotesBtn" class="ml-btn ml-btn-notes">
-                                        <i class="fas fa-sticky-note me-1"></i>Notes
+                                        <i class="fas fa-sticky-note"></i>Notes
                                     </button>
-                                    <button id="mlQuizBtn" class="ml-btn ml-btn-quiz" disabled onclick="mlGenerateQuiz()">
-                                        <i class="fas fa-lock me-1"></i>Unlock Quiz
+                                    <button id="mlQuizBtn" class="ml-btn ml-btn-quiz" onclick="mlGenerateQuiz()">
+                                        <i class="fas fa-bolt me-1"></i>Take Quiz
                                     </button>
                                 </div>
+
                             </div>
 
-                            <div id="mlWatchProgress" style="display:none;padding:8px 0 0;"></div>
-
-                            <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #f8fafc;">
-                                <div id="mlChannelAvatar" style="width:34px;height:34px;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:0.82rem;font-weight:700;flex-shrink:0;">YT</div>
-                                <div>
-                                    <div id="mlChannelName" style="font-size:0.82rem;font-weight:700;color:#1e293b;"></div>
-                                    <div id="mlPublishDate" style="font-size:0.7rem;color:#94a3b8;"></div>
-                                </div>
-                            </div>
-
-                            <div id="mlDescription" style="margin-top:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;font-size:0.78rem;color:#475569;line-height:1.6;max-height:70px;overflow:hidden;cursor:pointer;border:1px solid #f1f5f9;" onclick="mlToggleDesc()"></div>
+                            <!-- YouTube Description Box -->
+                            <div id="mlDescription" style="margin-top: 6px; padding: 12px 14px; background: #f2f2f2; border-radius: 12px; font-size: 0.78rem; color: #0f0f0f; line-height: 1.6; max-height: 62px; overflow: hidden; cursor: pointer; border: 1px solid #e5e5e5; transition: max-height 0.3s;" onclick="mlToggleDesc()"></div>
                         </div>
 
-                        <!-- Notes -->
-                        <div id="mlNotesSection" style="display:none;">
-                            <div style="margin:12px 16px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;">
-                                <div style="background:#0f172a;color:white;padding:9px 14px;font-weight:600;font-size:0.82rem;">
-                                    <i class="fas fa-sticky-note me-2"></i>AI Generated Notes
+                        <!-- Notes Section -->
+                        <div id="mlNotesSection" style="display: none; margin: 14px 20px 20px;">
+                            <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                                <div style="background: #f8fafc; color: #0f172a; padding: 10px 16px; font-weight: 700; font-size: 0.82rem; border-bottom: 1px solid #e2e8f0;">
+                                    📝 AI Study Notes
                                 </div>
-                                <div id="mlNotesContent" style="padding:14px;font-size:0.82rem;max-height:200px;overflow-y:auto;line-height:1.7;"></div>
+                                <div id="mlNotesContent" style="padding: 16px; font-size: 0.82rem; max-height: 250px; overflow-y: auto; line-height: 1.7;"></div>
                             </div>
                         </div>
 
                     </div>
 
-                    <!-- Right: Related + Quiz -->
-                    <div class="col-lg-4">
-                        <div style="height:100%;background:#f8fafc;overflow-y:auto;max-height:620px;">
+                    <!-- Right: Related Videos (Clean YouTube Sidebar) -->
+                    <div class="col-lg-4" style="background: #f9f9f9;">
+                        <div style="height: 100%; overflow-y: auto; max-height: 640px; padding: 16px;">
 
-                            <div style="padding:14px 14px 8px;">
-                                <div style="font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-                                    <i class="fas fa-film" style="color:#7c3aed;"></i>
-                                    Related Videos
-                                </div>
-                                <div id="mlRelated">
-                                    <div class="text-center py-3">
-                                        <div class="spinner-border spinner-border-sm text-secondary"></div>
-                                    </div>
+                            <div style="font-size: 0.82rem; font-weight: 700; color: #0f0f0f; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fab fa-youtube" style="color: #ff0000; font-size: 1.1rem;"></i>
+                                Related Videos
+                            </div>
+                            <div id="mlRelated">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-secondary"></div>
                                 </div>
                             </div>
 
-                            <div style="padding:0 14px 14px;border-top:1px solid #e2e8f0;margin-top:4px;">
-                                <div style="font-size:0.8rem;font-weight:700;color:#1e293b;margin:12px 0 8px;display:flex;align-items:center;gap:6px;">
-                                    <i class="fas fa-clipboard-check" style="color:#059669;"></i>
-                                    Quiz
+                            <div style="padding: 14px 0 0; margin-top: 14px; border-top: 1px solid #e2e8f0;">
+                                <div id="mlQuizPlaceholder" style="text-align: center; padding: 16px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b;">
+                                    <div style="font-size: 1.5rem; margin-bottom: 4px;">⚡</div>
+                                    <div style="font-size: 0.8rem; font-weight: 700; color: #1e293b;">Interactive Quiz</div>
+                                    <div style="font-size: 0.72rem; margin-top: 2px;">Watch video to unlock quiz button</div>
                                 </div>
-                                <div id="mlQuizPlaceholder" style="text-align:center;padding:16px;background:white;border-radius:10px;border:1px dashed #e2e8f0;color:#94a3b8;">
-                                    <div style="font-size:1.8rem;margin-bottom:6px;">📝</div>
-                                    <div style="font-size:0.78rem;font-weight:600;color:#64748b;">Auto Quiz</div>
-                                    <div style="font-size:0.72rem;margin-top:3px;">Watch video to unlock</div>
-                                </div>
-                                <div id="mlQuizContainer" style="display:none;"></div>
-                                <div id="mlQuizResult" style="display:none;"></div>
+                                <div id="mlQuizContainer" style="display: none;"></div>
+                                <div id="mlQuizResult" style="display: none;"></div>
                             </div>
 
                         </div>
@@ -598,7 +612,7 @@ async function mlGenerateQuiz() {
         });
         var data = await res.json();
 
-        if (data.success) {
+        if (data.success && data.quiz_id && data.quiz_id !== 'false' && data.quiz_id !== false) {
             mlQuizId    = data.quiz_id;
             mlQuestions = data.questions;
             mlAnswers   = {};
@@ -609,11 +623,11 @@ async function mlGenerateQuiz() {
                 window.open('/quiz/page/' + data.quiz_id, '_blank');
             }, 500);
         } else {
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-clipboard-check me-1"></i>Take Quiz'; }
-            alert(data.message || 'Quiz failed. Try again.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt me-1"></i>Take Quiz'; }
+            alert(data.message || 'Quiz generation failed. Try again.');
         }
     } catch(e) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-clipboard-check me-1"></i>Take Quiz'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt me-1"></i>Take Quiz'; }
     }
 }
 

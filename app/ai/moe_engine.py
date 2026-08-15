@@ -183,53 +183,84 @@ def get_topics_for_field(field):
     if not field:
         return _get_general_topics()
 
-    # 1. Exact match in FIELD_TOPICS (university)
+    # Exact matches first
     if field in FIELD_TOPICS:
         return FIELD_TOPICS[field]
-
-    # 2. Exact match in CLASS_TOPICS (school/college)
     if field in CLASS_TOPICS:
         return CLASS_TOPICS[field]
 
     field_lower = field.lower().strip()
 
-    # 3. Case-insensitive match in FIELD_TOPICS
+    # Label-to-key mappings for school, college, and professional test prep
+    label_to_key = {
+        'class 1': 'class_1',
+        'class 2': 'class_2',
+        'class 3': 'class_3',
+        'class 4': 'class_4',
+        'class 5': 'class_5',
+        'class 6': 'class_6',
+        'class 7': 'class_7',
+        'class 8': 'class_8',
+        'class 9 science': 'class_9_sci',
+        'class 9 — science': 'class_9_sci',
+        'class 9 - science': 'class_9_sci',
+        'class 10 science': 'class_10_sci',
+        'class 10 — science': 'class_10_sci',
+        'class 10 - science': 'class_10_sci',
+        'class 9 arts': 'class_9_arts',
+        'class 9 — arts': 'class_9_arts',
+        'class 9 - arts': 'class_9_arts',
+        'class 10 arts': 'class_10_arts',
+        'class 10 — arts': 'class_10_arts',
+        'class 10 - arts': 'class_10_arts',
+        'class 9 commerce': 'class_9_com',
+        'class 9 — commerce': 'class_9_com',
+        'class 9 - commerce': 'class_9_com',
+        'class 10 commerce': 'class_10_com',
+        'class 10 — commerce': 'class_10_com',
+        'class 10 - commerce': 'class_10_com',
+        'pre-medical': 'pre_med',
+        'pre medical': 'pre_med',
+        'pre-engineering': 'pre_eng',
+        'pre engineering': 'pre_eng',
+        'ics': 'ics',
+        'icom': 'icom',
+        'fa': 'fa',
+        'css': 'css_pms',
+        'pms': 'css_pms',
+        'mdcat': 'mdcat',
+        'ecat': 'ecat',
+        'nts': 'nts_gat',
+        'gat': 'nts_gat',
+        'ielts': 'ielts',
+        'toefl': 'ielts',
+        'ppsc': 'ppsc_fpsc',
+        'fpsc': 'ppsc_fpsc',
+    }
+
+    # Normalize input field for matching
+    cleaned = field_lower.replace('—', ' ').replace('-', ' ').replace('/', ' ').replace('&', ' ').replace('(', '').replace(')', '')
+    cleaned = ' '.join(cleaned.split())
+
+    # 1. Substring matching against predefined mappings
+    for label_pattern, target_key in label_to_key.items():
+        if label_pattern in cleaned:
+            return CLASS_TOPICS[target_key]
+
+    # 2. Case-insensitive substring match in FIELD_TOPICS
     for key, topics in FIELD_TOPICS.items():
-        if key.lower().strip() == field_lower:
+        k_clean = key.lower().replace('&', ' ').replace('/', ' ')
+        k_clean = ' '.join(k_clean.split())
+        if k_clean in cleaned or cleaned in k_clean:
             return topics
 
-    # 4. Case-insensitive match in CLASS_TOPICS
+    # 3. Case-insensitive substring match in CLASS_TOPICS
     for key, topics in CLASS_TOPICS.items():
-        if key.lower().strip() == field_lower:
+        k_clean = key.replace('_', ' ')
+        if k_clean in cleaned or cleaned in k_clean:
             return topics
 
-    # 5. Parse "Category - Class Label" format (saved by onboarding)
-    #    e.g. "Primary - Class 5", "Matriculation - Class 9 — Science"
-    if ' - ' in field:
-        parts    = field.split(' - ', 1)
-        cat      = parts[0].strip()
-        cls_label = parts[1].strip()
-
-        # Try to find matching class in CLASS_TOPICS by label
-        for key, topics in CLASS_TOPICS.items():
-            # Match by key substring or by known label patterns
-            if _label_matches_key(cls_label, key):
-                return topics
-
-        # Fallback to category generic topics
-        return _category_fallback_topics(cat)
-
-    # 6. Partial match in FIELD_TOPICS
-    for key, topics in FIELD_TOPICS.items():
-        if field_lower in key.lower() or key.lower() in field_lower:
-            return topics
-
-    # 7. Partial match in CLASS_TOPICS
-    for key, topics in CLASS_TOPICS.items():
-        if field_lower in key.lower() or key.lower() in field_lower:
-            return topics
-
-    # 8. Category name fallback
+    # 4. Fallback to category fallback
     return _category_fallback_topics(field)
 
 

@@ -117,28 +117,78 @@ async function fetchTranscript(videoId) {
     }
 }
 
+function switchAiTab(tabName) {
+    const notesTabBtn = document.getElementById('aiTabNotesBtn');
+    const quizTabBtn  = document.getElementById('aiTabQuizBtn');
+    const notesSec    = document.getElementById('notesSection');
+    const quizSec     = document.getElementById('quizTabSection');
+
+    if (!notesTabBtn || !quizTabBtn || !notesSec || !quizSec) return;
+
+    if (tabName === 'notes') {
+        notesSec.style.display = 'block';
+        quizSec.style.display  = 'none';
+
+        notesTabBtn.style.background  = '#ffffff';
+        notesTabBtn.style.border      = '1px solid #cbd5e1';
+        notesTabBtn.style.color       = '#4f46e5';
+        notesTabBtn.style.fontWeight  = '700';
+        notesTabBtn.style.boxShadow   = '0 1px 3px rgba(0,0,0,0.05)';
+
+        quizTabBtn.style.background   = 'transparent';
+        quizTabBtn.style.border       = '1px solid transparent';
+        quizTabBtn.style.color        = '#64748b';
+        quizTabBtn.style.fontWeight   = '600';
+        quizTabBtn.style.boxShadow    = 'none';
+    } else if (tabName === 'quiz') {
+        notesSec.style.display = 'none';
+        quizSec.style.display  = 'block';
+
+        quizTabBtn.style.background   = '#ffffff';
+        quizTabBtn.style.border       = '1px solid #cbd5e1';
+        quizTabBtn.style.color        = '#059669';
+        quizTabBtn.style.fontWeight   = '700';
+        quizTabBtn.style.boxShadow    = '0 1px 3px rgba(0,0,0,0.05)';
+
+        notesTabBtn.style.background  = 'transparent';
+        notesTabBtn.style.border      = '1px solid transparent';
+        notesTabBtn.style.color       = '#64748b';
+        notesTabBtn.style.fontWeight  = '600';
+        notesTabBtn.style.boxShadow   = 'none';
+    }
+}
+window.switchAiTab = switchAiTab;
+
 function unlockQuizWithTranscript() {
     const btn      = document.getElementById('quizBtn');
     const lockIcon = document.getElementById('quizLockIcon');
     const btnLabel = document.getElementById('quizBtnLabel');
 
-    if (!btn) return;
-
-    btn.disabled = false;
-    if (lockIcon) lockIcon.className = 'fas fa-unlock me-1';
-    if (btnLabel) btnLabel.textContent = 'Take Quiz';
-    btn.style.opacity = '1';
-    btn.style.cursor  = 'pointer';
-    btn.onclick       = () => { if (window.generateQuiz) window.generateQuiz(); };
-
-    // Update quiz ready banner in sidebar if exists
-    const readyBanner = document.getElementById('quizReadyBanner');
-    const readyBtn    = document.getElementById('quizReadyBtn');
-    if (readyBanner) {
-        readyBanner.style.display = 'block';
+    if (btn) {
+        btn.disabled = false;
+        if (lockIcon) lockIcon.className = 'fas fa-bolt me-1';
+        if (btnLabel) btnLabel.textContent = 'Take Quiz';
+        btn.style.opacity = '1';
+        btn.style.cursor  = 'pointer';
+        btn.onclick       = () => {
+            switchAiTab('quiz');
+            if (window.generateQuiz) window.generateQuiz();
+        };
     }
+
+    // Update quiz ready banner
+    const readyBanner  = document.getElementById('quizReadyBanner');
+    const lockedBanner = document.getElementById('quizLockedBanner');
+    const readyBtn     = document.getElementById('quizReadyBtn');
+
+    if (readyBanner)  readyBanner.style.display  = 'block';
+    if (lockedBanner) lockedBanner.style.display = 'none';
+
     if (readyBtn) {
-        readyBtn.onclick = () => { if (window.generateQuiz) window.generateQuiz(); };
+        readyBtn.onclick = () => {
+            switchAiTab('quiz');
+            if (window.generateQuiz) window.generateQuiz();
+        };
     }
 }
 
@@ -617,62 +667,15 @@ function showToast(msg, type) {
 }
 
 function lockQuizButton() {
-    const btn      = document.getElementById('quizBtn');
-    const lockIcon = document.getElementById('quizLockIcon');
-    const btnLabel = document.getElementById('quizBtnLabel');
-    if (!btn) return;
-    btn.disabled = true;
-    if (lockIcon) lockIcon.className = 'fas fa-lock me-1';
-    if (btnLabel) btnLabel.textContent = 'Watch to unlock';
-    btn.style.opacity = '0.55';
-    btn.style.cursor  = 'not-allowed';
-    btn.onclick       = null;
-
-    const readyBanner = document.getElementById('quizReadyBanner');
-    if (readyBanner) readyBanner.style.display = 'none';
+    unlockQuizWithTranscript();
 }
 
 function startWatchTimer() {
-    if (currentTranscript && currentTranscript.trim().length > 100) {
-        return;
-    }
-
-    let secs = 0;
-    const progressWrap = document.getElementById('watchProgressWrap');
-    const progressFill = document.getElementById('watchProgressFill');
-    const progressLabel = document.getElementById('watchProgressLabel');
-    
-    if (progressWrap) progressWrap.style.display = 'block';
-    if (progressFill) progressFill.style.width = '0%';
-    if (progressLabel) progressLabel.innerHTML = '<i class="fas fa-clock me-1"></i>60s to unlock quiz';
-
-    watchCheckTimer = setInterval(() => {
-        secs++;
-        const pct = Math.min(100, (secs / 60) * 100);
-        if (progressFill) progressFill.style.width = `${pct}%`;
-        if (progressLabel) {
-            const left = Math.max(0, 60 - secs);
-            if (left > 0) {
-                progressLabel.innerHTML = `<i class="fas fa-clock me-1"></i>${left}s to unlock quiz`;
-            } else {
-                progressLabel.innerHTML = `<i class="fas fa-unlock me-1"></i>Quiz unlocked!`;
-            }
-        }
-
-        if (secs >= 60) {
-            clearInterval(watchCheckTimer);
-            watchCheckTimer = null;
-            videoWatched = true;
-            unlockQuizWithTranscript();
-            if (progressWrap) {
-                setTimeout(() => { progressWrap.style.display = 'none'; }, 2000);
-            }
-        }
-    }, 1000);
+    unlockQuizWithTranscript();
 }
 
 function resetModalPanels() {
-    ['quizContainer','quizResult','notesSection'].forEach(id => {
+    ['quizContainer','quizResult'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -680,14 +683,21 @@ function resetModalPanels() {
     const progressWrap = document.getElementById('watchProgressWrap');
     if (progressWrap) progressWrap.style.display = 'none';
 
-    const readyBanner = document.getElementById('quizReadyBanner');
-    if (readyBanner) readyBanner.style.display = 'none';
+    const readyBanner  = document.getElementById('quizReadyBanner');
+    const lockedBanner = document.getElementById('quizLockedBanner');
+    if (readyBanner)  readyBanner.style.display  = 'none';
+    if (lockedBanner) lockedBanner.style.display = 'block';
+
+    if (window.switchAiTab) window.switchAiTab('notes');
 
     const nb = document.getElementById('notesBtn');
     if (nb) {
         nb.disabled  = false;
-        nb.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Notes';
-        nb.onclick   = () => { if (window.generateNotes) window.generateNotes(); };
+        nb.innerHTML = '<i class="fas fa-sticky-note me-1"></i><span>Notes</span>';
+        nb.onclick   = () => {
+            switchAiTab('notes');
+            if (window.generateNotes) window.generateNotes();
+        };
     }
 
     ['viewCount','likeCount'].forEach(id => {
