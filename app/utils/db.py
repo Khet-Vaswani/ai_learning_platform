@@ -7,15 +7,16 @@ load_dotenv()
 def get_db_connection():
     try:
         conn = mysql.connector.connect(
-            host     = os.getenv('DB_HOST',     'localhost'),
-            port     = int(os.getenv('DB_PORT', 3306)),
-            user     = os.getenv('DB_USER',     'root'),
-            password = os.getenv('DB_PASSWORD', ''),
-            database = os.getenv('DB_NAME',     'ai_learning_platform')
+            host               = os.getenv('DB_HOST',     'localhost'),
+            port               = int(os.getenv('DB_PORT', 3306)),
+            user               = os.getenv('DB_USER',     'root'),
+            password           = os.getenv('DB_PASSWORD', ''),
+            database           = os.getenv('DB_NAME',     'ai_learning_platform'),
+            connection_timeout = 3
         )
         return conn
     except mysql.connector.Error as e:
-        print(f"❌ DB connection failed: {e}")
+        print(f"[ERROR] DB connection failed: {e}")
         return None
 
 
@@ -41,7 +42,7 @@ def execute_query(query, params=None, fetch=True):
             return cursor.lastrowid
 
     except mysql.connector.Error as e:
-        print(f"❌ Query failed: {e}")
+        print(f"[ERROR] Query failed: {e}")
         conn.rollback()
         return False
     finally:

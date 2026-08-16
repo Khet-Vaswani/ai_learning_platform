@@ -23,8 +23,9 @@ def create_app():
         if base not in sys.path:
             sys.path.insert(0, base)
         import migrate_schema
+        migrate_schema.run_migrations()
     except Exception as e:
-        print(f"❌ Failed to run auto-migrations: {e}")
+        print(f"[ERROR] Failed to run auto-migrations: {e}")
 
     app = Flask(__name__,
         template_folder = TEMPLATE_FOLDER,

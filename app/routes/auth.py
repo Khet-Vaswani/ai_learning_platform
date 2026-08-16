@@ -135,3 +135,122 @@ def logout():
     session.clear()
     flash('Logged out successfully!', 'info')
     return redirect(url_for('auth.login'))
+
+
+import secrets
+from datetime import datetime, timedelta
+
+@auth.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard.index'))
+
+    if request.method == 'POST':
+        ip = request.remote_addr
+        if not check_rate_limit(ip):
+            return render_template('forgot_password.html',
+                error='Too many reset attempts. Please wait 5 minutes.')
+
+        email = request.form.get('email', '').strip().lower()
+
+        if not email or not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+            return render_template('forgot_password.html',
+                error='Please provide a valid email address.')
+
+        users = execute_query(
+            "SELECT id, full_name FROM users WHERE email=%s",
+            (email,), fetch=True
+        )
+
+        if not users:
+            return render_template('forgot_password.html',
+                success='If that email is registered, we have generated password reset instructions.')
+
+        user = users[0]
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now() + timedelta(minutes=30)
+
+        # Invalidate existing unused tokens for this user
+        execute_query(
+            "UPDATE password_resets SET used=1 WHERE user_id=%s AND used=0",
+            (user['id'],), fetch=False
+        )
+
+        # Insert new reset token
+        execute_query(
+            """INSERT INTO password_resets (user_id, token, expires_at)
+               VALUES (%s, %s, %s)""",
+            (user['id'], token, expires_at.strftime('%Y-%m-%d %H:%M:%S')),
+            fetch=False
+        )
+
+        reset_link = url_for('auth.reset_password', token=token, _external=True)
+
+        return render_template('forgot_password.html',
+            success='Password reset instructions generated successfully!',
+            reset_link=reset_link)
+
+    return render_template('forgot_password.html')
+
+
+@auth.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if 'user_id' in session:
+        return redirect(url_for('dashboard.index'))
+
+    resets = execute_query(
+        """SELECT r.id, r.user_id, r.expires_at, r.used, u.email
+           FROM password_resets r
+           JOIN users u ON r.user_id = u.id
+           WHERE r.token=%s AND r.used=0""",
+        (token,), fetch=True
+    )
+
+    if not resets:
+        return render_template('reset_password.html',
+            invalid=True, error='Invalid or expired password reset link.')
+
+    reset_record = resets[0]
+    expires_at = reset_record['expires_at']
+    if isinstance(expires_at, str):
+        expires_at = datetime.strptime(expires_at, '%Y-%m-%d %H:%M:%S')
+
+    if datetime.now() > expires_at:
+        execute_query("UPDATE password_resets SET used=1 WHERE id=%s", (reset_record['id'],), fetch=False)
+        return render_template('reset_password.html',
+            invalid=True, error='This password reset link has expired. Please request a new one.')
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm  = request.form.get('confirm_password', '')
+
+        if not password or not confirm:
+            return render_template('reset_password.html',
+                token=token, error='All fields are required.')
+
+        if len(password) < 6:
+            return render_template('reset_password.html',
+                token=token, error='Password must be at least 6 characters.')
+
+        if password != confirm:
+            return render_template('reset_password.html',
+                token=token, error='Passwords do not match.')
+
+        hashed_pw = hash_password(password)
+
+        # Update user password
+        execute_query(
+            "UPDATE users SET password=%s WHERE id=%s",
+            (hashed_pw, reset_record['user_id']), fetch=False
+        )
+
+        # Mark token as used
+        execute_query(
+            "UPDATE password_resets SET used=1 WHERE id=%s",
+            (reset_record['id'],), fetch=False
+        )
+
+        flash('Your password has been successfully reset! Please sign in with your new password.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('reset_password.html', token=token)
