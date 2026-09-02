@@ -18,10 +18,10 @@ from groq import Groq
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
 GROQ_MODELS = [
-    'llama-3.1-8b-instant',
-    'llama-3.3-70b-versatile',
-    'gemma2-9b-it',
-    'mixtral-8x7b-32768',
+    'groq/compound-mini',
+    'groq/compound',
+    'openai/gpt-oss-120b',
+    'qwen/qwen3.8-27b',
 ]
 
 # ── Gemini client ─────────────────────────────────────────
@@ -33,8 +33,9 @@ except Exception:
     GEMINI_AVAILABLE = False
 
 GEMINI_MODELS = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-latest',
 ]
 
 
@@ -368,7 +369,7 @@ def chatbot_ask():
                     )
                 )
                 resp = gemini_client.models.generate_content(
-                    model    = 'gemini-1.5-flash',
+                    model    = 'gemini-3.6-flash',
                     contents = [img_part, txt_part]
                 )
                 return jsonify({'success': True, 'reply': resp.text.strip()})

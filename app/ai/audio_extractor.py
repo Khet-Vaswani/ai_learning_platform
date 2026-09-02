@@ -18,13 +18,35 @@ def ensure_audio_dir():
 
 def download_audio(video_id: str) -> str | None:
     """
-    Download YouTube audio as mp3 using yt-dlp.
+    Download YouTube audio using python yt_dlp library (or subprocess fallback).
     Returns local file path or None on failure.
     """
     ensure_audio_dir()
     out_name = os.path.join(AUDIO_DIR, f"{video_id}_{uuid.uuid4().hex[:8]}")
     url      = f"https://www.youtube.com/watch?v={video_id}"
 
+    # Try Python yt_dlp module first
+    try:
+        import yt_dlp
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': out_name + '.%(ext)s',
+            'quiet': True,
+            'noplaylist': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        for ext in ['mp3', 'm4a', 'webm', 'ogg']:
+            candidate = f"{out_name}.{ext}"
+            if os.path.exists(candidate):
+                size_mb = os.path.getsize(candidate) / (1024 * 1024)
+                print(f"✅ Audio downloaded via yt_dlp module: {size_mb:.1f} MB ({ext})")
+                return candidate
+    except Exception as py_err:
+        print(f"⚠️ Python yt_dlp module download error: {py_err}. Trying CLI fallback...")
+
+    # CLI fallback
     cmd = [
         'yt-dlp',
         '--extract-audio',
@@ -47,7 +69,7 @@ def download_audio(video_id: str) -> str | None:
         mp3_path = out_name + '.mp3'
         if os.path.exists(mp3_path):
             size_mb = os.path.getsize(mp3_path) / (1024 * 1024)
-            print(f"✅ Audio downloaded: {size_mb:.1f} MB")
+            print(f"✅ Audio downloaded via CLI: {size_mb:.1f} MB")
             return mp3_path
 
         # Sometimes yt-dlp saves with different extension
@@ -64,7 +86,7 @@ def download_audio(video_id: str) -> str | None:
         print(f"❌ Audio download timed out for {video_id}")
         return None
     except FileNotFoundError:
-        print("❌ yt-dlp not installed. Run: pip install yt-dlp")
+        print("❌ yt-dlp CLI binary not found in PATH.")
         return None
     except Exception as e:
         print(f"❌ Audio download error: {e}")

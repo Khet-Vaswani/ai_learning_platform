@@ -111,6 +111,16 @@ CREATE TABLE IF NOT EXISTS weak_topics (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- TABLE 11: video_transcripts
+CREATE TABLE IF NOT EXISTS video_transcripts (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    video_id          VARCHAR(50) NOT NULL UNIQUE,
+    transcript_text   LONGTEXT,
+    source            VARCHAR(50) DEFAULT 'transcript',
+    word_count        INT DEFAULT 0,
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- TABLE 12: search_cache
 CREATE TABLE IF NOT EXISTS search_cache (
     id         INT AUTO_INCREMENT PRIMARY KEY,

@@ -171,7 +171,6 @@ function unlockQuizWithTranscript() {
         btn.style.opacity = '1';
         btn.style.cursor  = 'pointer';
         btn.onclick       = () => {
-            switchAiTab('quiz');
             if (window.generateQuiz) window.generateQuiz();
         };
     }
@@ -186,7 +185,6 @@ function unlockQuizWithTranscript() {
 
     if (readyBtn) {
         readyBtn.onclick = () => {
-            switchAiTab('quiz');
             if (window.generateQuiz) window.generateQuiz();
         };
     }

@@ -1327,4 +1327,39 @@ loadStreak();
 loadPlans();
 loadSessions();
 </script>
+
+<!-- ============================================================ -->
+<!-- INLINE QUIZ MODAL OVERLAY (1-Screen Zero-Friction Flow)      -->
+<!-- ============================================================ -->
+<div class="modal fade" id="quizInlineModal" tabindex="-1" aria-hidden="true" style="backdrop-filter: blur(4px);">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
+      
+      <!-- Header -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 18px 24px; border-bottom: none;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width: 42px; height: 42px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-bolt" style="color: #60a5fa; font-size: 1.25rem;"></i>
+          </div>
+          <div>
+            <h5 class="modal-title fw-bold mb-0" id="quizModalTitle" style="font-size: 1.1rem; color: #f8fafc;">Interactive AI Quiz</h5>
+            <small id="quizModalSub" style="color: #94a3b8; font-size: 0.8rem;">Auto-adapted to your learning level</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="if(window.closeQuizModal) closeQuizModal();"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body" id="quizModalBody" style="padding: 24px; max-height: 72vh; overflow-y: auto; background: #f8fafc;">
+        <!-- Dynamically rendered by gemini.js -->
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer" id="quizModalFooter" style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <!-- Dynamic footer controls -->
+      </div>
+
+    </div>
+  </div>
+</div>
 {% endblock %}

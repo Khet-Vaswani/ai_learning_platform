@@ -226,6 +226,12 @@ CREATE INDEX idx_quiz_attempts ON quiz_attempts(user_id, attempted_at);
 CREATE INDEX idx_weak_topics ON weak_topics(user_id, last_detected);
 
 -- ============================================================
+-- ALTER video_quizzes
+-- ============================================================
+ALTER TABLE video_quizzes ADD COLUMN IF NOT EXISTS notes_source VARCHAR(50) DEFAULT 'transcript';
+ALTER TABLE video_quizzes ADD COLUMN IF NOT EXISTS transcript_length INT DEFAULT 0;
+
+-- ============================================================
 -- Verification Queries (Run to verify)
 -- ============================================================
 -- SELECT * FROM educational_categories;

@@ -10,6 +10,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def _load_sql_file(filepath):
+    if not os.path.exists(filepath):
+        return []
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+    statements = []
+    for stmt in content.split(';'):
+        stmt = stmt.strip()
+        # Filter out comments-only or empty statements
+        cleaned = '\n'.join([line for line in stmt.splitlines() if not line.strip().startswith('--')])
+        if cleaned.strip():
+            statements.append(stmt + ';')
+    return statements
+
+
 def run_migrations():
     try:
         conn = mysql.connector.connect(
@@ -26,6 +41,12 @@ def run_migrations():
         print(f"[ERROR] Connection failed: {e}")
         return False
 
+    base_dir = os.path.dirname(__file__)
+    schema_path = os.path.join(base_dir, 'database', 'schema.sql')
+    updates_path = os.path.join(base_dir, 'database', 'schema_updates.sql')
+
+    sql_statements = _load_sql_file(schema_path) + _load_sql_file(updates_path)
+
     # Execute statements
     try:
         print("\n" + "=" * 60)
@@ -33,8 +54,14 @@ def run_migrations():
         print("=" * 60)
         
         for i, statement in enumerate(sql_statements, 1):
-            cursor.execute(statement)
-            print(f"[OK] Step {i}/{len(sql_statements)}")
+            try:
+                cursor.execute(statement)
+                print(f"[OK] Step {i}/{len(sql_statements)}")
+            except mysql.connector.Error as stmt_err:
+                # Ignore duplicate column / table / constraint errors during re-runs
+                if stmt_err.errno in (1060, 1061, 1050):
+                    continue
+                print(f"[WARN] Migration step {i} warning: {stmt_err}")
         
         conn.commit()
         print("\n[OK] All migrations executed successfully!")

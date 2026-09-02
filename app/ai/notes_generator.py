@@ -15,9 +15,10 @@ def _generate(prompt: str, max_tokens: int = 2000) -> str:
     from groq import Groq
 
     GROQ_MODELS = [
-        'llama-3.1-8b-instant',
-        'llama-3.3-70b-versatile',
-        'gemma2-9b-it',
+        'groq/compound-mini',
+        'groq/compound',
+        'openai/gpt-oss-120b',
+        'qwen/qwen3.8-27b',
     ]
 
     client     = Groq(api_key=os.getenv('GROQ_API_KEY'))
@@ -32,7 +33,7 @@ def _generate(prompt: str, max_tokens: int = 2000) -> str:
                 temperature = 0.3,
             )
             result = resp.choices[0].message.content.strip()
-            print(f"✅ Notes via Groq: {model}")
+            print(f"[OK] Notes via Groq: {model}")
             return result
         except Exception as e:
             err = str(e)
@@ -45,17 +46,27 @@ def _generate(prompt: str, max_tokens: int = 2000) -> str:
             continue
 
     # Gemini fallback
+    GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest']
     try:
         from google import genai
-        gc   = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-        resp = gc.models.generate_content(
-            model    = 'gemini-1.5-flash',
-            contents = prompt
-        )
-        print("✅ Notes via Gemini fallback")
-        return resp.text.strip()
+        gc = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+        for model in GEMINI_MODELS:
+            try:
+                resp = gc.models.generate_content(
+                    model    = model,
+                    contents = prompt
+                )
+                print(f"[OK] Notes via Gemini fallback: {model}")
+                return resp.text.strip()
+            except Exception as ge:
+                err = str(ge)
+                if '429' in err or 'quota' in err.lower():
+                    time.sleep(2)
+                    continue
+                continue
     except Exception as e:
         raise Exception(f"All AI models failed. Last: {last_error} | Gemini: {e}")
+    raise Exception(f"All AI models failed. Last: {last_error}")
 
 
 # ── Text preprocessor (inline — no external dep needed) ──

@@ -1,7 +1,9 @@
 # ============================================================
-# quiz_generator.py — AI Quiz Generator
-# Sources: Transcript (YouTube captions / Whisper) → Title fallback
-# Supports: Adaptive difficulty, Learning curve integration
+# quiz_generator.py — Fixed: JSON truncation + 3 difficulty levels
+# Fix 1: max_tokens 3500 → 6000
+# Fix 2: Fewer questions per request (10 not 20)
+# Fix 3: Robust JSON parser (handles truncation)
+# Fix 4: Beginner / Intermediate / Advanced 3-level system
 # ============================================================
 
 import os
@@ -11,17 +13,92 @@ import re
 from app.utils.db import execute_query
 
 
-# ── AI generate function ──────────────────────────────────
-def _generate(prompt: str, max_tokens: int = 3500) -> str:
-    """Try Groq first, fallback to Gemini."""
+# ── Language config ───────────────────────────────────────
+LANGUAGE_PROMPTS = {
+    'en': "Write all questions, options, and explanations in English only.",
+    'ur': "تمام سوالات، آپشنز اور وضاحتیں صرف اردو میں لکھیں۔",
+    'hi': "सभी प्रश्न, विकल्प और स्पष्टीकरण केवल हिंदी में लिखें।",
+    'sd': "سڀ سوال، آپشن ۽ وضاحتون صرف سنڌي ۾ لکو۔",
+}
+
+LANG_NAMES = {
+    'en': 'English',
+    'ur': 'Urdu',
+    'hi': 'Hindi',
+    'sd': 'Sindhi',
+}
+
+# ── 3-Level Difficulty System ─────────────────────────────
+DIFFICULTY_LEVELS = {
+    'Beginner': {
+        'label'      : '🟢 Beginner',
+        'color'      : '#059669',
+        'description': 'Simple recall — definitions, basic facts, straightforward identification.',
+        'score_range': 'For students scoring 0–49%',
+        'question_style': (
+            'Ask ONLY simple recall questions. '
+            'Test basic definitions, simple facts, and easy identification. '
+            'All wrong options should be clearly different from the correct answer. '
+            'Questions should be answerable by anyone who watched the video once.'
+        ),
+    },
+    'Intermediate': {
+        'label'      : '🟡 Intermediate',
+        'color'      : '#d97706',
+        'description': 'Understanding — explain concepts, compare ideas, apply knowledge.',
+        'score_range': 'For students scoring 50–79%',
+        'question_style': (
+            'Ask questions that test understanding and application. '
+            'Include comparison questions, "why" and "how" questions. '
+            'Wrong options should be plausible but clearly incorrect on reflection. '
+            'Mix of easy and moderate difficulty.'
+        ),
+    },
+    'Advanced': {
+        'label'      : '🔴 Advanced',
+        'color'      : '#dc2626',
+        'description': 'Analysis — evaluate scenarios, solve problems, deep understanding.',
+        'score_range': 'For students scoring 80–100%',
+        'question_style': (
+            'Ask analysis and evaluation questions. '
+            'Test deep understanding, cause-effect relationships, and critical thinking. '
+            'Wrong options should be very plausible and require careful thought. '
+            'Include scenario-based and application questions.'
+        ),
+    },
+}
+
+# DB difficulty → display level mapping
+DB_TO_LEVEL = {
+    'Easy'  : 'Beginner',
+    'Medium': 'Intermediate',
+    'Hard'  : 'Advanced',
+    # Direct mappings
+    'Beginner'    : 'Beginner',
+    'Intermediate': 'Intermediate',
+    'Advanced'    : 'Advanced',
+}
+
+LEVEL_TO_DB = {
+    'Beginner'    : 'Easy',
+    'Intermediate': 'Medium',
+    'Advanced'    : 'Hard',
+}
+
+
+# ── AI generate — with higher token limit ─────────────────
+def _generate(prompt: str, max_tokens: int = 6000) -> str:
+    """
+    Groq first, then Gemini fallback.
+    max_tokens raised to 6000 to prevent JSON truncation.
+    """
     from groq import Groq
-
     GROQ_MODELS = [
-        'llama-3.1-8b-instant',
-        'llama-3.3-70b-versatile',
-        'gemma2-9b-it',
+        'groq/compound-mini',
+        'groq/compound',
+        'openai/gpt-oss-120b',
+        'qwen/qwen3.8-27b',
     ]
-
     client     = Groq(api_key=os.getenv('GROQ_API_KEY'))
     last_error = None
 
@@ -31,171 +108,272 @@ def _generate(prompt: str, max_tokens: int = 3500) -> str:
                 model       = model,
                 messages    = [{"role": "user", "content": prompt}],
                 max_tokens  = max_tokens,
-                temperature = 0.4,
+                temperature = 0.3,   # Lower = more consistent JSON
             )
             result = resp.choices[0].message.content.strip()
-            print(f"✅ Quiz via Groq: {model}")
+            print(f"✅ Quiz via Groq: {model} | tokens≈{len(result)//4}")
             return result
         except Exception as e:
             err = str(e)
             last_error = err
             if '429' in err or 'rate' in err.lower():
-                time.sleep(2)
-                continue
+                time.sleep(2); continue
             elif '401' in err or 'invalid_api_key' in err.lower():
                 break
             continue
 
     # Gemini fallback
+    GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest']
     try:
         from google import genai
-        gc   = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-        resp = gc.models.generate_content(
-            model    = 'gemini-1.5-flash',
-            contents = prompt
-        )
-        print("✅ Quiz via Gemini fallback")
-        return resp.text.strip()
+        gc = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+        for model in GEMINI_MODELS:
+            try:
+                resp = gc.models.generate_content(
+                    model    = model,
+                    contents = prompt
+                )
+                print(f"✅ Quiz via Gemini fallback: {model}")
+                return resp.text.strip()
+            except Exception as ge:
+                err = str(ge)
+                if '429' in err or 'quota' in err.lower():
+                    time.sleep(2); continue
+                continue
     except Exception as e:
         raise Exception(f"All AI models failed. Last: {last_error} | Gemini: {e}")
+    raise Exception(f"All AI models failed. Last: {last_error}")
 
 
 # ── Text preprocessor ─────────────────────────────────────
-def _detect_language(text: str) -> str:
-    """Detect the primary language of the content from text script and keywords."""
-    if not text or not text.strip():
-        return 'English'
-
-    text = text.strip()
-    if re.search(r'[\u0900-\u097F]', text):
-        return 'Hindi'
-    if re.search(r'[\u0600-\u06FF]', text):
-        if re.search(r'[ڄڪڍڳڻڦڙ]', text):
-            return 'Sindhi'
-        return 'Urdu'
-    return 'English'
-
-
-def _preprocess(text: str, max_chars: int = 3500) -> dict:
-    """Clean transcript for quiz generation."""
-    if not text or len(text.strip()) < 50:
+def _preprocess(text: str, max_chars: int = 3000) -> dict:
+    if not text or len(text.strip()) < 30:
         return {'text': '', 'word_count': 0, 'is_usable': False}
-
     cleaned = re.sub(r'\[.*?\]', '', text)
-    cleaned = re.sub(r'\(.*?\)', '', cleaned)
     cleaned = re.sub(r'\[\d{2}:\d{2}:\d{2}\]', '', cleaned)
-    cleaned = re.sub(r'SPEAKER\s*\d+\s*:', '', cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r'http\S+', '', cleaned)
-    cleaned = re.sub(r'\.{3,}', '.', cleaned)
-    cleaned = re.sub(r'\s+', ' ', cleaned)
-
-    sentences = [s.strip() for s in cleaned.split('. ') if len(s.split()) >= 4]
-    cleaned   = '. '.join(sentences)
-    if cleaned and not cleaned.endswith('.'):
-        cleaned += '.'
-
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     if len(cleaned) > max_chars:
         cut = cleaned[:max_chars]
         lp  = cut.rfind('. ')
         if lp > max_chars * 0.7:
             cut = cut[:lp + 1]
         cleaned = cut.strip()
-
     wc = len(cleaned.split())
-    return {
-        'text'      : cleaned,
-        'word_count': wc,
-        'is_usable' : wc >= 50,
-    }
+    return {'text': cleaned, 'word_count': wc, 'is_usable': wc >= 20}
 
 
+# ── Language detection ─────────────────────────────────────
+def _detect_language(text: str) -> str:
+    if not text:
+        return 'en'
+    arabic     = len(re.findall(r'[\u0600-\u06FF]', text))
+    devanagari = len(re.findall(r'[\u0900-\u097F]', text))
+    latin      = len(re.findall(r'[a-zA-Z]', text))
+    total      = max(arabic + devanagari + latin, 1)
+    if devanagari / total > 0.3:
+        return 'hi'
+    if arabic / total > 0.3:
+        sindhi = len(re.findall(r'[\u0680-\u068F]', text))
+        return 'sd' if sindhi > 5 else 'ur'
+    return 'en'
+
+
+# ── ROBUST JSON parser — handles truncation ───────────────
 def _parse_quiz_json(raw: str) -> list:
     """
-    Safely parse quiz JSON from AI response.
-    Handles markdown code blocks and extra text.
+    Parse quiz JSON. Handles:
+    - Markdown fences (```json ... ```)
+    - Truncated JSON (incomplete last object)
+    - Extra text before/after array
     """
     # Remove markdown fences
     raw = raw.replace('```json', '').replace('```', '').strip()
 
-    # Extract JSON array
+    # Find array boundaries
     start = raw.find('[')
-    end   = raw.rfind(']') + 1
+    if start == -1:
+        raise ValueError(f"No '[' found in response. Raw: {raw[:300]}")
 
-    if start == -1 or end <= start:
-        raise ValueError(f"No JSON array found. Raw response start: {raw[:200]}")
+    end = raw.rfind(']') + 1
 
-    json_str  = raw[start:end]
-    questions = json.loads(json_str)
+    # If no closing bracket → JSON was truncated
+    if end == 0:
+        print("⚠️ JSON truncated — attempting recovery...")
+        raw = _recover_truncated_json(raw[start:])
+        end = len(raw)
+        start = 0
+    else:
+        raw = raw[start:end]
 
-    if not isinstance(questions, list) or len(questions) == 0:
+    # Try direct parse
+    try:
+        questions = json.loads(raw)
+        return _validate_questions(questions)
+    except json.JSONDecodeError as e:
+        print(f"⚠️ JSON parse error: {e} — attempting recovery...")
+        raw = _recover_truncated_json(raw)
+        try:
+            questions = json.loads(raw)
+            return _validate_questions(questions)
+        except json.JSONDecodeError as e2:
+            raise ValueError(f"JSON parse failed after recovery: {e2}")
+
+
+def _recover_truncated_json(raw: str) -> str:
+    """
+    Fix truncated JSON array by removing the last incomplete object.
+    Finds the last complete object (ends with }) and closes the array.
+    """
+    raw = raw.strip()
+
+    # Ensure it starts with [
+    if not raw.startswith('['):
+        raw = '[' + raw
+
+    # Find last complete object — last occurrence of },
+    # which means there's another object after it
+    last_complete = raw.rfind('},')
+    if last_complete == -1:
+        last_complete = raw.rfind('}')
+
+    if last_complete > 0:
+        # Cut off anything after the last complete object
+        trimmed = raw[:last_complete + 1].rstrip(',').strip()
+        if not trimmed.endswith(']'):
+            trimmed += ']'
+        print(f"✅ JSON recovered: kept content up to position {last_complete}")
+        return trimmed
+
+    return raw + ']'
+
+
+def _validate_questions(questions: list) -> list:
+    """Validate each question has required fields."""
+    if not isinstance(questions, list) or not questions:
         raise ValueError("Parsed JSON is empty or not a list")
 
-    # Validate each question has required fields
     valid = []
     for i, q in enumerate(questions):
         if not isinstance(q, dict):
             continue
         if not all(k in q for k in ['question', 'options', 'correct']):
-            print(f"⚠️ Question {i} missing fields, skipping")
+            print(f"⚠️ Q{i} missing fields — skipping")
             continue
         if not isinstance(q['options'], dict) or len(q['options']) < 2:
             continue
-        # Ensure correct answer exists in options
         if q['correct'] not in q['options']:
+            # Try to fix — use first option
             q['correct'] = list(q['options'].keys())[0]
-        # Add explanation if missing
-        if 'explanation' not in q:
-            q['explanation'] = f"The correct answer is {q['correct']}."
-        # Validate or assign difficulty to ensure balanced distribution fallback
-        if 'difficulty' not in q or q['difficulty'] not in ['Easy', 'Medium', 'Hard']:
-            if i < int(len(questions) * 0.4):
-                q['difficulty'] = 'Easy'
-            elif i < int(len(questions) * 0.8):
-                q['difficulty'] = 'Medium'
-            else:
-                q['difficulty'] = 'Hard'
+        if 'explanation' not in q or not q['explanation']:
+            q['explanation'] = f"The correct answer is option {q['correct']}."
         valid.append(q)
+
+    if not valid:
+        raise ValueError("No valid questions after validation")
 
     return valid
 
 
-def _get_adaptive_difficulty(user_id: int, topic: str) -> str:
-    """Get difficulty from learning curve data."""
-    # Check learning curve stage
+# ── Adaptive difficulty from DB ────────────────────────────
+def _get_difficulty(user_id: int, topic: str) -> str:
+    """
+    Returns: 'Beginner', 'Intermediate', or 'Advanced'
+    """
+    # Learning curve stage
     curve = execute_query(
         "SELECT curve_stage FROM learning_curves WHERE user_id=%s AND topic=%s",
         (user_id, topic), fetch=True
     )
     if curve:
         stage = curve[0]['curve_stage']
-        if stage == 'Struggling':
-            return 'Easy'
-        elif stage == 'Mastery':
-            return 'Hard'
-        elif stage in ('Rapid Growth', 'Steady Progress'):
-            return 'Medium'
+        if stage in ('Struggling', 'Not Started'):
+            return 'Beginner'
+        if stage == 'Mastery':
+            return 'Advanced'
+        if stage in ('Rapid Growth', 'Steady Progress', 'Plateau'):
+            return 'Intermediate'
 
-    # Check topic_difficulty table
+    # topic_difficulty table
     td = execute_query(
         "SELECT difficulty_level, last_score, attempts FROM topic_difficulty WHERE user_id=%s AND topic=%s",
         (user_id, topic), fetch=True
     )
     if td:
+        db_level = td[0]['difficulty_level'] or 'Medium'
         score    = float(td[0]['last_score'] or 0)
         attempts = int(td[0]['attempts'] or 0)
+        # Adjust based on score
         if score >= 80:
-            return 'Hard'
-        elif score >= 60:
-            return 'Medium'
-        elif score < 40 and attempts > 1:
-            return 'Easy'
-        return td[0]['difficulty_level'] or 'Medium'
+            return 'Advanced'
+        if score >= 50:
+            return 'Intermediate'
+        if score < 50 and attempts >= 1:
+            return 'Beginner'
+        return DB_TO_LEVEL.get(db_level, 'Intermediate')
 
-    return 'Medium'  # default
+    return 'Intermediate'   # default
+
+
+# ── Build prompt — smaller batches to avoid truncation ────
+def _build_prompt(
+    content_block : str,
+    topic         : str,
+    lang          : str,
+    level         : str,
+    num_questions : int,
+    content_source: str,
+) -> str:
+    lang_instruction = LANGUAGE_PROMPTS.get(lang, LANGUAGE_PROMPTS['en'])
+    lang_name        = LANG_NAMES.get(lang, 'English')
+    level_cfg        = DIFFICULTY_LEVELS.get(level, DIFFICULTY_LEVELS['Intermediate'])
+
+    source_note = (
+        "ALL questions MUST be based ONLY on the video transcript provided above."
+        if content_source == 'transcript'
+        else f"Generate educational questions about: {topic}"
+    )
+
+    return f"""You are an expert educational quiz generator.
+
+LANGUAGE: {lang_instruction}
+
+{source_note}
+
+Content:
+{content_block}
+
+DIFFICULTY LEVEL: {level_cfg['label']}
+{level_cfg['question_style']}
+
+CRITICAL RULES — READ CAREFULLY:
+1. Generate EXACTLY {num_questions} questions
+2. Return ONLY a valid complete JSON array
+3. Do NOT truncate — complete every object fully
+4. Every question must have: question, options (A/B/C/D), correct, explanation
+5. No markdown, no extra text — ONLY the JSON array
+6. All text in {lang_name} only
+
+REQUIRED JSON FORMAT (copy exactly):
+[
+  {{
+    "question": "question text here?",
+    "options": {{
+      "A": "first option",
+      "B": "second option",
+      "C": "third option",
+      "D": "fourth option"
+    }},
+    "correct": "A",
+    "explanation": "explanation why A is correct"
+  }}
+]
+
+Generate exactly {num_questions} complete questions now. Start with [ and end with ]"""
 
 
 # ============================================================
-# MAIN FUNCTION — Called from gemini.py route
+# MAIN — generate_quiz()
 # ============================================================
 def generate_quiz(
     video_id     : str,
@@ -203,300 +381,167 @@ def generate_quiz(
     topic        : str,
     user_id      : int,
     transcript   : str = '',
-    num_questions: int = 20,
-    difficulty   : str = None,   # None = auto-detect from DB
+    num_questions: int = 10,    # Reduced: 10 per request to avoid truncation
+    difficulty   : str = None,  # None = auto-detect
+    language     : str = 'en',
 ) -> dict:
     """
-    Generate MCQ quiz from video content.
-
-    Priority:
-    1. Transcript (YouTube captions or Whisper) — content-accurate
-    2. Video title + topic — fallback
-
-    Returns dict with keys:
-        success, questions, quiz_id, total, difficulty, source, message
+    Generate MCQ quiz with 3-level difficulty system.
+    Beginner → Intermediate → Advanced
     """
 
-    # ── Get adaptive difficulty ───────────────────────────
+    # Validate language
+    if language not in LANGUAGE_PROMPTS:
+        language = 'en'
+    if language == 'en' and transcript:
+        detected = _detect_language(transcript)
+        if detected != 'en':
+            language = detected
+
+    # Get difficulty level (Beginner/Intermediate/Advanced)
     if difficulty is None:
-        difficulty = _get_adaptive_difficulty(user_id, topic)
-        print(f"🎯 Adaptive difficulty: {difficulty} for topic '{topic}'")
+        difficulty = _get_difficulty(user_id, topic)
+    elif difficulty in DB_TO_LEVEL:
+        difficulty = DB_TO_LEVEL[difficulty]
 
-    # Load student details from DB
-    student_category = 'General'
-    student_class_dept = 'General'
-    student_level = 'Intermediate'
-    try:
-        user_details = execute_query(
-            "SELECT education_category, field_of_interest, skill_level FROM users WHERE id = %s",
-            (user_id,), fetch=True
-        )
-        if user_details:
-            student_category = user_details[0].get('education_category') or 'General'
-            student_class_dept = user_details[0].get('field_of_interest') or 'General'
-            student_level = user_details[0].get('skill_level') or 'Intermediate'
-    except Exception as e:
-        print(f"⚠️ Error loading student details: {e}")
+    # Ensure valid level
+    if difficulty not in DIFFICULTY_LEVELS:
+        difficulty = 'Intermediate'
 
-    language = _detect_language(transcript or video_title or topic)
-    language_note = (
-        "Use the same language as the source content. Support Sindhi, English, Urdu, and Hindi. "
-        "If the transcript is in Sindhi, Urdu, or Hindi, generate questions in that language and preserve the same script."
-        if language != 'English' else
-        "Use English for the questions."
-    )
+    print(f"\n[QUIZ] Quiz: topic='{topic}' | level='{difficulty}' | lang='{language}' | transcript={len(transcript)} chars")
 
-    # ── Determine content source ──────────────────────────
+    # ── Content source ────────────────────────────────────
     content_source = 'title'
     content_block  = f"Video Title: {video_title}\nTopic: {topic}"
 
-    if transcript and len(transcript.strip()) > 150:
-        processed = _preprocess(transcript, max_chars=3500)
+    if transcript and len(transcript.strip()) > 50:
+        processed = _preprocess(transcript, max_chars=2500)
         if processed['is_usable']:
             content_source = 'transcript'
-            content_block  = f"""VIDEO TRANSCRIPT (generate ALL questions from this content):
-{processed['text']}
+            content_block  = (
+                f"VIDEO TRANSCRIPT:\n{processed['text']}\n\n"
+                f"Topic: {topic}"
+            )
+            print(f"[OK] Using transcript: {processed['word_count']} words")
 
-Topic: {topic}"""
-            print(f"📝 Quiz using transcript: {processed['word_count']} words")
-        else:
-            print(f"⚠️ Transcript too short — using title fallback")
-    else:
-        print(f"⚠️ No transcript — using title fallback")
+    # ── Generate — smaller batch to avoid truncation ──────
+    # Generate in batches of 5 if num_questions > 10
+    target   = min(num_questions, 20)
+    batch    = min(target, 8)   # 8 questions per API call
 
-    # ── Build prompt ──────────────────────────────────────
-    prompt = f"""You are an expert AI educational quiz generator.
+    all_questions = []
+    attempts_left = 3
 
-Your task is to analyze the provided educational transcript/content and generate a high-quality quiz based only on the concepts explained by the tutor. Do not add information that is not present in the provided content.
+    while len(all_questions) < target and attempts_left > 0:
+        attempts_left -= 1
+        needed = min(batch, target - len(all_questions))
 
-Student Details:
-- Educational Category: {student_category}
-- Class/Department: {student_class_dept}
-- Learning Level: {student_level}
+        try:
+            prompt    = _build_prompt(
+                content_block, topic, language, difficulty, needed, content_source
+            )
+            raw       = _generate(prompt, max_tokens=6000)
+            questions = _parse_quiz_json(raw)
 
-Topic:
-{topic}
+            # Avoid duplicate questions
+            existing_q = {q['question'].lower() for q in all_questions}
+            new_q      = [q for q in questions
+                         if q['question'].lower() not in existing_q]
+            all_questions.extend(new_q)
 
-Transcript/Content:
-{content_block}
+            print(f"[OK] Batch done: {len(new_q)} questions | total={len(all_questions)}")
 
-Generate a comprehensive quiz according to the student's educational level.
+            if len(all_questions) >= target:
+                break
 
-Requirements:
+        except Exception as e:
+            print(f"[WARN] Batch attempt failed: {e}")
+            if attempts_left == 0 and not all_questions:
+                # Last resort: very simple prompt
+                all_questions = _emergency_fallback(
+                    topic, content_block, language, difficulty, target
+                )
+            elif attempts_left == 0:
+                break   # Use what we have
 
-1. Generate {num_questions} multiple-choice questions (MCQs).
+    if not all_questions:
+        return {'success': False, 'message': 'Quiz generation failed after all attempts'}
 
-2. Each question must include:
-   - A clear and meaningful question.
-   - Exactly four options (A, B, C, D).
-   - Only one correct answer.
-   - A short explanation of why the answer is correct.
-   - Difficulty level:
-     - Easy
-     - Medium
-     - Hard
+    all_questions = all_questions[:target]
 
-3. Adapt the question complexity based on the student's level:
-   - Primary students: Use simple language and basic concepts.
-   - Secondary/Matriculation: Use moderate-level conceptual questions.
-   - Intermediate: Include analytical and application-based questions.
-   - University/Professional: Include advanced, critical-thinking, and practical scenario-based questions.
-
-4. Maintain a balanced difficulty distribution:
-   - 40% Easy questions
-   - 40% Medium questions
-   - 20% Hard questions
-
-5. Ensure the quiz evaluates:
-   - Concept understanding
-   - Logical thinking
-   - Application of concepts
-   - Important definitions and examples discussed in the content
-
-STRICT RULES:
-1. Generate EXACTLY {num_questions} questions.
-2. Every question must test a DIFFERENT concept.
-3. Questions must be based ONLY on the content provided above.
-4. Wrong options (distractors) must be plausible but incorrect.
-5. No repeated or similar questions.
-6. No trick questions — focus on genuine learning.
-7. Language: {language}. {language_note}
-
-Return ONLY a valid JSON array with NO other text, NO markdown:
-[
-  {{
-    "question"   : "What does [specific concept from content] mean?",
-    "options"    : {{
-      "A": "correct or wrong option",
-      "B": "another option",
-      "C": "another option",
-      "D": "another option"
-    }},
-    "correct"    : "A",
-    "explanation": "Explanation based on the content above",
-    "difficulty" : "Easy"
-  }}
-]
-
-Generate exactly {num_questions} questions now:"""
-
-    # ── Generate via AI ───────────────────────────────────
+    # ── Save to DB ────────────────────────────────────────
+    db_difficulty = LEVEL_TO_DB.get(difficulty, 'Medium')
     try:
-        raw = _generate(prompt, max_tokens=3500)
-
-        # Parse JSON
-        questions = _parse_quiz_json(raw)
-
-        if len(questions) < 5:
-            raise ValueError(
-                f"Too few valid questions parsed: {len(questions)}"
+        try:
+            quiz_id = execute_query(
+                """INSERT INTO video_quizzes
+                   (user_id, video_id, video_title, topic, questions, total,
+                    notes_source, transcript_length)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                (user_id, video_id, video_title, topic,
+                 json.dumps(all_questions), len(all_questions),
+                 content_source, len(transcript) if transcript else 0)
+            )
+        except Exception:
+            quiz_id = execute_query(
+                """INSERT INTO video_quizzes
+                   (user_id, video_id, video_title, topic, questions, total)
+                   VALUES (%s, %s, %s, %s, %s, %s)""",
+                (user_id, video_id, video_title, topic,
+                 json.dumps(all_questions), len(all_questions))
             )
 
-        # Limit to requested count
-        questions = questions[:num_questions]
-
-        # ── Save to database ──────────────────────────────
-        quiz_id = _save_quiz_to_db(user_id, video_id, video_title, topic, questions, content_source, transcript)
-
-        if not quiz_id or isinstance(quiz_id, bool):
-            print("❌ Failed to insert quiz into database (quiz_id is invalid)")
-            return {
-                'success': False,
-                'message': 'Failed to save quiz record to database.'
-            }
-
-        # ── Update topic_difficulty ───────────────────────
+        # Update topic_difficulty
         execute_query(
             """INSERT INTO topic_difficulty
                (user_id, topic, difficulty_level, last_score, attempts)
                VALUES (%s, %s, %s, 0, 0)
                ON DUPLICATE KEY UPDATE
                difficulty_level = VALUES(difficulty_level)""",
-            (user_id, topic, difficulty)
+            (user_id, topic, db_difficulty)
         )
 
-        print(f"✅ Quiz saved: id={quiz_id} | {len(questions)} questions | source='{content_source}' | difficulty='{difficulty}'")
+        level_cfg = DIFFICULTY_LEVELS[difficulty]
+        print(f"[OK] Quiz saved: {len(all_questions)} Qs | level={difficulty} | lang={language} | source={content_source}")
 
         return {
-            'success'   : True,
-            'questions' : questions,
-            'quiz_id'   : quiz_id,
-            'total'     : len(questions),
-            'difficulty': difficulty,
-            'language'  : language,
-            'source'    : content_source,
+            'success'        : True,
+            'questions'      : all_questions,
+            'quiz_id'        : quiz_id,
+            'total'          : len(all_questions),
+            'difficulty'     : difficulty,
+            'difficulty_label': level_cfg['label'],
+            'difficulty_color': level_cfg['color'],
+            'source'         : content_source,
+            'language'       : language,
+            'lang_name'      : LANG_NAMES.get(language, 'English'),
         }
 
-    except json.JSONDecodeError as e:
-        print(f"❌ Quiz JSON parse error: {e}")
-        # Retry with simpler prompt
-        return _retry_simple_quiz(
-            video_id, video_title, topic, user_id,
-            content_block, difficulty, num_questions, content_source,
-            student_category, student_class_dept, student_level
-        )
     except Exception as e:
-        print(f"❌ Quiz generation error: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"[ERROR] DB save error: {e}")
+        import traceback; traceback.print_exc()
         return {'success': False, 'message': str(e)}
 
 
-def _save_quiz_to_db(user_id, video_id, video_title, topic, questions, content_source, transcript):
-    """Safely insert generated quiz into database and return the quiz_id (int)."""
-    t_len = len(transcript) if transcript else 0
-    q_json = json.dumps(questions)
-    total_q = len(questions)
-
-    # 1. Try insert with notes_source & transcript_length
+# ── Emergency fallback — minimal questions ─────────────────
+def _emergency_fallback(
+    topic, content_block, language, difficulty, count
+) -> list:
+    """Generate a very small quiz when all else fails."""
+    print("[EMERGENCY] Emergency fallback — generating 3 questions only")
+    lang_name = LANG_NAMES.get(language, 'English')
+    simple    = f"""Generate 3 multiple choice questions about: {topic}
+Content: {content_block[:400]}
+Write in {lang_name}.
+Return ONLY JSON:
+[{{"question":"Q?","options":{{"A":"opt1","B":"opt2","C":"opt3","D":"opt4"}},"correct":"A","explanation":"reason"}}]"""
     try:
-        res = execute_query(
-            """INSERT INTO video_quizzes
-               (user_id, video_id, video_title, topic, questions, total, notes_source, transcript_length)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-            (user_id, video_id, video_title, topic, q_json, total_q, content_source, t_len),
-            fetch=False
-        )
-        if res and not isinstance(res, bool):
-            return res
-    except Exception as e:
-        print(f"⚠️ Primary quiz INSERT failed: {e}")
-
-    # 2. Fallback insert without extra columns
-    try:
-        res = execute_query(
-            """INSERT INTO video_quizzes
-               (user_id, video_id, video_title, topic, questions, total)
-               VALUES (%s, %s, %s, %s, %s, %s)""",
-            (user_id, video_id, video_title, topic, q_json, total_q),
-            fetch=False
-        )
-        if res and not isinstance(res, bool):
-            return res
-    except Exception as e:
-        print(f"❌ Fallback quiz INSERT failed: {e}")
-
-    return None
-
-
-# ── Retry with simpler prompt if JSON fails ───────────────
-def _retry_simple_quiz(
-    video_id, video_title, topic, user_id,
-    content_block, difficulty, num_questions, source,
-    student_category, student_class_dept, student_level
-) -> dict:
-    """Simpler retry prompt when JSON parsing fails."""
-    print("🔄 Retrying with simpler prompt...")
-
-    simple_prompt = f"""Generate {num_questions} MCQ questions about: {topic}
-
-Based on: {content_block[:500]}
-
-Student Details:
-- Category: {student_category}
-- Class/Dept: {student_class_dept}
-- Level: {student_level}
-
-Requirements:
-- Balanced difficulty: 40% Easy, 40% Medium, 20% Hard.
-
-Return ONLY JSON array:
-[
-  {{
-    "question": "Q?",
-    "options": {{"A":"opt1","B":"opt2","C":"opt3","D":"opt4"}},
-    "correct": "A",
-    "explanation": "reason",
-    "difficulty": "Easy"
-  }}
-]"""
-
-    try:
-        raw       = _generate(simple_prompt, max_tokens=3000)
+        raw       = _generate(simple, max_tokens=2000)
         questions = _parse_quiz_json(raw)
-
-        if questions:
-            quiz_id = _save_quiz_to_db(user_id, video_id, video_title, topic, questions, source, '')
-            if not quiz_id or isinstance(quiz_id, bool):
-                return {
-                    'success': False,
-                    'message': 'Failed to save quiz to database.'
-                }
-            return {
-                'success'   : True,
-                'questions' : questions,
-                'quiz_id'   : quiz_id,
-                'total'     : len(questions),
-                'difficulty': difficulty,
-                'source'    : source,
-            }
+        return questions[:count]
     except Exception as e:
-        print(f"❌ Retry also failed: {e}")
-
-    return {
-        'success': False,
-        'message': 'Quiz generation failed after retry'
-    }
+        print(f"❌ Emergency fallback failed: {e}")
+        return []
 
 
 # ============================================================
@@ -508,13 +553,6 @@ def submit_quiz(
     answers : dict,
     topic   : str,
 ) -> dict:
-    """
-    Submit quiz answers.
-    Updates: video_quizzes, weak_topics, topic_difficulty, learning_curves.
-    Returns: score, percentage, results, difficulty feedback.
-    """
-
-    # Get quiz from DB
     rows = execute_query(
         "SELECT * FROM video_quizzes WHERE id=%s AND user_id=%s",
         (quiz_id, user_id), fetch=True
@@ -522,56 +560,79 @@ def submit_quiz(
     if not rows:
         return {'success': False, 'message': 'Quiz not found'}
 
-    q         = rows[0]
-    questions = json.loads(q['questions'])
+    questions = json.loads(rows[0]['questions'])
     score     = 0
     results   = []
 
-    for i, question in enumerate(questions):
+    for i, q in enumerate(questions):
         user_ans   = answers.get(str(i), '')
-        correct    = question['correct']
+        correct    = q['correct']
         is_correct = (user_ans == correct)
         if is_correct:
             score += 1
         results.append({
-            'question'   : question['question'],
+            'question'   : q['question'],
             'user_answer': user_ans,
             'correct'    : correct,
             'is_correct' : is_correct,
-            'explanation': question.get('explanation', ''),
-            'options'    : question.get('options', {}),
-            'difficulty' : question.get('difficulty', 'Medium'),
+            'explanation': q.get('explanation', ''),
+            'options'    : q.get('options', {}),
         })
 
     total      = len(questions)
     percentage = round((score / total * 100), 1) if total > 0 else 0
 
-    # ── Update quiz record ────────────────────────────────
     execute_query(
         "UPDATE video_quizzes SET score=%s, attempted=1 WHERE id=%s",
         (score, quiz_id)
     )
 
-    # ── Detect weak topic (< 60%) ─────────────────────────
-    is_weak = percentage < 60
+    # ── Determine next difficulty level ───────────────────
+    # 3-level system: Beginner → Intermediate → Advanced
+    if percentage >= 80:
+        new_level      = 'Advanced'
+        new_db_diff    = 'Hard'
+        level_feedback = {
+            'icon'   : '🔥',
+            'title'  : 'Excellent! Level Up!',
+            'message': f'Scored {percentage}%! Next quiz = Advanced level 🔴',
+            'color'  : 'success',
+            'badge'  : '🔴 Advanced',
+        }
+    elif percentage >= 50:
+        new_level      = 'Intermediate'
+        new_db_diff    = 'Medium'
+        level_feedback = {
+            'icon'   : '💪',
+            'title'  : 'Good Job! Keep Going!',
+            'message': f'Scored {percentage}%. Continuing at Intermediate level 🟡',
+            'color'  : 'warning',
+            'badge'  : '🟡 Intermediate',
+        }
+    else:
+        new_level      = 'Beginner'
+        new_db_diff    = 'Easy'
+        level_feedback = {
+            'icon'   : '📚',
+            'title'  : 'Keep Practicing!',
+            'message': f'Scored {percentage}%. Next quiz = Beginner level 🟢',
+            'color'  : 'info',
+            'badge'  : '🟢 Beginner',
+        }
+
+    # Weak topic detection (< 50%)
+    is_weak = percentage < 50
     if is_weak:
         execute_query(
             """INSERT INTO weak_topics (user_id, topic, fail_count)
                VALUES (%s, %s, 1)
                ON DUPLICATE KEY UPDATE
                fail_count    = fail_count + 1,
-               last_detected = CURRENT_TIMESTAMP""",
+               last_detected = NOW()""",
             (user_id, topic)
         )
 
-    # ── Update difficulty for next quiz ───────────────────
-    if percentage >= 80:
-        new_difficulty = 'Hard'
-    elif percentage >= 50:
-        new_difficulty = 'Medium'
-    else:
-        new_difficulty = 'Easy'
-
+    # Update topic_difficulty
     execute_query(
         """INSERT INTO topic_difficulty
            (user_id, topic, difficulty_level, last_score, attempts)
@@ -580,11 +641,10 @@ def submit_quiz(
            difficulty_level = %s,
            last_score       = %s,
            attempts         = attempts + 1""",
-        (user_id, topic, new_difficulty, percentage,
-         new_difficulty, percentage)
+        (user_id, topic, new_db_diff, percentage, new_db_diff, percentage)
     )
 
-    # ── Update learning curve ─────────────────────────────
+    # Update learning curve
     curve_data = {}
     try:
         from app.ai.learning_curve import LearningCurveModel
@@ -596,66 +656,40 @@ def submit_quiz(
             'mastery_eta'   : curve.get('mastery_eta', ''),
         }
     except Exception as e:
-        print(f"⚠️ Learning curve update error: {e}")
+        print(f"⚠️ Learning curve: {e}")
 
-    # ── Difficulty message ────────────────────────────────
-    if percentage >= 80:
-        diff_msg = {
-            'icon'   : '🔥',
-            'title'  : 'Excellent! Level Up!',
-            'message': f'Scored {percentage}%! Next quiz = HARD level',
-            'color'  : 'success'
-        }
-    elif percentage >= 60:
-        diff_msg = {
-            'icon'   : '💪',
-            'title'  : 'Good Job!',
-            'message': f'Scored {percentage}%. Keeping MEDIUM level.',
-            'color'  : 'warning'
-        }
-    else:
-        diff_msg = {
-            'icon'   : '📚',
-            'title'  : 'Keep Practicing!',
-            'message': f'Scored {percentage}%. Next quiz = EASIER level.',
-            'color'  : 'info'
-        }
-
-    # ── Clear MoE cache so dashboard refreshes ────────────
+    # Clear MoE recommendation cache
     try:
         from app.routes.recommend import _cache
-        keys = [k for k in _cache if str(user_id) in k]
-        for k in keys:
-            del _cache[k]
+        for k in list(_cache.keys()):
+            if str(user_id) in k:
+                del _cache[k]
     except Exception:
         pass
 
-    print(f"✅ Quiz submitted: {score}/{total} ({percentage}%) | weak={is_weak} | next_diff={new_difficulty}")
+    print(f"✅ Quiz submitted: {score}/{total} ({percentage}%) | next_level={new_level}")
 
     return {
-        'success'       : True,
-        'score'         : score,
-        'total'         : total,
-        'percentage'    : percentage,
-        'results'       : results,
-        'is_weak'       : is_weak,
-        'topic'         : topic,
-        'new_difficulty': new_difficulty,
-        'difficulty_msg': diff_msg,
-        'curve_stage'   : curve_data.get('curve_stage', ''),
-        'predicted_next': curve_data.get('predicted_next', 0),
-        'mastery_eta'   : curve_data.get('mastery_eta', ''),
+        'success'        : True,
+        'score'          : score,
+        'total'          : total,
+        'percentage'     : percentage,
+        'results'        : results,
+        'is_weak'        : is_weak,
+        'topic'          : topic,
+        'new_level'      : new_level,
+        'new_difficulty' : new_db_diff,
+        'difficulty_msg' : level_feedback,
+        'curve_stage'    : curve_data.get('curve_stage', ''),
+        'predicted_next' : curve_data.get('predicted_next', 0),
+        'mastery_eta'    : curve_data.get('mastery_eta', ''),
     }
 
 
-# ============================================================
-# GET SAVED QUIZ — retrieve from DB
-# ============================================================
+# ── Cache retrieval ────────────────────────────────────────
 def get_saved_quiz(user_id: int, video_id: str) -> dict:
-    """Retrieve most recent unattempted quiz from database."""
     rows = execute_query(
-        """SELECT id, questions, total, notes_source, created_at
-           FROM video_quizzes
+        """SELECT id, questions, total, notes_source FROM video_quizzes
            WHERE user_id=%s AND video_id=%s AND attempted=0
            ORDER BY created_at DESC LIMIT 1""",
         (user_id, video_id), fetch=True

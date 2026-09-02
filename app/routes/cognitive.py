@@ -14,13 +14,15 @@ cognitive_bp = Blueprint('cognitive', __name__)
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
 GROQ_MODELS = [
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',
-    'gemma2-9b-it',
+    'groq/compound-mini',
+    'groq/compound',
+    'openai/gpt-oss-120b',
+    'qwen/qwen3.8-27b',
 ]
 
 
 def generate_ai(prompt, max_tokens=2000):
+    last_error = None
     for model in GROQ_MODELS:
         try:
             response = groq_client.chat.completions.create(
@@ -34,14 +36,33 @@ def generate_ai(prompt, max_tokens=2000):
             return result
         except Exception as e:
             err = str(e)
+            last_error = err
             if '429' in err or 'rate' in err.lower():
                 print(f"⚠️ Rate limit: {model}")
                 time.sleep(2)
                 continue
-            else:
-                print(f"❌ Error {model}: {e}")
+            elif '401' in err or 'invalid_api_key' in err.lower():
                 break
-    raise Exception("AI unavailable. Try again.")
+            continue
+
+    # Gemini fallback
+    GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest']
+    try:
+        from google import genai
+        gc = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+        for model in GEMINI_MODELS:
+            try:
+                resp = gc.models.generate_content(model=model, contents=prompt)
+                print(f"✅ Cognitive AI via Gemini fallback: {model}")
+                return resp.text.strip()
+            except Exception as ge:
+                err = str(ge)
+                if '429' in err or 'quota' in err.lower():
+                    time.sleep(2); continue
+                continue
+    except Exception as e:
+        raise Exception(f"All AI models failed. Last: {last_error} | Gemini: {e}")
+    raise Exception(f"All AI models failed. Last: {last_error}")
 
 
 # ============================================================
