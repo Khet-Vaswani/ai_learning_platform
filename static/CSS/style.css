@@ -169,9 +169,11 @@ a { text-decoration:none; transition:var(--transition); }
 }
 
 #sidebar.collapsed .sidebar-nav span,
+#sidebar.collapsed .learnai-menu-item span,
+#sidebar.collapsed .brand-title,
 #sidebar.collapsed .sidebar-badge,
 #sidebar.collapsed .sidebar-header h4,
-#sidebar.collapsed .sidebar-header p { display:none; }
+#sidebar.collapsed .sidebar-header p { display:none !important; }
 
 /* Sidebar Footer */
 .sidebar-footer {

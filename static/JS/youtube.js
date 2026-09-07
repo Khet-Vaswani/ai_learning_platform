@@ -39,7 +39,7 @@ async function openVideo(videoId, title, topic) {
     // ── Load iframe ───────────────────────────────────────
     const player = document.getElementById('ytPlayer');
     if (player) {
-        player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
+        player.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1`;
     }
 
     // ── Set titles ────────────────────────────────────────
@@ -446,14 +446,52 @@ async function searchYouTube(query) {
         ).then(r => r.json());
 
         if (!data.success || !data.videos || !data.videos.length) {
+            if (data.is_educational_only) {
+                container.innerHTML = `
+                    <div style="max-width: 680px; margin: 40px auto; padding: 32px 28px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); text-align: center;">
+                        <div style="width: 64px; height: 64px; margin: 0 auto 16px; background: rgba(79, 70, 229, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #4f46e5;">
+                            🎓
+                        </div>
+                        <h4 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+                            Educational Content Only
+                        </h4>
+                        <p style="font-size: 0.9rem; color: #64748b; line-height: 1.6; margin-bottom: 20px;">
+                            ${data.message || 'This system is strictly for education. Searching for movies, dramas, or entertainment videos is not allowed.'}
+                        </p>
+                        <div style="border-top: 1px dashed #cbd5e1; padding-top: 20px; margin-top: 10px;">
+                            <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px;">
+                                Try searching for popular educational topics:
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
+                                <button onclick="searchAndLoad('Python Programming')" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    🐍 Python
+                                </button>
+                                <button onclick="searchAndLoad('Machine Learning')" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    🤖 Machine Learning
+                                </button>
+                                <button onclick="searchAndLoad('Web Development')" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    💻 Web Development
+                                </button>
+                                <button onclick="searchAndLoad('Data Science')" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    📊 Data Science
+                                </button>
+                                <button onclick="searchAndLoad('Algorithms')" style="background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 20px; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                                    ⚡ Algorithms
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                return;
+            }
+
             container.innerHTML = `
                 <div style="text-align:center;padding:56px 20px;">
                     <div style="font-size:3rem;margin-bottom:14px;">🔍</div>
                     <div style="font-size:1rem;font-weight:600;color:#1e293b;margin-bottom:6px;">
-                        No results for "${query}"
+                        No educational results for "${query}"
                     </div>
                     <div style="font-size:0.82rem;color:#94a3b8;">
-                        Try different keywords or check spelling
+                        Try different educational keywords or check spelling
                     </div>
                 </div>`;
             return;

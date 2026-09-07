@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/theme_learnai.css') }}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
     <style>
         /* ── Mobile Overlay ──────────────────────────────── */
@@ -314,73 +315,49 @@
 
     <div class="wrapper">
         <!-- ── SIDEBAR ─────────────────────────────────── -->
-        <nav id="sidebar">
-            <div class="sidebar-header">
-                <div class="sidebar-logo">
-                    <i class="fas fa-brain"></i>
+        <nav id="sidebar" class="learnai-sidebar">
+            <div class="learnai-sidebar-brand">
+                <div class="brand-logo-icon">
+                    <i class="fas fa-graduation-cap"></i>
                 </div>
-                <h4>AI Learn</h4>
-                <p>Smart Learning</p>
+                <span class="brand-title">LearnAI</span>
             </div>
-            <ul class="sidebar-nav">
-                <li>
-                    <a href="{{ url_for('dashboard.index') }}"
-                        class="{{ 'active' if request.endpoint == 'dashboard.index' else '' }}">
-                        <i class="fas fa-home"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/my-learning" class="{{ 'active' if request.path == '/my-learning' else '' }}">
-                        <i class="fas fa-play-circle"></i>
-                        <span>My Learning</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/weak-topics" class="{{ 'active' if request.path == '/weak-topics' else '' }}">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span>Weak Topics</span>
-                        <span class="sidebar-badge" id="weakCount"></span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/quiz-history" class="{{ 'active' if request.path == '/quiz-history' else '' }}">
-                        <i class="fas fa-clipboard-check"></i>
-                        <span>Quiz History</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/progress" class="{{ 'active' if request.path == '/progress' else '' }}">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Progress</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/chatbot" class="{{ 'active' if request.path == '/chatbot' else '' }}">
-                        <i class="fas fa-robot"></i>
-                        <span>AI Chatbot</span>
-                    </a>
-                </li>
-                <li>
-                    <!-- <a href="/evaluation/report"
-       class="{{ 'active' if request.path == '/evaluation/report' else '' }}">
-        <i class="fas fa-chart-bar"></i>
-        <span>Evaluation</span>
-    </a> -->
-                </li>
-            </ul>
-            <div class="sidebar-footer">
-                <div class="sidebar-user">
-                    <div class="user-avatar">
-                        {{ session.user_name[0]|upper }}
-                    </div>
-                    <div class="user-info">
-                        <span class="user-name">{{ session.user_name }}</span>
-                        <span class="user-role">Student</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('auth.logout') }}" class="sidebar-logout">
+            
+            <div class="learnai-sidebar-menu">
+                <a href="{{ url_for('dashboard.index') }}" class="learnai-menu-item {{ 'active' if request.endpoint == 'dashboard.index' else '' }}">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/dashboard#recommended" class="learnai-menu-item">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Recommended Videos</span>
+                </a>
+                <a href="/weak-topics" class="learnai-menu-item {{ 'active' if request.path == '/weak-topics' else '' }}">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Weak Topics</span>
+                </a>
+                <a href="/quiz-history" class="learnai-menu-item {{ 'active' if request.path == '/quiz-history' else '' }}">
+                    <i class="fas fa-bolt"></i>
+                    <span>Quizzes</span>
+                </a>
+                <a href="/progress" class="learnai-menu-item {{ 'active' if request.path == '/progress' else '' }}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="/chatbot" class="learnai-menu-item {{ 'active' if request.path == '/chatbot' else '' }}">
+                    <i class="fas fa-robot"></i>
+                    <span>Chatbot</span>
+                </a>
+            </div>
+
+            <div class="learnai-sidebar-footer">
+                <a href="/learning-preferences" class="learnai-menu-item {{ 'active' if request.path == '/learning-preferences' else '' }}">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="learnai-menu-item">
                     <i class="fas fa-sign-out-alt"></i>
+                    <span>Log Out</span>
                 </a>
             </div>
         </nav>
@@ -479,17 +456,17 @@
                     <i class="fas fa-home"></i>
                     <span>Home</span>
                 </a>
-                <a href="/my-learning" class="mobile-nav-item {{ 'active' if request.path == '/my-learning' else '' }}">
-                    <i class="fas fa-play-circle"></i>
-                    <span>Learning</span>
+                <a href="/weak-topics" class="mobile-nav-item {{ 'active' if request.path == '/weak-topics' else '' }}">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Weak Topics</span>
                 </a>
                 <a href="/progress" class="mobile-nav-item {{ 'active' if request.path == '/progress' else '' }}">
                     <i class="fas fa-chart-bar"></i>
                     <span>Progress</span>
                 </a>
-                <a href="/weak-topics" class="mobile-nav-item {{ 'active' if request.path == '/weak-topics' else '' }}">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Weak</span>
+                <a href="/quiz-history" class="mobile-nav-item {{ 'active' if request.path == '/quiz-history' else '' }}">
+                    <i class="fas fa-bolt"></i>
+                    <span>Quizzes</span>
                 </a>
                 <a href="/chatbot" class="mobile-nav-item {{ 'active' if request.path == '/chatbot' else '' }}">
                     <i class="fas fa-robot"></i>

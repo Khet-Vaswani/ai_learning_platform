@@ -1,21 +1,187 @@
 {% extends 'base.html' %}
-{% block title %}My Learning — AI Learning Platform{% endblock %}
+{% block title %}AI Generated Notes & Quiz — LearnAI{% endblock %}
 
 {% block extra_css %}
 <style>
-.ml-card {
+.notes-quiz-header {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    margin-bottom: 24px;
+}
+
+.notes-tab-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    margin-bottom: 24px;
+}
+
+.notes-tab-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notes-tab-btn {
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notes-tab-btn:hover {
+    color: #4f46e5;
+    background: #f8fafc;
+}
+
+.notes-tab-btn.active {
+    color: #4f46e5;
+    background: #eef2ff;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.12);
+}
+
+.btn-download-notes {
+    padding: 9px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4f46e5;
+    background: #ffffff;
+    border: 1.5px solid #6366f1;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-download-notes:hover {
+    background: #4f46e5;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+/* Weak Topic Banner */
+.weak-alert-card {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid #fde68a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.08);
+}
+
+.weak-alert-icon {
+    width: 42px;
+    height: 42px;
+    background: #f59e0b;
+    color: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+/* Content Container Card */
+.notes-content-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    padding: 28px;
+    margin-bottom: 24px;
+}
+
+.notes-section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.code-block-wrap {
+    background: #0f172a;
+    color: #f8fafc;
     border-radius: 12px;
+    padding: 16px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.88rem;
+    margin: 14px 0;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.code-copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: rgba(255,255,255,0.1);
+    color: #cbd5e1;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.code-copy-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.type-chip {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #e0e7ff;
+    color: #3730a3;
+    margin: 3px;
+}
+
+.ml-card {
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.25s;
     background: white;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     height: 100%;
 }
 .ml-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
 }
 .ml-thumb {
     position: relative;
@@ -35,7 +201,7 @@
 .ml-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(15,23,42,0.5);
+    background: rgba(15,23,42,0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,14 +220,15 @@
     align-items: center;
     justify-content: center;
     font-size: 1rem;
-    color: #2563eb;
+    color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 .ml-info {
-    padding: 12px;
+    padding: 14px;
 }
 .ml-title {
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
     color: #1e293b;
     margin: 0 0 6px;
     display: -webkit-box;
@@ -71,61 +238,12 @@
     line-height: 1.4;
 }
 .ml-tag {
-    background: #f1f5f9;
-    color: #64748b;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 600;
-}
-.ml-modal-content {
-    border-radius: 16px;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-}
-.ml-modal-header {
-    background: #0f172a;
-    border: none;
-    padding: 14px 20px;
-}
-.ml-btn {
-    padding: 7px 16px;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.ml-btn-notes {
-    background: rgba(79, 70, 229, 0.1);
+    background: #eef2ff;
     color: #4f46e5;
-    border: 1px solid rgba(79, 70, 229, 0.25);
-}
-.ml-btn-quiz {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    border: 1px solid rgba(16, 185, 129, 0.25);
-}
-.ml-pill-stat {
-    background: #f2f2f2;
-    color: #0f0f0f;
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid #e5e5e5;
-}
-.ml-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
 }
 </style>
 {% endblock %}
@@ -133,66 +251,202 @@
 {% block content %}
 <div class="dashboard-page">
 
-    <div style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border-radius:16px;padding:24px 28px;margin-bottom:20px;color:white;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-            <div>
-                <h3 style="font-weight:800;margin:0 0 4px;">📚 My Learning</h3>
-                <p style="color:rgba(255,255,255,0.5);margin:0;font-size:0.85rem;">All your watched videos</p>
+    <!-- ── Page Header ─────────────────────────────────────────── -->
+    <div class="notes-quiz-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold mb-1" style="font-size: 1.6rem; color: #0f172a;">AI Generated Notes & Quiz</h3>
+            <p class="text-muted mb-0" style="font-size: 0.88rem;">Get concise notes and practice with AI-generated quizzes from video content.</p>
+        </div>
+        <a href="/dashboard" class="btn btn-learnai-primary shadow-sm" style="text-decoration: none;">
+            <i class="fas fa-play-circle me-1"></i> Browse Videos
+        </a>
+    </div>
+
+    <!-- ── Tabbed Navigation Bar ───────────────────────────────── -->
+    <div class="notes-tab-bar">
+        <div class="notes-tab-group">
+            <button class="notes-tab-btn active" id="tabStudyNotesBtn" onclick="switchNotesTab('study')">
+                <i class="fas fa-book-open"></i> Study Notes
+            </button>
+            <button class="notes-tab-btn" id="tabPracticeQuizBtn" onclick="switchNotesTab('quiz')">
+                <i class="fas fa-bolt"></i> Practice Quiz
+            </button>
+            <button class="notes-tab-btn" id="tabWeakTopicsBtn" onclick="switchNotesTab('weak')">
+                <i class="fas fa-exclamation-triangle text-warning"></i> Weak Topics
+            </button>
+        </div>
+        <button class="btn-download-notes" onclick="downloadCurrentNotes()">
+            <i class="fas fa-download"></i> Download Notes
+        </button>
+    </div>
+
+    <!-- ── TAB 1: STUDY NOTES VIEW ──────────────────────────────── -->
+    <div id="viewStudyNotes">
+        <!-- Weak Topic Banner (Dynamic if weak topics exist) -->
+        <div class="weak-alert-card" id="weakAlertBanner" style="display: none;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="weak-alert-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-1" style="color: #92400e; font-size: 0.95rem;">⚠️ Weak Topic Detected</h6>
+                    <p class="mb-0 text-muted" style="font-size: 0.82rem;" id="weakAlertText">
+                        Re-read key concepts below and take a 5-question targeted quiz to master this topic.
+                    </p>
+                </div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <span style="background:rgba(255,255,255,0.12);color:white;padding:5px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;">
-                    {{ videos|length }} Videos
-                </span>
-                <a href="/dashboard" style="background:rgba(37,99,235,0.3);border:1px solid rgba(37,99,235,0.4);color:#93c5fd;padding:5px 14px;border-radius:12px;font-size:0.8rem;font-weight:600;text-decoration:none;">
-                    <i class="fas fa-search me-1"></i>Find More
+            <a href="/weak-topics" class="btn btn-sm btn-warning text-dark fw-bold px-3 py-2 rounded-3">
+                <i class="fas fa-fire me-1"></i> Review Weak Topics
+            </a>
+        </div>
+
+        <!-- Video Selection Grid -->
+        <div class="mb-4">
+            <h5 class="fw-bold mb-3" style="color: #0f172a; font-size: 1.1rem;">
+                <i class="fas fa-sticky-note text-primary me-2"></i>Select a Video to View Notes
+            </h5>
+            {% if videos %}
+            <div class="row g-3">
+                {% for video in videos %}
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="ml-card"
+                        data-vid="{{ video.video_id }}"
+                        data-title="{{ video.video_title|replace('"', '&quot;')|replace("'", '&#39;') }}"
+                        data-topic="{{ video.topic|replace("'", '&#39;') }}"
+                        onclick="mlOpenVideo(this.dataset.vid, this.dataset.title, this.dataset.topic)">
+                        <div class="ml-thumb">
+                            <img src="https://img.youtube.com/vi/{{ video.video_id }}/mqdefault.jpg" alt="video" onerror="this.src='https://via.placeholder.com/320x180'">
+                            <div class="ml-overlay">
+                                <div class="ml-play">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                            </div>
+                            <div style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.75);color:white;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:600;">
+                                ▶ View Notes & Quiz
+                            </div>
+                        </div>
+                        <div class="ml-info">
+                            <p class="ml-title">{{ video.video_title[:60] if video.video_title else 'Video' }}</p>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span class="ml-tag">{{ video.topic }}</span>
+                                <small style="font-size:0.7rem;color:#94a3b8;">
+                                    {% if video.watched_at %}{{ video.watched_at.strftime('%d %b') }}{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="notes-content-card text-center py-5">
+                <div style="font-size:3.5rem;margin-bottom:12px;">📺</div>
+                <h4 style="color:#1e293b;font-weight:700;">No Watched Videos Yet</h4>
+                <p style="color:#94a3b8;font-size:0.9rem;margin:6px 0 20px;">Watch lessons to generate automated AI notes and quizzes</p>
+                <a href="/dashboard" class="btn btn-learnai-primary">
+                    <i class="fas fa-search me-1"></i> Explore Recommended Videos
                 </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Default Featured Key Notes Preview (Mockup UI Sample) -->
+        <div class="notes-content-card">
+            <h4 class="notes-section-title d-flex align-items-center justify-content-between">
+                <span>Python for Beginners – Key Notes</span>
+                <span class="badge bg-primary px-3 py-2 fs-6 rounded-3">Featured Topic</span>
+            </h4>
+
+            <div class="mb-4">
+                <h5 class="fw-bold text-dark" style="font-size: 1.05rem;">1. Introduction to Python</h5>
+                <p style="color: #475569; font-size: 0.9rem; line-height: 1.6;">
+                    Python is a high-level, interpreted programming language known for its clear syntax and readability. It is widely used in web development, data science, artificial intelligence, automation, and core software engineering.
+                </p>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="fw-bold text-dark" style="font-size: 1.05rem;">2. Variables</h5>
+                <p style="color: #475569; font-size: 0.9rem; line-height: 1.6;">
+                    Variables are containers for storing data values. In Python, variables are dynamically typed and initialized upon assignment:
+                </p>
+                <div class="code-block-wrap">
+                    <button class="code-copy-btn" onclick="copyCodeSnippet(this)">Copy</button>
+<pre style="margin: 0; font-family: inherit;">x = 10
+y = "Hello"
+print(x, y)</pre>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="fw-bold text-dark" style="font-size: 1.05rem;">3. Data Types</h5>
+                <p style="color: #475569; font-size: 0.9rem; line-height: 1.6;">
+                    Common built-in data types in Python include:
+                </p>
+                <div>
+                    <span class="type-chip">int</span>
+                    <span class="type-chip">float</span>
+                    <span class="type-chip">str</span>
+                    <span class="type-chip">bool</span>
+                    <span class="type-chip">list</span>
+                    <span class="type-chip">tuple</span>
+                    <span class="type-chip">dict</span>
+                </div>
+            </div>
+
+            <div>
+                <h5 class="fw-bold text-dark" style="font-size: 1.05rem;">4. Input and Output</h5>
+                <p style="color: #475569; font-size: 0.9rem; line-height: 1.6;">
+                    Use <code>input()</code> to take user input and <code>print()</code> to display values in the console.
+                </p>
             </div>
         </div>
     </div>
 
-    {% if videos %}
-    <div class="row g-3">
-        {% for video in videos %}
-        <div class="col-md-3 col-sm-6">
-            <div class="ml-card"
-                data-vid="{{ video.video_id }}"
-                data-title="{{ video.video_title|replace('"', '&quot;')|replace("'", '&#39;') }}"
-                data-topic="{{ video.topic|replace("'", '&#39;') }}"
-                onclick="mlOpenVideo(this.dataset.vid, this.dataset.title, this.dataset.topic)">
-                <div class="ml-thumb">
-                    <img src="https://img.youtube.com/vi/{{ video.video_id }}/mqdefault.jpg" alt="video" onerror="this.src='https://via.placeholder.com/320x180'">
-                    <div class="ml-overlay">
-                        <div class="ml-play">
-                            <i class="fas fa-play"></i>
-                        </div>
-                    </div>
-                    <div style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.75);color:white;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:600;">
-                        ▶ Continue
+    <!-- ── TAB 2: PRACTICE QUIZ VIEW ────────────────────────────── -->
+    <div id="viewPracticeQuiz" style="display: none;">
+        <div class="notes-content-card">
+            <h4 class="notes-section-title">⚡ Interactive Practice Quiz</h4>
+            <p class="text-muted" style="font-size: 0.9rem;">Test your understanding with instant AI-generated quizzes from your completed lessons.</p>
+            <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                    <div class="p-4 border rounded-3 bg-light text-center">
+                        <i class="fas fa-bolt text-warning fs-1 mb-3"></i>
+                        <h5 class="fw-bold">Python Fundamentals Quiz</h5>
+                        <p class="text-muted fs-7">5 Questions • Instant AI Evaluation</p>
+                        <a href="/quiz-history" class="btn btn-primary px-4 rounded-3">Start Quiz</a>
                     </div>
                 </div>
-                <div class="ml-info">
-                    <p class="ml-title">{{ video.video_title[:60] if video.video_title else 'Video' }}</p>
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span class="ml-tag">{{ video.topic }}</span>
-                        <small style="font-size:0.7rem;color:#94a3b8;">
-                            {% if video.watched_at %}{{ video.watched_at.strftime('%d %b') }}{% endif %}
-                        </small>
+                <div class="col-md-6">
+                    <div class="p-4 border rounded-3 bg-light text-center">
+                        <i class="fas fa-history text-info fs-1 mb-3"></i>
+                        <h5 class="fw-bold">View Quiz History</h5>
+                        <p class="text-muted fs-7">Review past attempts & score analytics</p>
+                        <a href="/quiz-history" class="btn btn-outline-secondary px-4 rounded-3">Quiz Attempts</a>
                     </div>
                 </div>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div style="background:white;border-radius:16px;padding:60px 30px;text-align:center;border:1px solid #e2e8f0;">
-        <div style="font-size:4rem;margin-bottom:16px;">📺</div>
-        <h4 style="color:#1e293b;font-weight:700;">No Videos Yet!</h4>
-        <p style="color:#94a3b8;font-size:0.9rem;margin:8px 0 20px;">Start watching videos to track your learning</p>
-        <a href="/dashboard" style="background:#2563eb;color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-size:0.85rem;font-weight:600;">
-            <i class="fas fa-search me-1"></i> Find Videos
-        </a>
+
+    <!-- ── TAB 3: WEAK TOPICS VIEW ─────────────────────────────── -->
+    <div id="viewWeakTopics" style="display: none;">
+        <div class="notes-content-card">
+            <h4 class="notes-section-title d-flex align-items-center justify-content-between">
+                <span>⚠️ Weak Topics Focus</span>
+                <a href="/weak-topics" class="btn btn-sm btn-outline-danger rounded-3">Full Weak Topics Page</a>
+            </h4>
+            <p class="text-muted" style="font-size: 0.9rem;">Review topics where quiz scores need improvement and target remedial practice.</p>
+            <div class="p-4 bg-light rounded-3 border">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fas fa-shield-alt text-danger fs-2"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Targeted Weak Topic Remediation Active</h6>
+                        <p class="mb-0 text-muted fs-7">Select any weak topic to re-watch simplified video recommendations and take targeted quizzes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
 
 </div>
 
@@ -201,10 +455,10 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content ml-modal-content" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
 
-            <div class="modal-header ml-modal-header d-flex align-items-center justify-content-between" style="background: #0f0f0f; border-bottom: 1px solid #272727; padding: 12px 20px;">
+            <div class="modal-header ml-modal-header d-flex align-items-center justify-content-between" style="background: #0f172a; border-bottom: 1px solid #1e293b; padding: 14px 20px;">
                 <div class="d-flex align-items-center gap-2">
                     <i class="fab fa-youtube text-danger fs-5"></i>
-                    <h5 class="modal-title" id="mlModalTitle" style="color: white; font-size: 0.88rem; font-weight: 600; margin: 0;">
+                    <h5 class="modal-title" id="mlModalTitle" style="color: white; font-size: 0.95rem; font-weight: 700; margin: 0;">
                         Loading...
                     </h5>
                 </div>
@@ -225,64 +479,48 @@
                         <div style="padding: 18px 20px 14px; background: white;">
 
                             <!-- Video Title -->
-                            <h5 id="mlVideoTitle" style="font-size: 1.15rem; font-weight: 700; color: #0f0f0f; margin: 0 0 12px; line-height: 1.35; letter-spacing: -0.01em;"></h5>
+                            <h5 id="mlVideoTitle" style="font-size: 1.15rem; font-weight: 700; color: #0f0f0f; margin: 0 0 12px; line-height: 1.35;"></h5>
 
-                            <!-- Channel Bar & Action Pills (Single Row Flex Container) -->
+                            <!-- Channel Bar & Action Pills -->
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 12px;">
                                 
-                                <!-- Left: Channel Info -->
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <div id="mlChannelAvatar" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.88rem; font-weight: 700; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">YT</div>
+                                    <div id="mlChannelAvatar" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.88rem; font-weight: 700; flex-shrink: 0;">YT</div>
                                     <div>
                                         <div id="mlChannelName" style="font-size: 0.88rem; font-weight: 700; color: #0f0f0f; line-height: 1.2;"></div>
                                         <div id="mlPublishDate" style="font-size: 0.72rem; color: #606060;"></div>
                                     </div>
-                                    <button class="yt-sub-btn ms-2">Subscribe</button>
                                 </div>
 
-                                <!-- Right: Action Pills Bar (Placement of BOTH Notes & Quiz Buttons at the SAME PLACE!) -->
                                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                    <div class="ml-pill-stat">
-                                        <i class="fas fa-eye" style="color: #606060;"></i>
-                                        <span id="mlViews">—</span>
-                                    </div>
-                                    <div class="ml-pill-stat">
-                                        <i class="fas fa-thumbs-up" style="color: #606060;"></i>
-                                        <span id="mlLikes">—</span>
-                                    </div>
-                                    
-                                    <!-- BOTH Notes and Quiz buttons placed side-by-side at the EXACT SAME PLACE -->
-                                    <button onclick="mlGenerateNotes()" id="mlNotesBtn" class="ml-btn ml-btn-notes">
-                                        <i class="fas fa-sticky-note"></i>Notes
+                                    <button onclick="mlGenerateNotes()" id="mlNotesBtn" class="btn btn-sm btn-outline-primary fw-bold rounded-3 px-3">
+                                        <i class="fas fa-sticky-note me-1"></i>Generate Notes
                                     </button>
-                                    <button id="mlQuizBtn" class="ml-btn ml-btn-quiz" onclick="mlGenerateQuiz()">
+                                    <button id="mlQuizBtn" class="btn btn-sm btn-outline-success fw-bold rounded-3 px-3" onclick="mlGenerateQuiz()">
                                         <i class="fas fa-bolt me-1"></i>Take Quiz
                                     </button>
                                 </div>
-
                             </div>
 
-                            <!-- YouTube Description Box -->
-                            <div id="mlDescription" style="margin-top: 6px; padding: 12px 14px; background: #f2f2f2; border-radius: 12px; font-size: 0.78rem; color: #0f0f0f; line-height: 1.6; max-height: 62px; overflow: hidden; cursor: pointer; border: 1px solid #e5e5e5; transition: max-height 0.3s;" onclick="mlToggleDesc()"></div>
+                            <div id="mlDescription" style="margin-top: 6px; padding: 12px 14px; background: #f8fafc; border-radius: 12px; font-size: 0.78rem; color: #0f0f0f; line-height: 1.6; max-height: 62px; overflow: hidden; cursor: pointer; border: 1px solid #e2e8f0;" onclick="mlToggleDesc()"></div>
                         </div>
 
-                        <!-- Notes Section -->
+                        <!-- Notes Display -->
                         <div id="mlNotesSection" style="display: none; margin: 14px 20px 20px;">
-                            <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-                                <div style="background: #f8fafc; color: #0f172a; padding: 10px 16px; font-weight: 700; font-size: 0.82rem; border-bottom: 1px solid #e2e8f0;">
+                            <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white;">
+                                <div style="background: #f8fafc; color: #0f172a; padding: 10px 16px; font-weight: 700; font-size: 0.85rem; border-bottom: 1px solid #e2e8f0;">
                                     📝 AI Study Notes
                                 </div>
-                                <div id="mlNotesContent" style="padding: 16px; font-size: 0.82rem; max-height: 250px; overflow-y: auto; line-height: 1.7;"></div>
+                                <div id="mlNotesContent" style="padding: 16px; font-size: 0.85rem; max-height: 260px; overflow-y: auto; line-height: 1.7;"></div>
                             </div>
                         </div>
 
                     </div>
 
-                    <!-- Right: Related Videos (Clean YouTube Sidebar) -->
-                    <div class="col-lg-4" style="background: #f9f9f9;">
+                    <!-- Right: Related Videos -->
+                    <div class="col-lg-4" style="background: #f8fafc;">
                         <div style="height: 100%; overflow-y: auto; max-height: 640px; padding: 16px;">
-
-                            <div style="font-size: 0.82rem; font-weight: 700; color: #0f0f0f; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                            <div style="font-size: 0.85rem; font-weight: 700; color: #0f0f0f; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
                                 <i class="fab fa-youtube" style="color: #ff0000; font-size: 1.1rem;"></i>
                                 Related Videos
                             </div>
@@ -291,17 +529,6 @@
                                     <div class="spinner-border spinner-border-sm text-secondary"></div>
                                 </div>
                             </div>
-
-                            <div style="padding: 14px 0 0; margin-top: 14px; border-top: 1px solid #e2e8f0;">
-                                <div id="mlQuizPlaceholder" style="text-align: center; padding: 16px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b;">
-                                    <div style="font-size: 1.5rem; margin-bottom: 4px;">⚡</div>
-                                    <div style="font-size: 0.8rem; font-weight: 700; color: #1e293b;">Interactive Quiz</div>
-                                    <div style="font-size: 0.72rem; margin-top: 2px;">Watch video to unlock quiz button</div>
-                                </div>
-                                <div id="mlQuizContainer" style="display: none;"></div>
-                                <div id="mlQuizResult" style="display: none;"></div>
-                            </div>
-
                         </div>
                     </div>
 
@@ -313,378 +540,54 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/youtube.js') }}"></script>
-<script src="{{ url_for('static', filename='js/gemini.js') }}"></script>
-<script src="{{ url_for('static', filename='js/recommend.js') }}"></script>
 <script>
-// ── My Learning Page Variables ────────────────────────────
 var mlCurrentVideo  = {id: '', title: '', topic: ''};
-var mlWatched       = false;
-var mlTimer         = null;
-var mlDescExpanded  = false;
-var mlQuizId        = null;
-var mlAnswers       = {};
-var mlQuestions     = [];
 
-// ── Open Video ────────────────────────────────────────────
+function switchNotesTab(tabName) {
+    document.getElementById('viewStudyNotes').style.display   = tabName === 'study' ? 'block' : 'none';
+    document.getElementById('viewPracticeQuiz').style.display = tabName === 'quiz' ? 'block' : 'none';
+    document.getElementById('viewWeakTopics').style.display   = tabName === 'weak' ? 'block' : 'none';
+
+    document.getElementById('tabStudyNotesBtn').classList.toggle('active', tabName === 'study');
+    document.getElementById('tabPracticeQuizBtn').classList.toggle('active', tabName === 'quiz');
+    document.getElementById('tabWeakTopicsBtn').classList.toggle('active', tabName === 'weak');
+}
+
+function downloadCurrentNotes() {
+    var content = document.getElementById('viewStudyNotes').innerText;
+    var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'AI_Study_Notes.txt';
+    link.click();
+}
+
+function copyCodeSnippet(btn) {
+    var code = btn.nextElementSibling.innerText;
+    navigator.clipboard.writeText(code);
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+}
+
 function mlOpenVideo(videoId, title, topic) {
     mlCurrentVideo = {id: videoId, title: title, topic: topic};
-    mlWatched      = false;
-    mlDescExpanded = false;
-    mlQuizId       = null;
-    mlAnswers      = {};
-    mlQuestions    = [];
-
-    if (mlTimer) { clearInterval(mlTimer); mlTimer = null; }
-
-    // Set player
     var player = document.getElementById('mlPlayer');
     if (player) {
-        player.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0';
+        player.src = 'https://www.youtube-nocookie.com/embed/' + videoId + '?autoplay=1&rel=0';
     }
+    document.getElementById('mlModalTitle').textContent = title;
+    document.getElementById('mlVideoTitle').textContent = title;
 
-    // Set title
-    var titleEl = document.getElementById('mlModalTitle');
-    var titleEl2= document.getElementById('mlVideoTitle');
-    if (titleEl)  titleEl.textContent  = title;
-    if (titleEl2) titleEl2.textContent = title;
-
-    // Reset
-    mlReset();
-
-    // Show modal
     var modalEl = document.getElementById('mlVideoModal');
     if (modalEl) {
         var modal = new bootstrap.Modal(modalEl);
         modal.show();
     }
-
-    // Load details
-    mlLoadDetails(videoId);
-    mlLoadRelated(topic);
-
-    // Save to history
-    fetch('/youtube/watched', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({video_id: videoId, title: title, topic: topic})
-    });
-
-    // Start timer
-    mlStartTimer();
 }
 
-// ── Reset ─────────────────────────────────────────────────
-function mlReset() {
-    var ids = ['mlNotesSection', 'mlQuizContainer', 'mlQuizResult', 'mlWatchProgress'];
-    ids.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-
-    var ph = document.getElementById('mlQuizPlaceholder');
-    if (ph) ph.style.display = 'block';
-
-    var notesBtn = document.getElementById('mlNotesBtn');
-    if (notesBtn) {
-        notesBtn.disabled   = false;
-        notesBtn.innerHTML  = '<i class="fas fa-sticky-note me-1"></i>Notes';
-    }
-
-    var quizBtn = document.getElementById('mlQuizBtn');
-    if (quizBtn) {
-        quizBtn.disabled    = true;
-        quizBtn.innerHTML   = '<i class="fas fa-lock me-1"></i>Unlock Quiz';
-        quizBtn.style.opacity = '0.6';
-        quizBtn.onclick     = null;
-    }
-
-    var stats = ['mlViews', 'mlLikes', 'mlComments', 'mlChannelName', 'mlPublishDate', 'mlDescription'];
-    stats.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.textContent = '—';
-    });
-
-    var rel = document.getElementById('mlRelated');
-    if (rel) {
-        rel.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>';
-    }
-}
-
-// ── Load Video Details ────────────────────────────────────
-async function mlLoadDetails(videoId) {
-    try {
-        var res  = await fetch('/youtube/video-details?video_id=' + videoId);
-        var data = await res.json();
-
-        if (data.success && data.video) {
-            var v = data.video;
-
-            function fmt(n) {
-                if (!n) return '0';
-                n = parseInt(n);
-                if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-                if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
-                return n.toString();
-            }
-
-            var vEl = document.getElementById('mlViews');
-            var lEl = document.getElementById('mlLikes');
-            var cEl = document.getElementById('mlComments');
-            var chEl= document.getElementById('mlChannelName');
-            var avEl= document.getElementById('mlChannelAvatar');
-            var dEl = document.getElementById('mlPublishDate');
-            var dsEl= document.getElementById('mlDescription');
-
-            if (vEl)  vEl.textContent  = fmt(v.view_count) + ' views';
-            if (lEl)  lEl.textContent  = fmt(v.like_count)  + ' likes';
-            if (cEl)  cEl.textContent  = fmt(v.comment_count) + ' comments';
-            if (chEl) chEl.textContent = v.channel_title || '';
-            if (avEl) avEl.textContent = v.channel_title ? v.channel_title[0] : 'YT';
-            if (dEl && v.published_at) {
-                var d = new Date(v.published_at);
-                dEl.textContent = d.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
-            }
-            if (dsEl && v.description) {
-                dsEl.textContent = v.description.substring(0, 300) + '...';
-            }
-        }
-    } catch(e) {
-        console.log('Details error:', e);
-    }
-}
-
-// ── Load Related Videos ───────────────────────────────────
-async function mlLoadRelated(topic) {
-    var container = document.getElementById('mlRelated');
-    if (!container) return;
-
-    try {
-        var res  = await fetch('/youtube/search?q=' + encodeURIComponent(topic) + '&limit=5');
-        var data = await res.json();
-
-        if (!data.success || !data.videos || !data.videos.length) {
-            container.innerHTML = '<p style="font-size:0.75rem;color:#94a3b8;text-align:center;padding:10px;">No related videos</p>';
-            return;
-        }
-
-        var videos = data.videos.filter(function(v) { return v.video_id !== mlCurrentVideo.id; }).slice(0, 4);
-
-        container.innerHTML = videos.map(function(v) {
-            var t = JSON.stringify(v.title);
-            var tp= JSON.stringify(topic);
-            return '<div onclick=\'mlOpenVideo("' + v.video_id + '",' + t + ',' + tp + ')\' style="display:flex;gap:8px;padding:6px;border-radius:8px;cursor:pointer;transition:background 0.2s;margin-bottom:8px;" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'transparent\'">'
-                + '<div style="width:90px;height:54px;border-radius:6px;overflow:hidden;flex-shrink:0;">'
-                + '<img src="' + v.thumbnail + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.src=\'https://via.placeholder.com/90x54\'">'
-                + '</div>'
-                + '<div style="flex:1;min-width:0;">'
-                + '<div style="font-size:0.75rem;font-weight:600;color:#1e293b;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + v.title + '</div>'
-                + '<div style="font-size:0.68rem;color:#94a3b8;margin-top:3px;">' + v.channel + '</div>'
-                + '</div></div>';
-        }).join('');
-
-    } catch(e) {
-        container.innerHTML = '';
-    }
-}
-
-// ── Toggle Description ────────────────────────────────────
-function mlToggleDesc() {
-    mlDescExpanded = !mlDescExpanded;
-    var el = document.getElementById('mlDescription');
-    if (el) {
-        el.style.maxHeight = mlDescExpanded ? 'none' : '70px';
-        el.style.overflow  = mlDescExpanded ? 'visible' : 'hidden';
-    }
-}
-
-// ── Watch Timer ───────────────────────────────────────────
-function mlStartTimer() {
-    var secs   = 0;
-    var needed = 60;
-
-    mlTimer = setInterval(function() {
-        secs++;
-        var pct = Math.min((secs / needed) * 100, 100);
-
-        var progEl = document.getElementById('mlWatchProgress');
-        if (progEl) {
-            progEl.style.display = 'block';
-            progEl.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
-                + '<small style="font-size:0.7rem;color:#64748b;font-weight:600;"><i class="fas fa-eye me-1"></i>Watch Progress</small>'
-                + '<small style="font-size:0.7rem;color:#2563eb;font-weight:700;">' + Math.round(pct) + '%</small>'
-                + '</div>'
-                + '<div style="height:4px;background:#e2e8f0;border-radius:3px;overflow:hidden;">'
-                + '<div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);border-radius:3px;transition:width 1s ease;"></div>'
-                + '</div>'
-                + '<small style="font-size:0.68rem;color:#94a3b8;margin-top:2px;display:block;">'
-                + (pct < 100 ? Math.round(100 - pct) + '% more to unlock' : 'Quiz unlocked!')
-                + '</small>';
-        }
-
-        if (secs >= needed && !mlWatched) {
-            clearInterval(mlTimer);
-            mlUnlockQuiz();
-        }
-    }, 1000);
-}
-
-// ── Unlock Quiz ───────────────────────────────────────────
-function mlUnlockQuiz() {
-    mlWatched = true;
-
-    var btn = document.getElementById('mlQuizBtn');
-    if (btn) {
-        btn.disabled        = false;
-        btn.innerHTML       = '<i class="fas fa-clipboard-check me-1"></i>Take Quiz';
-        btn.style.opacity   = '1';
-        btn.style.background= '#f0fdf4';
-        btn.style.color     = '#059669';
-        btn.onclick         = mlGenerateQuiz;
-    }
-
-    var prog = document.getElementById('mlWatchProgress');
-    if (prog) prog.style.display = 'none';
-
-    // Notification
-    var notif = document.createElement('div');
-    notif.style.cssText = 'position:fixed;bottom:30px;right:30px;background:linear-gradient(135deg,#059669,#047857);color:white;padding:14px 20px;border-radius:12px;font-size:0.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 25px rgba(5,150,105,0.4);display:flex;align-items:center;gap:10px;';
-    notif.innerHTML = '<i class="fas fa-unlock"></i> Quiz unlocked! Test your knowledge now.';
-    document.body.appendChild(notif);
-    setTimeout(function() {
-        notif.style.opacity   = '0';
-        notif.style.transition= 'opacity 0.3s';
-        setTimeout(function() { notif.remove(); }, 300);
-    }, 3000);
-}
-
-// ── Generate Notes ────────────────────────────────────────
-async function mlGenerateNotes() {
-    var btn = document.getElementById('mlNotesBtn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...'; }
-
-    try {
-        var res  = await fetch('/gemini/generate-notes', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                video_id   : mlCurrentVideo.id,
-                video_title: mlCurrentVideo.title,
-                topic      : mlCurrentVideo.topic
-            })
-        });
-        var data = await res.json();
-
-        if (data.success) {
-            var html = data.notes
-                .replace(/## (.*)/g, '<h6 class="fw-bold mt-3 mb-1" style="color:#2563eb;">$1</h6>')
-                .replace(/- (.*)/g,  '<li style="margin-left:15px;font-size:0.83rem;">$1</li>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-            var notesContent = document.getElementById('mlNotesContent');
-            var notesSection = document.getElementById('mlNotesSection');
-            if (notesContent) notesContent.innerHTML = html;
-            if (notesSection) notesSection.style.display = 'block';
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Notes Ready'; }
-        } else {
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Notes'; }
-            alert(data.message || 'Notes failed. Try again.');
-        }
-    } catch(e) {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sticky-note me-1"></i>Notes'; }
-    }
-}
-
-// ── Generate Quiz ─────────────────────────────────────────
-async function mlGenerateQuiz() {
-    if (!mlCurrentVideo) return;
-
-    if (mlQuizId && mlQuizId !== 'false' && mlQuizId !== false) {
-        window.open('/quiz/page/' + mlQuizId, '_blank');
-        return;
-    }
-
-    var quizTab = window.open('about:blank', '_blank');
-    if (quizTab) {
-        quizTab.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Opening Quiz...</title>
-                <style>
-                    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #fff; }
-                    .loader { text-align: center; padding: 20px; }
-                    .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s infinite linear; margin: 0 auto 20px; }
-                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style>
-            </head>
-            <body>
-                <div class="loader">
-                    <div class="spinner"></div>
-                    <h2 style="margin: 0 0 8px 0; font-weight: 700;">⚡ Generating AI Quiz...</h2>
-                    <p style="color: #94a3b8; font-size: 0.95rem; margin: 0;">Analyzing video transcript and creating interactive questions</p>
-                </div>
-            </body>
-            </html>
-        `);
-    }
-
-    var btn = document.getElementById('mlQuizBtn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...'; }
-
-    try {
-        var res  = await fetch('/gemini/generate-quiz', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                video_id   : mlCurrentVideo.id,
-                video_title: mlCurrentVideo.title,
-                topic      : mlCurrentVideo.topic
-            })
-        });
-        var data = await res.json();
-
-        if (data.success && data.quiz_id && data.quiz_id !== 'false' && data.quiz_id !== false) {
-            mlQuizId    = data.quiz_id;
-            mlQuestions = data.questions;
-            mlAnswers   = {};
-
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check me-1"></i>Quiz Ready';
-                btn.onclick = function() { window.open('/quiz/page/' + data.quiz_id, '_blank'); };
-            }
-
-            if (quizTab && !quizTab.closed) {
-                quizTab.location.href = '/quiz/page/' + data.quiz_id;
-            } else {
-                window.open('/quiz/page/' + data.quiz_id, '_blank');
-            }
-        } else {
-            if (quizTab && !quizTab.closed) quizTab.close();
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt me-1"></i>Take Quiz'; }
-            alert(data.message || 'Quiz generation failed. Try again.');
-        }
-    } catch(e) {
-        if (quizTab && !quizTab.closed) quizTab.close();
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt me-1"></i>Take Quiz'; }
-    }
-}
-
-// ── Stop Video ────────────────────────────────────────────
 function mlStopVideo() {
     var player = document.getElementById('mlPlayer');
     if (player) player.src = '';
-    if (mlTimer) { clearInterval(mlTimer); mlTimer = null; }
-    mlWatched = false;
 }
-
-// ── Modal Close ───────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-    var modal = document.getElementById('mlVideoModal');
-    if (modal) {
-        modal.addEventListener('hidden.bs.modal', mlStopVideo);
-    }
-});
 </script>
 {% endblock %}

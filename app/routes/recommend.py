@@ -59,6 +59,9 @@ def set_cache(key, data):
     _cache[key] = (data, time.time())
 
 
+from app.routes.youtube import is_entertainment_query, filter_educational_videos
+
+
 def fallback_for_query(query, reason, expert, score):
     q = query.lower()
     vid_id = next(
@@ -70,17 +73,24 @@ def fallback_for_query(query, reason, expert, score):
 
 
 def search_youtube(yt, query, limit=5):
-    """Search YouTube and return video list."""
-    res = yt.search().list(
-        q=query, part='snippet', maxResults=limit,
-        type='video', relevanceLanguage='en', safeSearch='strict'
-    ).execute()
-    return [{
-        'video_id' : i['id']['videoId'],
-        'title'    : i['snippet']['title'],
-        'thumbnail': i['snippet']['thumbnails']['medium']['url'],
-        'channel'  : i['snippet']['channelTitle'],
-    } for i in res.get('items', [])]
+    """Search YouTube and return educational video list."""
+    if is_entertainment_query(query):
+        return []
+    try:
+        res = yt.search().list(
+            q=query + ' educational tutorial', part='snippet', maxResults=limit,
+            type='video', videoCategoryId='27', relevanceLanguage='en', safeSearch='strict'
+        ).execute()
+        items = [{
+            'video_id' : i['id']['videoId'],
+            'title'    : i['snippet']['title'],
+            'thumbnail': i['snippet']['thumbnails']['medium']['url'],
+            'channel'  : i['snippet']['channelTitle'],
+            'description': i['snippet']['description'],
+        } for i in res.get('items', [])]
+        return filter_educational_videos(items)
+    except Exception:
+        return []
 
 
 def get_db_cache(query):

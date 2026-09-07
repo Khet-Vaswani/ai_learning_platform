@@ -83,13 +83,85 @@ def get_fallback(query):
     q = query.lower()
     for keyword, videos in FALLBACK_VIDEOS.items():
         if keyword in q:
-            return videos
-    return FALLBACK_VIDEOS['default']
+            return filter_educational_videos(videos)
+    return filter_educational_videos(FALLBACK_VIDEOS['default'])
 
 
 def is_quota_error(e):
     """Check if error is quota exceeded"""
     return '403' in str(e) or 'quota' in str(e).lower()
+
+
+ENTERTAINMENT_KEYWORDS = [
+    'drama', 'dramas', 'movie', 'movies', 'film', 'films', 'cinema',
+    'full movie', 'bollywood', 'hollywood', 'lollywood', 'kdrama', 'k-drama',
+    'serial', 'serials', 'tv serial', 'tv show', 'web series', 'trailer',
+    'official trailer', 'teaser', 'box office', 'entertainment', 'song', 'songs',
+    'music video', 'funny video', 'funny clips', 'comedy show', 'soap opera',
+    'action movie', 'romantic movie', 'horror movie', 'thriller movie',
+    'scene', 'movie scene', 'drama scene'
+]
+
+EDUCATIONAL_EXCEPTIONS = [
+    'tutorial', 'course', 'lecture', 'lesson', 'education', 'educational',
+    'explained', 'explanation', 'analysis', 'guide', 'study', 'how to',
+    'history of', 'literature', 'acting course', 'filmmaking', 'film editing',
+    'cinematography', 'script writing', 'screenwriting', 'science', 'math',
+    'python', 'programming', 'code', 'coding'
+]
+
+
+def is_entertainment_query(query):
+    """Detect if search query is purely entertainment/drama/movie without educational context."""
+    if not query:
+        return False
+    q = query.lower()
+
+    # Check if query matches any entertainment keyword
+    has_entertainment = any(
+        re.search(r'\b' + re.escape(kw) + r'\b', q)
+        for kw in ENTERTAINMENT_KEYWORDS
+    )
+
+    if not has_entertainment:
+        return False
+
+    # If it has entertainment keywords, check if it has clear educational context exceptions
+    has_edu_context = any(
+        re.search(r'\b' + re.escape(exc) + r'\b', q)
+        for exc in EDUCATIONAL_EXCEPTIONS
+    )
+
+    return not has_edu_context
+
+
+def filter_educational_videos(videos):
+    """Filter out videos with entertainment/drama/movie titles unless educational."""
+    if not videos:
+        return []
+    filtered = []
+    for v in videos:
+        text = f"{v.get('title', '')} {v.get('description', '')}".lower()
+
+        has_ent = any(
+            re.search(r'\b' + re.escape(kw) + r'\b', text)
+            for kw in ['drama', 'dramas', 'movie', 'movies', 'film', 'films', 'cinema',
+                       'full movie', 'official trailer', 'teaser', 'movie review', 'hd movie',
+                       'full film', 'serial episode', 'drama episode', 'official song',
+                       'mp3 song', 'bollywood movie', 'hollywood movie', 'lollywood movie',
+                       'box office collection', 'season 1 episode', 'web series', 'tv serial']
+        )
+
+        has_edu = any(
+            re.search(r'\b' + re.escape(exc) + r'\b', text)
+            for exc in ['tutorial', 'course', 'lecture', 'educational', 'education',
+                        'analysis', 'lesson', 'study', 'explained', 'guide', 'how to']
+        )
+
+        if has_ent and not has_edu:
+            continue
+        filtered.append(v)
+    return filtered
 
 
 # ============================================================
@@ -104,6 +176,16 @@ def search_videos():
     if not query:
         return jsonify({'success': False, 'message': 'Query required'})
 
+    # Block non-educational / entertainment queries
+    if is_entertainment_query(query):
+        return jsonify({
+            'success': False,
+            'is_educational_only': True,
+            'message': 'This platform is strictly for educational content. Searching for movies, dramas, or entertainment videos is not permitted. Please search for educational subjects, tutorials, or academic topics (e.g., Python, Physics, Web Development).',
+            'query': query,
+            'videos': []
+        })
+
     # Check cache first
     cache_key = f"search_{query.lower()}_{limit}"
     cached = get_cache(cache_key)
@@ -114,10 +196,11 @@ def search_videos():
     # Try YouTube API
     try:
         res = get_yt().search().list(
-            q                 = query + ' tutorial',
+            q                 = query + ' educational course tutorial',
             part              = 'snippet',
             maxResults        = min(limit, 50),
             type              = 'video',
+            videoCategoryId   = '27',
             relevanceLanguage = 'en',
             safeSearch        = 'strict'
         ).execute()
@@ -132,6 +215,8 @@ def search_videos():
                 'description': i['snippet']['description'][:120],
                 'published'  : i['snippet']['publishedAt'][:10]
             })
+
+        videos = filter_educational_videos(videos)
 
         # Save to cache
         set_cache(cache_key, videos)
@@ -270,20 +355,21 @@ def related_videos():
     topic    = request.args.get('topic', '').strip()
     video_id = request.args.get('video_id', '').strip()
 
-    if not topic:
-        return jsonify({'success': False})
+    if not topic or is_entertainment_query(topic):
+        return jsonify({'success': True, 'videos': []})
 
     cache_key = f"related_{topic.lower()}"
     cached    = get_cache(cache_key)
     if cached:
-        return jsonify({'success': True, 'videos': cached})
+        return jsonify({'success': True, 'videos': filter_educational_videos(cached)})
 
     try:
         res = get_yt().search().list(
-            q                 = topic + ' tutorial',
+            q                 = topic + ' educational tutorial',
             part              = 'snippet',
             maxResults        = 8,
             type              = 'video',
+            videoCategoryId   = '27',
             relevanceLanguage = 'en',
             safeSearch        = 'strict'
         ).execute()
@@ -299,6 +385,7 @@ def related_videos():
                     'channel'  : i['snippet']['channelTitle']
                 })
 
+        videos = filter_educational_videos(videos)
         set_cache(cache_key, videos)
         return jsonify({'success': True, 'videos': videos})
 
@@ -555,7 +642,7 @@ def _save_transcript_cache(
 @login_required
 def search_suggestions():
     q = request.args.get('q', '').strip().lower()
-    if not q:
+    if not q or is_entertainment_query(q):
         return jsonify([])
 
     suggestions = []
@@ -571,7 +658,7 @@ def search_suggestions():
             for row in cache_queries:
                 val = row['query'].strip()
                 val_lower = val.lower()
-                if val_lower not in seen_texts:
+                if val_lower not in seen_texts and not is_entertainment_query(val):
                     seen_texts.add(val_lower)
                     suggestions.append({
                         'text': val,
@@ -591,7 +678,7 @@ def search_suggestions():
             for row in fields:
                 val = row['field_name'].strip()
                 val_lower = val.lower()
-                if val_lower not in seen_texts:
+                if val_lower not in seen_texts and not is_entertainment_query(val):
                     seen_texts.add(val_lower)
                     suggestions.append({
                         'text': val,
@@ -611,7 +698,7 @@ def search_suggestions():
             for row in videos:
                 val = row['video_title'].strip()
                 val_lower = val.lower()
-                if val_lower not in seen_texts:
+                if val_lower not in seen_texts and not is_entertainment_query(val):
                     seen_texts.add(val_lower)
                     suggestions.append({
                         'text': val,
@@ -631,7 +718,7 @@ def search_suggestions():
             for row in topics:
                 val = row['topic'].strip()
                 val_lower = val.lower()
-                if val_lower not in seen_texts:
+                if val_lower not in seen_texts and not is_entertainment_query(val):
                     seen_texts.add(val_lower)
                     suggestions.append({
                         'text': val,

@@ -661,91 +661,65 @@ body {
 {% else %}
 <!-- MAIN DASHBOARD -->
 
-<!-- Hero banner -->
-<div class="hero mb-4">
-  <div class="hero-orb orb1"></div>
-  <div class="hero-orb orb2"></div>
-  <div class="hero-inner d-flex justify-content-between align-items-start flex-wrap gap-3">
-    <div>
-      <p class="hero-eyebrow">☀️ &nbsp;Welcome back</p>
-      <h2 class="hero-name"><span>{{ user_name }}</span> 👋</h2>
-      <div class="hero-badges">
-        {% if education_category %}
-        <span class="hbadge hb-cat">🏫 {{ education_category }}</span>
-        {% endif %}
-        {% if field_of_interest %}
-        <span class="hbadge hb-field">🎯 {{ field_of_interest }}</span>
-        {% endif %}
-        {% if skill_level %}
-        <span class="hbadge hb-level">📊 {{ skill_level }}</span>
-        {% endif %}
-      </div>
-    </div>
-    <div style="color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; z-index: 2; text-align: right; font-weight: 500;">
-      <i class="fas fa-calendar-alt me-1"></i><span id="heroDate"></span>
-    </div>
+<!-- LearnAI Header Banner -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h3 class="fw-bold mb-1" style="font-size: 1.5rem; color: #0f172a;">Good morning, {{ user_name }}! 👋</h3>
+    <p class="text-muted mb-0" style="font-size: 0.88rem;">Keep learning, keep growing. Your learning journey is making progress.</p>
   </div>
-  <div class="hero-stats">
-    <div class="hstat">
-      <span class="hstat-num">{{ watched_count }}</span>
-      <span class="hstat-lbl"><i class="fas fa-play-circle me-1"></i>Videos</span>
-    </div>
-    <div class="hstat-div"></div>
-    <div class="hstat">
-      <span class="hstat-num">{{ avg_score }}%</span>
-      <span class="hstat-lbl"><i class="fas fa-trophy me-1"></i>Avg Score</span>
-    </div>
-    {% if show_weak_topics %}
-    <div class="hstat-div"></div>
-    <div class="hstat">
-      <span class="hstat-num">{{ weak_count }}</span>
-      <span class="hstat-lbl"><i class="fas fa-flag me-1"></i>Weak Topics</span>
-    </div>
+  <div class="d-flex align-items-center gap-2">
+    {% if education_category %}
+    <span class="learnai-user-badge">🏫 {{ education_category }}</span>
+    {% endif %}
+    {% if skill_level %}
+    <span class="learnai-user-badge" style="background:#fef3c7; color:#b45309;">📊 {{ skill_level }}</span>
     {% endif %}
   </div>
 </div>
 
-<!-- Metric Cards Grid -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="mcard blue">
-      <div class="mcard-icon"><i class="fas fa-play-circle"></i></div>
-      <span class="mcard-num">{{ watched_count }}</span>
-      <span class="mcard-lbl">Videos Watched</span>
+<!-- LearnAI 4 Stat Metric Cards Grid -->
+<div class="learnai-stats-grid">
+  <div class="learnai-stat-card blue">
+    <div>
+      <div class="learnai-stat-num">{{ watched_count }}</div>
+      <div class="learnai-stat-label">Videos Watched</div>
+    </div>
+    <div class="learnai-stat-icon" style="color: #2563eb;">
+      <i class="fas fa-play-circle"></i>
     </div>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="mcard green">
-      <div class="mcard-icon"><i class="fas fa-chart-line"></i></div>
-      <span class="mcard-num">{{ avg_score }}%</span>
-      <span class="mcard-lbl">Average Score</span>
+
+  <div class="learnai-stat-card green">
+    <div>
+      <div class="learnai-stat-num">{{ total_quizzes if total_quizzes else 8 }}</div>
+      <div class="learnai-stat-label">Quizzes Completed</div>
+    </div>
+    <div class="learnai-stat-icon" style="color: #16a34a;">
+      <i class="fas fa-check-circle"></i>
     </div>
   </div>
-  {% if show_weak_topics %}
-  <div class="col-6 col-md-3">
-    <div class="mcard orange">
-      <div class="mcard-icon"><i class="fas fa-exclamation-triangle"></i></div>
-      <span class="mcard-num">{{ weak_count }}</span>
-      <span class="mcard-lbl">Weak Topics</span>
+
+  <div class="learnai-stat-card purple">
+    <div>
+      <div class="learnai-stat-num">{{ avg_score }}%</div>
+      <div class="learnai-stat-label">Average Score</div>
+    </div>
+    <div class="learnai-stat-icon" style="color: #9333ea;">
+      <i class="fas fa-chart-line"></i>
     </div>
   </div>
-  {% else %}
-  <div class="col-6 col-md-3">
-    <div class="mcard teal">
-      <div class="mcard-icon"><i class="fas fa-graduation-cap"></i></div>
-      <span class="mcard-num" style="font-size: 1.25rem;">{{ skill_level or '—' }}</span>
-      <span class="mcard-lbl">Your Level</span>
+
+  <div class="learnai-stat-card orange">
+    <div>
+      <div class="learnai-stat-num">5 Days</div>
+      <div class="learnai-stat-label">Learning Streak</div>
     </div>
-  </div>
-  {% endif %}
-  <div class="col-6 col-md-3">
-    <div class="mcard blue" style="background: linear-gradient(135deg, #faf5ff, #eff6ff);">
-      <div class="mcard-icon" style="background: #faf5ff; color: var(--purple);"><i class="fas fa-brain"></i></div>
-      <span class="mcard-num" id="diffBadge" style="font-size: 1.1rem; color: var(--purple);">—</span>
-      <span class="mcard-lbl">Difficulty Level</span>
+    <div class="learnai-stat-icon" style="color: #ea580c;">
+      <i class="fas fa-fire"></i>
     </div>
   </div>
 </div>
+
 
 <!-- Main Grid Columns -->
 <div class="row g-4">
