@@ -219,6 +219,21 @@ def submit_quiz_route():
         # Get post-quiz video recommendations
         if result.get('success'):
             try:
+                from app.utils.notifications import create_notification
+                pct = result.get('percentage', 0)
+                sc = result.get('score', 0)
+                tot = result.get('total', 0)
+                create_notification(
+                    user_id,
+                    f"Quiz Completed: {topic}",
+                    f"You scored {pct}% ({sc}/{tot}) on your {topic} interactive quiz! 🎉",
+                    notif_type="quiz",
+                    icon="fa-check-circle"
+                )
+            except Exception:
+                pass
+
+            try:
                 video_suggestions = _get_postquiz_recommendations(
                     topic      = topic,
                     percentage = result['percentage'],
@@ -348,13 +363,14 @@ def chatbot_ask():
     )
     style = cognitive[0]['learning_style'] if cognitive else 'Student'
 
-    # ── Image / PDF analysis ──────────────────────────────
+    # ── Image / PDF / Doc analysis ──────────────────────────────
     if file_data:
         try:
             import base64
             file_bytes = base64.b64decode(file_data)
+            fname_lower = (file_name or '').lower()
 
-            # Image analysis via Gemini Vision
+            # 1. Image analysis via Gemini Vision
             if file_type.startswith('image/') and GEMINI_AVAILABLE:
                 from google.genai import types
                 img_part = types.Part.from_bytes(
@@ -374,34 +390,121 @@ def chatbot_ask():
                 )
                 return jsonify({'success': True, 'reply': resp.text.strip()})
 
-            # PDF analysis via PyPDF2
-            elif file_type == 'application/pdf':
+            # 2. PDF analysis via pypdf / PyPDF2
+            elif file_type == 'application/pdf' or fname_lower.endswith('.pdf'):
+                pdf_text = ''
                 try:
                     import io
-                    # pyrefly: ignore [missing-import]
-                    import PyPDF2
-                    reader   = PyPDF2.PdfReader(io.BytesIO(file_bytes))
-                    pdf_text = ''
-                    for page in reader.pages[:5]:
-                        pdf_text += page.extract_text() + '\n'
+                    try:
+                        import pypdf
+                        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+                        for page in reader.pages[:15]:
+                            txt = page.extract_text()
+                            if txt:
+                                pdf_text += txt + '\n'
+                    except ImportError:
+                        import PyPDF2
+                        reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+                        for page in reader.pages[:15]:
+                            txt = page.extract_text()
+                            if txt:
+                                pdf_text += txt + '\n'
+                except Exception as ex:
+                    print(f"⚠️ PDF parse error: {ex}")
 
-                    if pdf_text.strip():
-                        prompt = f"""Analyze this PDF content and answer the student's question.
+                if pdf_text.strip():
+                    prompt = f"""You are an intelligent educational AI assistant helping a student understand their document.
+Document Name: {file_name}
 
-PDF Content (first 5 pages):
-{pdf_text[:3000]}
+Document Extracted Content:
+\"\"\"
+{pdf_text[:12000]}
+\"\"\"
 
-Student Question: {message or 'Summarize this document and explain the key concepts'}
+Student Question / Request: {message or 'Summarize this document, explain the main topics, and highlight key takeaways.'}
 
-Provide a clear, educational response."""
-                        reply = _generate_ai(prompt, max_tokens=1500)
-                        return jsonify({'success': True, 'reply': reply})
-                except ImportError:
-                    pass
+Instructions:
+- Carefully extract and synthesize the information from the document to answer the student's question accurately.
+- Provide clear, educational explanations with formatting (bullet points, bold highlights, code blocks if applicable).
+- Base your answers directly on the document text."""
+                    reply = _generate_ai(prompt, max_tokens=1500)
+                    return jsonify({'success': True, 'reply': reply})
 
-                prompt = f"A student uploaded a PDF named '{file_name}'. They ask: {message}. Ask them to copy-paste the text content."
-                reply  = _generate_ai(prompt, max_tokens=400)
+                # If text is empty (scanned image PDF) and Gemini Vision is available
+                if GEMINI_AVAILABLE:
+                    try:
+                        from google.genai import types
+                        pdf_part = types.Part.from_bytes(data=file_bytes, mime_type='application/pdf')
+                        txt_part = types.Part.from_text(
+                            text=message or 'Analyze this PDF document and explain its key concepts in detail.'
+                        )
+                        resp = gemini_client.models.generate_content(
+                            model='gemini-3.6-flash',
+                            contents=[pdf_part, txt_part]
+                        )
+                        if resp and resp.text:
+                            return jsonify({'success': True, 'reply': resp.text.strip()})
+                    except Exception as g_err:
+                        print(f"⚠️ Gemini direct PDF error: {g_err}")
+
+                prompt = f"A student uploaded a PDF named '{file_name}'. The file does not contain extractable text (it may be a scanned image or protected). Student question: {message}. Please advise them kindly on how to proceed or ask questions on the topic."
+                reply = _generate_ai(prompt, max_tokens=400)
                 return jsonify({'success': True, 'reply': reply})
+
+            # 3. Word (.docx) document analysis
+            elif fname_lower.endswith('.docx') or 'wordprocessingml' in file_type:
+                docx_text = ''
+                try:
+                    import io, zipfile, xml.etree.ElementTree as ET
+                    with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+                        xml_content = z.read('word/document.xml')
+                        tree = ET.fromstring(xml_content)
+                        texts = [node.text for node in tree.iter() if node.text]
+                        docx_text = ' '.join(texts)
+                except Exception as dx_err:
+                    print(f"⚠️ DOCX parse error: {dx_err}")
+
+                if docx_text.strip():
+                    prompt = f"""You are an intelligent educational AI assistant helping a student understand their document.
+Document Name: {file_name}
+
+Document Extracted Content:
+\"\"\"
+{docx_text[:12000]}
+\"\"\"
+
+Student Question / Request: {message or 'Summarize this document, explain the main topics, and highlight key takeaways.'}
+
+Instructions:
+- Carefully extract and synthesize the information from the document to answer the student's question accurately.
+- Provide clear, educational explanations with formatting."""
+                    reply = _generate_ai(prompt, max_tokens=1500)
+                    return jsonify({'success': True, 'reply': reply})
+
+            # 4. Text / Markdown / Code file analysis
+            elif file_type.startswith('text/') or fname_lower.endswith(('.txt', '.md', '.csv', '.py', '.json', '.html', '.js', '.c', '.cpp', '.java', '.sql')):
+                text_content = ''
+                try:
+                    text_content = file_bytes.decode('utf-8', errors='ignore')
+                except Exception as t_err:
+                    print(f"⚠️ Text decode error: {t_err}")
+
+                if text_content.strip():
+                    prompt = f"""You are an intelligent educational AI assistant helping a student understand their file.
+File Name: {file_name}
+
+File Content:
+\"\"\"
+{text_content[:12000]}
+\"\"\"
+
+Student Question / Request: {message or 'Analyze this file, explain its content, and answer any questions.'}
+
+Instructions:
+- Thoroughly analyze the file content above to answer the student.
+- Provide clear explanations, examples, or code breakdown where appropriate."""
+                    reply = _generate_ai(prompt, max_tokens=1500)
+                    return jsonify({'success': True, 'reply': reply})
 
         except Exception as e:
             print(f"⚠️ File analysis error: {e}")

@@ -3,10 +3,13 @@
 # ============================================================
 
 from flask import (Blueprint, jsonify, render_template,
-                   request, session)
+                   request, session, redirect, url_for)
 from app.utils.db import execute_query
-from app.utils.auth_helpers import login_required
+from app.utils.auth_helpers import (login_required,
+                                     hash_password,
+                                     verify_password)
 import json
+import re
 from datetime import date, timedelta
 
 dashboard = Blueprint('dashboard', __name__)
@@ -34,13 +37,25 @@ def index():
     )
     avg_score = round(float(avg[0]['avg_score'] or 0), 1) if avg else 0
 
-    # ── Quiz attempts check ────────────────────────────────
+    # ── Quiz attempts check & total completed quizzes ──────
     qa = execute_query(
         """SELECT COUNT(*) as cnt FROM video_quizzes
            WHERE user_id=%s AND attempted=1""",
         (user_id,), fetch=True
     )
-    has_quiz_attempts = (qa[0]['cnt'] if qa else 0) > 0
+    total_quizzes = qa[0]['cnt'] if qa else 0
+    has_quiz_attempts = total_quizzes > 0
+
+    # ── Learning streak calculation (Real DB Data) ──────────
+    streak = execute_query(
+        """SELECT COUNT(DISTINCT activity_date) as days FROM (
+            SELECT session_date as activity_date FROM study_sessions WHERE user_id=%s
+            UNION
+            SELECT DATE(watched_at) as activity_date FROM watched_videos WHERE user_id=%s
+        ) as user_activity""",
+        (user_id, user_id), fetch=True
+    )
+    streak_days = streak[0]['days'] if streak and streak[0]['days'] else 0
 
     # ── Weak topics (ONLY after quiz attempts) ─────────────
     weak = []
@@ -79,10 +94,15 @@ def index():
     onboarding_done    = 0
 
     if user_prefs:
-        education_category = user_prefs[0].get('education_category')
-        field_of_interest  = user_prefs[0].get('field_of_interest')
-        skill_level        = user_prefs[0].get('skill_level') or 'Beginner'
-        onboarding_done    = user_prefs[0].get('onboarding_done', 0)
+        education_category = user_prefs[0].get('education_category') or session.get('education_category')
+        field_of_interest  = user_prefs[0].get('field_of_interest') or education_category or session.get('field_of_interest')
+        skill_level        = user_prefs[0].get('skill_level') or session.get('skill_level') or 'Beginner'
+        onboarding_done    = user_prefs[0].get('onboarding_done', 0) or session.get('onboarding_done', 0)
+    else:
+        education_category = session.get('education_category')
+        field_of_interest  = session.get('field_of_interest') or education_category
+        skill_level        = session.get('skill_level') or 'Beginner'
+        onboarding_done    = session.get('onboarding_done', 0)
 
     # ── Is new user? ───────────────────────────────────────
     is_new_user = (watched_count == 0 and not has_quiz_attempts)
@@ -105,7 +125,9 @@ def index():
         'dashboard.html',
         user_name               = session.get('user_name'),
         watched_count           = watched_count,
+        total_quizzes           = total_quizzes,
         avg_score               = avg_score,
+        streak_days             = streak_days,
         weak_count              = len(weak) if weak else 0,
         weak_topics             = weak[:5] if weak else [],
         cognitive               = cognitive_data,
@@ -119,6 +141,67 @@ def index():
         show_moe_recommendations= show_moe_recommendations,
         show_weak_topics        = show_weak_topics,
         has_quiz_attempts       = has_quiz_attempts,
+    )
+
+
+# ── Recommended Videos ─────────────────────────────────────
+@dashboard.route('/recommended-videos')
+@dashboard.route('/recommendations')
+@login_required
+def recommended_videos():
+    user_id = session['user_id']
+    search_q = request.args.get('search', '').strip()
+
+    # User preferences
+    user_prefs = execute_query(
+        """SELECT education_category, field_of_interest, skill_level, onboarding_done
+           FROM users WHERE id=%s""",
+        (user_id,), fetch=True
+    )
+    education_category = None
+    field_of_interest  = None
+    skill_level        = 'Beginner'
+    if user_prefs:
+        education_category = user_prefs[0].get('education_category') or session.get('education_category')
+        field_of_interest  = user_prefs[0].get('field_of_interest') or education_category or session.get('field_of_interest')
+        skill_level        = user_prefs[0].get('skill_level') or session.get('skill_level') or 'Beginner'
+    else:
+        education_category = session.get('education_category')
+        field_of_interest  = session.get('field_of_interest') or education_category
+        skill_level        = session.get('skill_level') or 'Beginner'
+
+    weak = execute_query(
+        """SELECT topic, fail_count
+           FROM weak_topics WHERE user_id=%s
+           ORDER BY fail_count DESC LIMIT 6""",
+        (user_id,), fetch=True
+    ) or []
+
+    watched = execute_query(
+        "SELECT COUNT(*) as cnt FROM watched_videos WHERE user_id=%s",
+        (user_id,), fetch=True
+    )
+    watched_count = watched[0]['cnt'] if watched else 0
+
+    qa = execute_query(
+        """SELECT COUNT(*) as cnt FROM video_quizzes
+           WHERE user_id=%s AND attempted=1""",
+        (user_id,), fetch=True
+    )
+    has_quiz_attempts = (qa[0]['cnt'] > 0) if qa else False
+    is_new_user = (watched_count == 0 and not has_quiz_attempts)
+
+    return render_template(
+        'recommended_videos.html',
+        user_name=session.get('user_name'),
+        field_of_interest=field_of_interest or 'General Learning',
+        skill_level=skill_level or 'Beginner',
+        education_category=education_category or '',
+        weak_topics=weak,
+        is_new_user=is_new_user,
+        has_quiz_attempts=has_quiz_attempts,
+        watched_count=watched_count,
+        search_query=search_q
     )
 
 
@@ -283,13 +366,28 @@ def dashboard_stats():
 @login_required
 def progress():
     user_id = session['user_id']
+    time_range = request.args.get('range', '30d').strip().lower()
+
+    if time_range == '7d':
+        date_quiz_clause = " AND created_at >= NOW() - INTERVAL 7 DAY "
+        date_watch_clause = " AND watched_at >= NOW() - INTERVAL 7 DAY "
+        range_label = "Last 7 Days"
+    elif time_range == 'all':
+        date_quiz_clause = ""
+        date_watch_clause = ""
+        range_label = "All Time"
+    else:
+        time_range = '30d'
+        date_quiz_clause = " AND created_at >= NOW() - INTERVAL 30 DAY "
+        date_watch_clause = " AND watched_at >= NOW() - INTERVAL 30 DAY "
+        range_label = "Last 30 Days"
 
     quizzes = execute_query(
-        """SELECT video_title, topic, score, total,
+        f"""SELECT video_title, topic, score, total,
                   attempted, created_at,
                   ROUND(score/total*100, 1) as percentage
            FROM video_quizzes
-           WHERE user_id=%s AND attempted=1 AND total>0
+           WHERE user_id=%s AND attempted=1 AND total>0 {date_quiz_clause}
            ORDER BY created_at ASC""",
         (user_id,), fetch=True
     )
@@ -299,15 +397,15 @@ def progress():
         (user_id,), fetch=True
     )
     watched = execute_query(
-        "SELECT COUNT(*) as cnt FROM watched_videos WHERE user_id=%s",
+        f"SELECT COUNT(*) as cnt FROM watched_videos WHERE user_id=%s {date_watch_clause}",
         (user_id,), fetch=True
     )
     topics_perf = execute_query(
-        """SELECT topic, COUNT(*) as attempts,
+        f"""SELECT topic, COUNT(*) as attempts,
                   ROUND(AVG(score/total*100),1) as avg_score,
                   MAX(ROUND(score/total*100,1)) as best_score
            FROM video_quizzes
-           WHERE user_id=%s AND attempted=1 AND total>0
+           WHERE user_id=%s AND attempted=1 AND total>0 {date_quiz_clause}
            GROUP BY topic ORDER BY avg_score DESC""",
         (user_id,), fetch=True
     )
@@ -339,7 +437,9 @@ def progress():
         watched_count = watched_count,
         chart_labels  = chart_labels,
         chart_scores  = chart_scores,
-        user_name     = session.get('user_name'))
+        user_name     = session.get('user_name'),
+        current_range = time_range,
+        range_label   = range_label)
 
 
 # ── Learning Curve ─────────────────────────────────────────
@@ -406,6 +506,17 @@ def add_plan():
         (user_id, data['topic'], data['date'],
          data['duration'], data.get('priority', 'medium'))
     )
+    try:
+        from app.utils.notifications import create_notification
+        create_notification(
+            user_id,
+            "Study Goal Added",
+            f"Scheduled a {data.get('duration', 60)}-min session for '{data['topic']}' on {data['date']}.",
+            notif_type="plan",
+            icon="fa-calendar-check"
+        )
+    except Exception:
+        pass
     return jsonify({'success': True})
 
 
@@ -444,6 +555,51 @@ def save_session():
            VALUES (%s,%s,%s,CURDATE())""",
         (user_id, data['topic'], data['duration'])
     )
+    try:
+        from app.utils.notifications import create_notification
+        create_notification(
+            user_id,
+            "Study Session Completed! 🔥",
+            f"Great job! You logged {data['duration']} minutes of learning for '{data['topic']}'.",
+            notif_type="streak",
+            icon="fa-fire"
+        )
+    except Exception:
+        pass
+    return jsonify({'success': True})
+
+
+# ── Real Student Notifications API ─────────────────────────
+@dashboard.route('/api/notifications', methods=['GET'])
+@login_required
+def api_get_notifications():
+    from app.utils.notifications import get_user_notifications
+    user_id = session['user_id']
+    data = get_user_notifications(user_id, limit=10)
+    return jsonify({
+        'success': True,
+        'notifications': data['notifications'],
+        'unread_count': data['unread_count']
+    })
+
+
+@dashboard.route('/api/notifications/mark-read', methods=['POST'])
+@login_required
+def api_mark_notifications_read():
+    from app.utils.notifications import mark_notifications_as_read
+    user_id = session['user_id']
+    data = request.get_json() or {}
+    notif_id = data.get('notif_id')
+    mark_notifications_as_read(user_id, notif_id)
+    return jsonify({'success': True})
+
+
+@dashboard.route('/api/notifications/<int:notif_id>/dismiss', methods=['POST'])
+@login_required
+def api_dismiss_notification(notif_id):
+    from app.utils.notifications import dismiss_notification
+    user_id = session['user_id']
+    dismiss_notification(user_id, notif_id)
     return jsonify({'success': True})
 
 
@@ -507,3 +663,170 @@ def run_evaluation():
     except Exception as e:
         print(f"Evaluation error: {e}")
         return jsonify({'success': False, 'message': str(e)})
+
+
+# ── Settings & Profile Routes ──────────────────────────────
+@dashboard.route('/profile')
+@login_required
+def profile_redirect():
+    return redirect(url_for('dashboard.settings_page'))
+
+
+@dashboard.route('/settings')
+@login_required
+def settings_page():
+    user_id = session['user_id']
+    user = execute_query(
+        """SELECT id, full_name, email, role, profile_pic,
+                  field_of_interest, skill_level, difficulty_level,
+                  education_category, created_at
+           FROM users WHERE id=%s""",
+        (user_id,), fetch=True
+    )
+    user_data = user[0] if user else {}
+
+    # Fetch educational categories
+    categories = execute_query(
+        "SELECT id, name, description FROM educational_categories ORDER BY display_order ASC",
+        fetch=True
+    ) or []
+
+    # Fetch user summary stats
+    stats = execute_query(
+        """SELECT 
+            (SELECT COUNT(*) FROM watched_videos WHERE user_id=%s) as total_watched,
+            (SELECT COUNT(*) FROM video_quizzes WHERE user_id=%s AND attempted=1) as total_quizzes,
+            (SELECT COALESCE(AVG(score/total*100), 0) FROM video_quizzes WHERE user_id=%s AND attempted=1 AND total>0) as avg_score
+        """,
+        (user_id, user_id, user_id), fetch=True
+    )
+    user_stats = stats[0] if stats else {'total_watched': 0, 'total_quizzes': 0, 'avg_score': 0}
+
+    return render_template(
+        'settings.html',
+        user=user_data,
+        categories=categories,
+        stats=user_stats,
+        active_tab=request.args.get('tab', 'profile')
+    )
+
+
+@dashboard.route('/settings/profile', methods=['POST'])
+@login_required
+def update_profile():
+    user_id   = session['user_id']
+    full_name = request.form.get('full_name', '').strip()
+    email     = request.form.get('email', '').strip().lower()
+
+    if not full_name or not email:
+        return jsonify({'success': False, 'message': 'Full name and email are required.'}), 400
+    if len(full_name) > 50:
+        return jsonify({'success': False, 'message': 'Name too long.'}), 400
+    if len(email) > 100 or not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+        return jsonify({'success': False, 'message': 'Invalid email format.'}), 400
+
+    # Check email duplicate
+    existing = execute_query(
+        "SELECT id FROM users WHERE email=%s AND id!=%s",
+        (email, user_id), fetch=True
+    )
+    if existing:
+        return jsonify({'success': False, 'message': 'Email address already in use.'}), 400
+
+    if execute_query(
+        "UPDATE users SET full_name=%s, email=%s WHERE id=%s",
+        (full_name, email, user_id), fetch=False
+    ) is False:
+        return jsonify({'success': False, 'message': 'Could not update profile. Try again.'}), 500
+    session['user_name']  = full_name
+    session['user_email'] = email
+
+    return jsonify({'success': True, 'message': 'Profile updated successfully!'})
+
+
+@dashboard.route('/settings/learning', methods=['POST'])
+@login_required
+def update_learning_preferences():
+    user_id            = session['user_id']
+    education_category = request.form.get('education_category', '').strip()
+    field_of_interest  = request.form.get('field_of_interest', '').strip()
+    skill_level        = request.form.get('skill_level', 'Beginner').strip()
+    difficulty_level   = request.form.get('difficulty_level', 'Medium').strip()
+
+    if skill_level not in ('Beginner', 'Intermediate', 'Advanced'):
+        return jsonify({'success': False, 'message': 'Invalid skill level.'}), 400
+    if difficulty_level not in ('Easy', 'Medium', 'Hard'):
+        return jsonify({'success': False, 'message': 'Invalid difficulty level.'}), 400
+    if len(field_of_interest) > 100 or len(education_category) > 100:
+        return jsonify({'success': False, 'message': 'Input too long.'}), 400
+
+    # Keep educational_category_id in sync with the category name
+    if execute_query(
+        """UPDATE users
+           SET education_category=%s,
+               educational_category_id=(SELECT id FROM educational_categories WHERE name=%s LIMIT 1),
+               field_of_interest=%s, skill_level=%s, difficulty_level=%s
+           WHERE id=%s""",
+        (education_category or None, education_category,
+         field_of_interest or None, skill_level, difficulty_level, user_id),
+        fetch=False
+    ) is False:
+        return jsonify({'success': False, 'message': 'Could not save preferences. Try again.'}), 500
+    session['field_of_interest']  = field_of_interest
+    session['skill_level']        = skill_level
+    session['education_category'] = education_category
+
+    return jsonify({'success': True, 'message': 'AI and learning preferences updated successfully!'})
+
+
+@dashboard.route('/settings/password', methods=['POST'])
+@login_required
+def update_password():
+    user_id          = session['user_id']
+    current_password = request.form.get('current_password', '')
+    new_password     = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    if not current_password or not new_password:
+        return jsonify({'success': False, 'message': 'All password fields are required.'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'New password must be at least 6 characters long.'}), 400
+
+    if new_password != confirm_password:
+        return jsonify({'success': False, 'message': 'New passwords do not match.'}), 400
+
+    user = execute_query("SELECT password FROM users WHERE id=%s", (user_id,), fetch=True)
+    if not user or not verify_password(current_password, user[0]['password']):
+        return jsonify({'success': False, 'message': 'Current password is incorrect.'}), 400
+
+    hashed = hash_password(new_password)
+    execute_query("UPDATE users SET password=%s WHERE id=%s", (hashed, user_id), fetch=False)
+
+    return jsonify({'success': True, 'message': 'Password changed successfully!'})
+
+
+@dashboard.route('/settings/reset-history', methods=['POST'])
+@login_required
+def reset_history():
+    user_id    = session['user_id']
+    reset_type = request.form.get('reset_type', 'recommendations')
+
+    if reset_type == 'recommendations':
+        try:
+            execute_query("DELETE FROM recommendation_history WHERE user_id=%s", (user_id,), fetch=False)
+        except Exception:
+            pass
+        return jsonify({'success': True, 'message': 'Recommendation cache cleared. Fresh suggestions will be generated.'})
+    elif reset_type == 'weak_topics':
+        execute_query("DELETE FROM weak_topics WHERE user_id=%s", (user_id,), fetch=False)
+        return jsonify({'success': True, 'message': 'Weak topics history reset.'})
+    elif reset_type == 'all':
+        try:
+            execute_query("DELETE FROM recommendation_history WHERE user_id=%s", (user_id,), fetch=False)
+        except Exception:
+            pass
+        execute_query("DELETE FROM weak_topics WHERE user_id=%s", (user_id,), fetch=False)
+        return jsonify({'success': True, 'message': 'Learning activity and recommendation history reset.'})
+
+    return jsonify({'success': False, 'message': 'Invalid reset option.'}), 400

@@ -328,7 +328,7 @@
                     <i class="fas fa-th-large"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="/dashboard#recommended" class="learnai-menu-item">
+                <a href="/recommended-videos" class="learnai-menu-item {{ 'active' if request.path in ['/recommended-videos', '/recommendations'] else '' }}">
                     <i class="fas fa-play-circle"></i>
                     <span>Recommended Videos</span>
                 </a>
@@ -348,17 +348,12 @@
                     <i class="fas fa-robot"></i>
                     <span>Chatbot</span>
                 </a>
-            </div>
-
-            <div class="learnai-sidebar-footer">
-                <a href="/learning-preferences" class="learnai-menu-item {{ 'active' if request.path == '/learning-preferences' else '' }}">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                {% if session.user_role == 'admin' %}
+                <a href="/admin/dashboard" class="learnai-menu-item" style="color: #ef4444;">
+                    <i class="fas fa-shield-alt" style="color: #ef4444;"></i>
+                    <span>Admin Panel</span>
                 </a>
-                <a href="{{ url_for('auth.logout') }}" class="learnai-menu-item">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Log Out</span>
-                </a>
+                {% endif %}
             </div>
         </nav>
 

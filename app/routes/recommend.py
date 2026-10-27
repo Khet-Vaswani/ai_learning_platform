@@ -1,13 +1,14 @@
 # ============================================================
-# recommend.py — MoE Recommendation Routes
+# recommend.py — MoE Recommendation Routes (Robust & Resilient)
 # ============================================================
 
 from flask import Blueprint, jsonify, session
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
-from app.ai.moe_engine import TransformerMoE, FIELD_TOPICS
+from app.ai.moe_engine import TransformerMoE, FIELD_TOPICS, get_topics_for_field
+from app.routes.youtube import is_entertainment_query, filter_educational_videos
 from googleapiclient.discovery import build
-import os, time, json
+import os, time, json, re
 
 recommend_bp = Blueprint('recommend', __name__)
 
@@ -15,35 +16,160 @@ _cache       = {}
 CACHE_EXPIRY = 900  # 15 min
 
 
-FALLBACK = [
-    {'video_id':'_uQrJ0TkZlc', 'title':'Python Full Course',         'channel':'Programming with Mosh',  'thumbnail':'https://img.youtube.com/vi/_uQrJ0TkZlc/mqdefault.jpg'},
-    {'video_id':'rfscVS0vtbw', 'title':'Learn Python in 4 Hours',    'channel':'freeCodeCamp',            'thumbnail':'https://img.youtube.com/vi/rfscVS0vtbw/mqdefault.jpg'},
-    {'video_id':'G3e-cpL7ofc', 'title':'HTML CSS JS Full Course',     'channel':'SuperSimpleDev',          'thumbnail':'https://img.youtube.com/vi/G3e-cpL7ofc/mqdefault.jpg'},
-    {'video_id':'GwIo3gDZCVQ', 'title':'Machine Learning Course',     'channel':'Simplilearn',             'thumbnail':'https://img.youtube.com/vi/GwIo3gDZCVQ/mqdefault.jpg'},
-    {'video_id':'nu_pCVPKzTk', 'title':'Flask Tutorial',             'channel':'Tech With Tim',           'thumbnail':'https://img.youtube.com/vi/nu_pCVPKzTk/mqdefault.jpg'},
-    {'video_id':'8hly31xKli0', 'title':'Algorithms & Data Structures','channel':'freeCodeCamp',            'thumbnail':'https://img.youtube.com/vi/8hly31xKli0/mqdefault.jpg'},
-    {'video_id':'W6NZfCO5SIk', 'title':'JavaScript Tutorial',        'channel':'Programming with Mosh',  'thumbnail':'https://img.youtube.com/vi/W6NZfCO5SIk/mqdefault.jpg'},
-    {'video_id':'ua-CiDNNj30', 'title':'Data Science Full Course',   'channel':'freeCodeCamp',            'thumbnail':'https://img.youtube.com/vi/ua-CiDNNj30/mqdefault.jpg'},
+# ════════════════════════════════════════════════════════════
+# DOMAIN-SPECIFIC FALLBACK VIDEO CATALOG
+# ════════════════════════════════════════════════════════════
+FALLBACK_CATALOG = {
+    # ── Computer Science & Programming ───────────────────────
+    'software': [
+        {'video_id': '8hly31xKli0', 'title': 'Software Engineering & System Design', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/8hly31xKli0/mqdefault.jpg'},
+        {'video_id': '_uQrJ0TkZlc', 'title': 'Python Full Course for Beginners', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/_uQrJ0TkZlc/mqdefault.jpg'},
+    ],
+    'computer': [
+        {'video_id': '_uQrJ0TkZlc', 'title': 'Python Programming & CS Foundations', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/_uQrJ0TkZlc/mqdefault.jpg'},
+        {'video_id': '8hly31xKli0', 'title': 'Algorithms & Data Structures Full Course', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/8hly31xKli0/mqdefault.jpg'},
+    ],
+    'python': [
+        {'video_id': '_uQrJ0TkZlc', 'title': 'Python Full Course for Beginners', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/_uQrJ0TkZlc/mqdefault.jpg'},
+        {'video_id': 'rfscVS0vtbw', 'title': 'Learn Python in 4 Hours', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/rfscVS0vtbw/mqdefault.jpg'},
+    ],
+    'javascript': [
+        {'video_id': 'W6NZfCO5SIk', 'title': 'JavaScript Tutorial for Beginners', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/W6NZfCO5SIk/mqdefault.jpg'},
+        {'video_id': 'PkZNo7MFNFg', 'title': 'Learn JavaScript Full Course', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/PkZNo7MFNFg/mqdefault.jpg'},
+    ],
+    'web': [
+        {'video_id': 'G3e-cpL7ofc', 'title': 'HTML CSS JS Full Course', 'channel': 'SuperSimpleDev', 'thumbnail': 'https://img.youtube.com/vi/G3e-cpL7ofc/mqdefault.jpg'},
+        {'video_id': 'nu_pCVPKzTk', 'title': 'Flask Web Development Tutorial', 'channel': 'Tech With Tim', 'thumbnail': 'https://img.youtube.com/vi/nu_pCVPKzTk/mqdefault.jpg'},
+    ],
+    'algorithm': [
+        {'video_id': '8hly31xKli0', 'title': 'Algorithms & Data Structures Full Course', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/8hly31xKli0/mqdefault.jpg'},
+        {'video_id': 'BBpAmxU_NQo', 'title': 'Data Structures Easy to Advanced', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/BBpAmxU_NQo/mqdefault.jpg'},
+    ],
+    'machine learning': [
+        {'video_id': 'GwIo3gDZCVQ', 'title': 'Machine Learning Full Course', 'channel': 'Simplilearn', 'thumbnail': 'https://img.youtube.com/vi/GwIo3gDZCVQ/mqdefault.jpg'},
+        {'video_id': 'aircAruvnKk', 'title': 'Neural Networks Explained Visually', 'channel': '3Blue1Brown', 'thumbnail': 'https://img.youtube.com/vi/aircAruvnKk/mqdefault.jpg'},
+    ],
+    'data': [
+        {'video_id': 'ua-CiDNNj30', 'title': 'Data Science Full Course for Beginners', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/ua-CiDNNj30/mqdefault.jpg'},
+        {'video_id': 'LHBE6Q9XlzI', 'title': 'Python for Data Science Tutorial', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/LHBE6Q9XlzI/mqdefault.jpg'},
+    ],
+    'database': [
+        {'video_id': 'HXV3zeRR3h4', 'title': 'SQL Tutorial - Full Database Course', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/HXV3zeRR3h4/mqdefault.jpg'},
+        {'video_id': '7S_tz1z_5bA', 'title': 'MySQL Full Course for Beginners', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/7S_tz1z_5bA/mqdefault.jpg'},
+    ],
+    'cloud': [
+        {'video_id': 'ulprqHHWlng', 'title': 'AWS Certified Cloud Practitioner Course', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/ulprqHHWlng/mqdefault.jpg'},
+        {'video_id': 'fqMOX6JJhGo', 'title': 'Docker Tutorial for Beginners', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/fqMOX6JJhGo/mqdefault.jpg'},
+    ],
+    'cybersecurity': [
+        {'video_id': 'inWWhr5tnEA', 'title': 'Cyber Security Full Course for Beginners', 'channel': 'Simplilearn', 'thumbnail': 'https://img.youtube.com/vi/inWWhr5tnEA/mqdefault.jpg'},
+    ],
+
+    # ── Medicine & Biology ───────────────────────────────────
+    'medicine': [
+        {'video_id': 'uBGl2BujkPQ', 'title': 'Human Anatomy & Physiology Introduction', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/uBGl2BujkPQ/mqdefault.jpg'},
+        {'video_id': 'fR3NxCR9z2U', 'title': 'Cellular Respiration and Biology Basics', 'channel': 'Amoeba Sisters', 'thumbnail': 'https://img.youtube.com/vi/fR3NxCR9z2U/mqdefault.jpg'},
+    ],
+    'anatomy': [
+        {'video_id': 'uBGl2BujkPQ', 'title': 'Human Anatomy Overview', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/uBGl2BujkPQ/mqdefault.jpg'},
+    ],
+    'biology': [
+        {'video_id': 'QnQe0xW_JY4', 'title': 'Introduction to Biology', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/QnQe0xW_JY4/mqdefault.jpg'},
+        {'video_id': '8IlzKri08kk', 'title': 'DNA Structure and Replication', 'channel': 'Amoeba Sisters', 'thumbnail': 'https://img.youtube.com/vi/8IlzKri08kk/mqdefault.jpg'},
+    ],
+
+    # ── Engineering & Physical Sciences ─────────────────────
+    'physics': [
+        {'video_id': 'ZM8ECpBvc0I', 'title': 'Physics Mechanics: Motion & Newton\'s Laws', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/ZM8ECpBvc0I/mqdefault.jpg'},
+        {'video_id': 'ihNZlp7iUHE', 'title': 'Electric Charge and Circuit Theory', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/ihNZlp7iUHE/mqdefault.jpg'},
+    ],
+    'chemistry': [
+        {'video_id': 'FSyAehMdpyI', 'title': 'The Nucleus: Chemistry Crash Course', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/FSyAehMdpyI/mqdefault.jpg'},
+        {'video_id': 'bka20Q9TN6M', 'title': 'Periodic Table & Chemical Bonds', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/bka20Q9TN6M/mqdefault.jpg'},
+    ],
+    'math': [
+        {'video_id': 'WSstjN89q4w', 'title': 'Calculus 1 Full Course', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/WSstjN89q4w/mqdefault.jpg'},
+        {'video_id': 'fNk_zzaMoSs', 'title': 'Essence of Linear Algebra', 'channel': '3Blue1Brown', 'thumbnail': 'https://img.youtube.com/vi/fNk_zzaMoSs/mqdefault.jpg'},
+    ],
+    'engineering': [
+        {'video_id': 'btGYcizV0iI', 'title': 'Introduction to Mechanical Engineering', 'channel': 'The Engineering Mindset', 'thumbnail': 'https://img.youtube.com/vi/btGYcizV0iI/mqdefault.jpg'},
+        {'video_id': 'mc979OhitAg', 'title': 'How Electricity Works - Circuit Basics', 'channel': 'The Engineering Mindset', 'thumbnail': 'https://img.youtube.com/vi/mc979OhitAg/mqdefault.jpg'},
+    ],
+
+    # ── Business & Economics ─────────────────────────────────
+    'business': [
+        {'video_id': 'd8u3CN5v078', 'title': 'Principles of Management & Business', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/d8u3CN5v078/mqdefault.jpg'},
+        {'video_id': 'y8Tr4JgWvT4', 'title': 'Accounting Principles & Bookkeeping Basics', 'channel': 'Accounting Stuff', 'thumbnail': 'https://img.youtube.com/vi/y8Tr4JgWvT4/mqdefault.jpg'},
+    ],
+    'finance': [
+        {'video_id': 'y8Tr4JgWvT4', 'title': 'Financial Accounting Fundamentals', 'channel': 'Accounting Stuff', 'thumbnail': 'https://img.youtube.com/vi/y8Tr4JgWvT4/mqdefault.jpg'},
+    ],
+    'economics': [
+        {'video_id': '3ez10ADR_gM', 'title': 'Intro to Economics: Crash Course Econ #1', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/3ez10ADR_gM/mqdefault.jpg'},
+    ],
+
+    # ── Law & Social Sciences ────────────────────────────────
+    'law': [
+        {'video_id': 'mIXGDn67rXo', 'title': 'Introduction to Law & Legal Systems', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/mIXGDn67rXo/mqdefault.jpg'},
+        {'video_id': '0b0ax374hsI', 'title': 'Constitutional Law Principles', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/0b0ax374hsI/mqdefault.jpg'},
+    ],
+    'psychology': [
+        {'video_id': 'vo4pMVb0R6M', 'title': 'Intro to Psychology: Crash Course', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/vo4pMVb0R6M/mqdefault.jpg'},
+    ],
+
+    # ── School & Test Prep ───────────────────────────────────
+    'school': [
+        {'video_id': 'fNk_zzaMoSs', 'title': 'General Mathematics Concepts', 'channel': 'Khan Academy', 'thumbnail': 'https://img.youtube.com/vi/fNk_zzaMoSs/mqdefault.jpg'},
+        {'video_id': 'ZM8ECpBvc0I', 'title': 'General Science Foundations', 'channel': 'CrashCourse', 'thumbnail': 'https://img.youtube.com/vi/ZM8ECpBvc0I/mqdefault.jpg'},
+    ],
+    'english': [
+        {'video_id': 'hC_24rB5U2M', 'title': 'English Grammar & Essay Writing Masterclass', 'channel': 'Learn English Lab', 'thumbnail': 'https://img.youtube.com/vi/hC_24rB5U2M/mqdefault.jpg'},
+    ],
+    'css': [
+        {'video_id': 'mIXGDn67rXo', 'title': 'Pakistan Affairs & Governance Analysis', 'channel': 'World Affairs', 'thumbnail': 'https://img.youtube.com/vi/mIXGDn67rXo/mqdefault.jpg'},
+    ],
+}
+
+DEFAULT_FALLBACK = [
+    {'video_id': '_uQrJ0TkZlc', 'title': 'Python Full Course for Beginners', 'channel': 'Programming with Mosh', 'thumbnail': 'https://img.youtube.com/vi/_uQrJ0TkZlc/mqdefault.jpg'},
+    {'video_id': 'G3e-cpL7ofc', 'title': 'HTML CSS JS Full Course', 'channel': 'SuperSimpleDev', 'thumbnail': 'https://img.youtube.com/vi/G3e-cpL7ofc/mqdefault.jpg'},
+    {'video_id': 'GwIo3gDZCVQ', 'title': 'Machine Learning Course', 'channel': 'Simplilearn', 'thumbnail': 'https://img.youtube.com/vi/GwIo3gDZCVQ/mqdefault.jpg'},
+    {'video_id': '8hly31xKli0', 'title': 'Algorithms & Data Structures', 'channel': 'freeCodeCamp', 'thumbnail': 'https://img.youtube.com/vi/8hly31xKli0/mqdefault.jpg'},
 ]
 
-FALLBACK_MAP = {
-    'python'     : '_uQrJ0TkZlc',
-    'flask'      : 'nu_pCVPKzTk',
-    'machine'    : 'GwIo3gDZCVQ',
-    'javascript' : 'W6NZfCO5SIk',
-    'data'       : 'ua-CiDNNj30',
-    'algorithm'  : '8hly31xKli0',
-    'html'       : 'G3e-cpL7ofc',
-    'web'        : 'G3e-cpL7ofc',
-}
+
+def get_fallback_for_topic(topic, field=''):
+    """Return relevant fallback educational videos matching a topic or field."""
+    text = f"{topic} {field}".lower()
+    for kw, videos in FALLBACK_CATALOG.items():
+        if kw in text:
+            return [{**v, 'topic': topic} for v in videos]
+    return [{**v, 'topic': topic} for v in DEFAULT_FALLBACK[:2]]
+
+
+def fallback_for_query(query, reason, expert, score, topic=''):
+    """Return a single fallback item for recommendation engine."""
+    videos = get_fallback_for_topic(topic or query, query)
+    fb = videos[0] if videos else DEFAULT_FALLBACK[0]
+    return {
+        **fb,
+        'topic'      : topic or fb.get('topic', ''),
+        'reason'     : reason or '🎯 Recommended based on your field',
+        'expert'     : expert or 'history',
+        'final_score': score or 0.85,
+    }
 
 
 def get_yt():
-    return build('youtube', 'v3', developerKey=os.getenv('YOUTUBE_API_KEY'))
+    key = os.getenv('YOUTUBE_API_KEY')
+    if not key:
+        return None
+    return build('youtube', 'v3', developerKey=key)
 
 
 def is_quota_err(e):
-    return '403' in str(e) or 'quota' in str(e).lower()
+    msg = str(e).lower()
+    return '403' in msg or 'quota' in msg or 'quotaexceeded' in msg
 
 
 def get_cache(key):
@@ -59,37 +185,57 @@ def set_cache(key, data):
     _cache[key] = (data, time.time())
 
 
-from app.routes.youtube import is_entertainment_query, filter_educational_videos
-
-
-def fallback_for_query(query, reason, expert, score):
-    q = query.lower()
-    vid_id = next(
-        (v for k, v in FALLBACK_MAP.items() if k in q),
-        FALLBACK[0]['video_id']
-    )
-    fb = next((f for f in FALLBACK if f['video_id'] == vid_id), FALLBACK[0])
-    return {**fb, 'reason': reason, 'expert': expert, 'final_score': score}
-
-
 def search_youtube(yt, query, limit=5):
-    """Search YouTube and return educational video list."""
+    """
+    Search YouTube with educational filtering.
+    Does not restrict to Category 27 upfront because most university/tech
+    courses are under Science & Tech (Cat 28) or others.
+    """
     if is_entertainment_query(query):
         return []
     try:
+        # Search educational keywords
         res = yt.search().list(
-            q=query + ' educational tutorial', part='snippet', maxResults=limit,
-            type='video', videoCategoryId='27', relevanceLanguage='en', safeSearch='strict'
+            q=query + ' tutorial lecture',
+            part='snippet',
+            maxResults=limit,
+            type='video',
+            relevanceLanguage='en',
+            safeSearch='strict'
         ).execute()
+
         items = [{
-            'video_id' : i['id']['videoId'],
-            'title'    : i['snippet']['title'],
+            'video_id'   : i['id']['videoId'],
+            'title'      : i['snippet']['title'],
+            'thumbnail'  : i['snippet']['thumbnails']['medium']['url'],
+            'channel'    : i['snippet']['channelTitle'],
+            'description': i['snippet'].get('description', ''),
+        } for i in res.get('items', []) if i.get('id', {}).get('videoId')]
+
+        filtered = filter_educational_videos(items)
+        if filtered:
+            return filtered
+        if items:
+            return items
+
+        # Simpler retry if 0 results
+        res2 = yt.search().list(
+            q=query, part='snippet', maxResults=limit,
+            type='video', relevanceLanguage='en', safeSearch='strict'
+        ).execute()
+        items2 = [{
+            'video_id'   : i['id']['videoId'],
+            'title'      : i['snippet']['title'],
             'thumbnail': i['snippet']['thumbnails']['medium']['url'],
-            'channel'  : i['snippet']['channelTitle'],
-            'description': i['snippet']['description'],
-        } for i in res.get('items', [])]
-        return filter_educational_videos(items)
-    except Exception:
+            'channel'    : i['snippet']['channelTitle'],
+            'description': i['snippet'].get('description', ''),
+        } for i in res2.get('items', []) if i.get('id', {}).get('videoId')]
+        return filter_educational_videos(items2) or items2
+
+    except Exception as e:
+        if is_quota_err(e):
+            raise e
+        print(f"[YouTube Search] Notice: {e}")
         return []
 
 
@@ -98,27 +244,34 @@ def get_db_cache(query):
         "SELECT results FROM search_cache WHERE query=%s AND expires_at > NOW()",
         (query.lower(),), fetch=True
     )
-    if cached:
+    if cached and cached[0].get('results'):
         try:
-            return json.loads(cached[0]['results'])
-        except:
+            data = json.loads(cached[0]['results'])
+            if data and len(data) > 0:
+                return data
+        except Exception:
             pass
     return None
 
 
 def save_db_cache(query, videos):
-    execute_query(
-        """INSERT INTO search_cache (query, results)
-           VALUES (%s,%s)
-           ON DUPLICATE KEY UPDATE
-           results=%s, created_at=NOW(),
-           expires_at=(NOW() + INTERVAL 24 HOUR)""",
-        (query.lower(), json.dumps(videos), json.dumps(videos))
-    )
+    if not videos or len(videos) == 0:
+        return  # Never cache empty lists
+    try:
+        execute_query(
+            """INSERT INTO search_cache (query, results)
+               VALUES (%s,%s)
+               ON DUPLICATE KEY UPDATE
+               results=%s, created_at=NOW(),
+               expires_at=(NOW() + INTERVAL 24 HOUR)""",
+            (query.lower(), json.dumps(videos), json.dumps(videos))
+        )
+    except Exception:
+        pass
 
 
 # ============================================================
-# RECOMMEND VIDEOS — Main route
+# RECOMMEND VIDEOS — Main MoE Route
 # ============================================================
 @recommend_bp.route('/recommend/videos')
 @login_required
@@ -128,7 +281,7 @@ def recommend_videos():
     # Cache check
     cache_key = f"rec_{user_id}"
     cached    = get_cache(cache_key)
-    if cached:
+    if cached and len(cached) > 0:
         return jsonify({'success': True, 'recommendations': cached, 'cached': True})
 
     moe     = TransformerMoE(user_id)
@@ -154,47 +307,49 @@ def recommend_videos():
         if len(recommendations) >= 20:
             break
 
+        q_topic = q.get('topic', '')
+        q_videos = []
+
         if quota_exceeded or yt is None:
-            v = fallback_for_query(q['query'], q['reason'], q['expert'], q['final_score'])
+            v = fallback_for_query(q['query'], q['reason'], q['expert'], q['final_score'], q_topic)
             if v['video_id'] not in watched_ids:
                 recommendations.append(v)
             continue
 
         # DB cache
         db_videos = get_db_cache(q['query'])
-        if db_videos:
-            for v in db_videos[:3]:
-                if v['video_id'] not in watched_ids:
-                    recommendations.append({
-                        **v,
-                        'reason'      : q['reason'],
-                        'expert'      : q['expert'],
-                        'final_score' : q['final_score'],
-                        'priority'    : q.get('priority', 'medium'),
-                        'weight_used' : q.get('weight_used', 0),
-                    })
-            continue
+        if db_videos and len(db_videos) > 0:
+            q_videos = db_videos[:3]
 
         # YouTube API
-        try:
-            videos = search_youtube(yt, q['query'], 5)
-            save_db_cache(q['query'], videos)
-            for v in videos:
-                if v['video_id'] not in watched_ids:
-                    recommendations.append({
-                        **v,
-                        'reason'      : q['reason'],
-                        'expert'      : q['expert'],
-                        'final_score' : q['final_score'],
-                        'priority'    : q.get('priority', 'medium'),
-                        'weight_used' : q.get('weight_used', 0),
-                    })
-        except Exception as e:
-            if is_quota_err(e):
-                quota_exceeded = True
-                v = fallback_for_query(q['query'], q['reason'], q['expert'], q['final_score'])
-                if v['video_id'] not in watched_ids:
-                    recommendations.append(v)
+        if not q_videos and not quota_exceeded:
+            try:
+                yt_videos = search_youtube(yt, q['query'], 5)
+                if yt_videos and len(yt_videos) > 0:
+                    q_videos = yt_videos
+                    save_db_cache(q['query'], yt_videos)
+            except Exception as e:
+                if is_quota_err(e):
+                    quota_exceeded = True
+
+        # Fallback if YouTube search yielded no videos
+        if not q_videos:
+            v = fallback_for_query(q['query'], q['reason'], q['expert'], q['final_score'], q_topic)
+            if v['video_id'] not in watched_ids:
+                recommendations.append(v)
+            continue
+
+        for v in q_videos:
+            if v['video_id'] not in watched_ids:
+                recommendations.append({
+                    **v,
+                    'topic'       : q_topic,   # MoE topic, so watch/quiz history is logged under it
+                    'reason'      : q['reason'],
+                    'expert'      : q['expert'],
+                    'final_score' : q['final_score'],
+                    'priority'    : q.get('priority', 'medium'),
+                    'weight_used' : q.get('weight_used', 0),
+                })
 
     # Deduplicate + sort
     seen, final = set(), []
@@ -202,6 +357,12 @@ def recommend_videos():
         if r['video_id'] not in seen:
             seen.add(r['video_id'])
             final.append(r)
+
+    # Safety: Guarantee at least default fallback if empty
+    if not final:
+        default_fb = get_fallback_for_topic(moe.data.get('field', ''), '')
+        for fb in default_fb:
+            final.append(fallback_for_query(fb.get('title', ''), 'Recommended for your field', 'history', 0.90))
 
     final.sort(key=lambda x: x['final_score'], reverse=True)
     result = final[:20]
@@ -227,26 +388,23 @@ def preference_videos():
     user_id = session['user_id']
 
     user_prefs = execute_query(
-        "SELECT field_of_interest, skill_level FROM users WHERE id=%s",
+        "SELECT field_of_interest, education_category, skill_level FROM users WHERE id=%s",
         (user_id,), fetch=True
     )
 
-    if not user_prefs or not user_prefs[0]['field_of_interest']:
-        return jsonify({'success': False, 'message': 'No preferences set'})
+    field     = ''
+    skill_lvl = 'Beginner'
 
-    field     = user_prefs[0]['field_of_interest']
-    skill_lvl = user_prefs[0]['skill_level'] or 'Beginner'
+    if user_prefs:
+        field     = user_prefs[0].get('field_of_interest') or user_prefs[0].get('education_category') or ''
+        skill_lvl = user_prefs[0].get('skill_level') or 'Beginner'
 
-    # Use robust resolver
-    from app.ai.moe_engine import get_topics_for_field
+    if not field:
+        field = session.get('field_of_interest') or session.get('education_category') or 'Computer Science'
+
     topics = get_topics_for_field(field)
-
     if not topics:
-        return jsonify({
-            'success'    : False,
-            'message'    : f"Field '{field}' not recognized",
-            'field'      : field,
-        })
+        topics = ['Computer Science', 'Web Development', 'Python Programming', 'General Knowledge']
 
     suffix_map = {
         'Beginner'    : 'complete beginners tutorial',
@@ -257,12 +415,13 @@ def preference_videos():
 
     cache_key = f"pref_{user_id}_{field}_{skill_lvl}"
     cached    = get_cache(cache_key)
-    if cached:
+    if cached and len(cached) > 0:
         return jsonify({
             'success'    : True,
             'videos'     : cached,
             'field'      : field,
             'skill_level': skill_lvl,
+            'total'      : len(cached),
         })
 
     videos         = []
@@ -278,36 +437,43 @@ def preference_videos():
         if len(videos) >= 12:
             break
 
-        query = f"{topic} {suffix}"
+        query        = f"{topic} {suffix}"
+        topic_videos = []
 
-        if quota_exceeded or yt is None:
-            idx = len(videos) % len(FALLBACK)
-            videos.append({**FALLBACK[idx], 'topic': topic})
-            continue
-
+        # 1. DB cache check (only non-empty results)
         db_videos = get_db_cache(query)
-        if db_videos:
-            for v in db_videos[:3]:
-                videos.append({**v, 'topic': topic})
-            continue
+        if db_videos and len(db_videos) > 0:
+            topic_videos = [v for v in db_videos if isinstance(v, dict) and v.get('video_id')][:3]
 
-        try:
-            yt_videos = search_youtube(yt, query, 3)
-            save_db_cache(query, yt_videos)
-            for v in yt_videos:
-                videos.append({**v, 'topic': topic})
-        except Exception as e:
-            if is_quota_err(e):
-                quota_exceeded = True
-                idx = len(videos) % len(FALLBACK)
-                videos.append({**FALLBACK[idx], 'topic': topic})
+        # 2. YouTube API search
+        if not topic_videos and not quota_exceeded and yt is not None:
+            try:
+                yt_videos = search_youtube(yt, query, 3)
+                if yt_videos and len(yt_videos) > 0:
+                    topic_videos = yt_videos
+                    save_db_cache(query, yt_videos)
+            except Exception as e:
+                if is_quota_err(e):
+                    quota_exceeded = True
+
+        # 3. Domain-specific fallback if YouTube API unavailable, empty or failed
+        if not topic_videos:
+            topic_videos = get_fallback_for_topic(topic, field)
+
+        for v in topic_videos:
+            videos.append({**v, 'topic': topic})
 
     # Deduplicate
     seen, final = set(), []
     for v in videos:
-        if v['video_id'] not in seen:
+        if v.get('video_id') and v['video_id'] not in seen:
             seen.add(v['video_id'])
             final.append(v)
+
+    # Guaranteed fallback if still empty
+    if not final:
+        for fb in get_fallback_for_topic(field, field):
+            final.append({**fb, 'topic': field})
 
     if final:
         set_cache(cache_key, final)

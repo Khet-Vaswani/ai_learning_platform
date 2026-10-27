@@ -84,8 +84,9 @@ async function fetchTranscript(videoId) {
     const srcBadge = document.getElementById('notesSourceBadge');
 
     try {
-        // Try backend transcript endpoint
-        const data = await fetch(`/youtube/transcript?video_id=${videoId}`)
+        // Try backend transcript endpoint with videoId and title
+        const titleParam = encodeURIComponent(currentVideo.title || '');
+        const data = await fetch(`/youtube/transcript?video_id=${videoId}&title=${titleParam}`)
             .then(r => r.json());
 
         if (data.success && data.transcript && data.transcript.trim().length > 100) {

@@ -697,12 +697,16 @@ async function onDeptChange(sel){
     var data = await r.json();
     if(data.success && data.fields.length){
       fs.innerHTML='<option value="">— Select Field of Study —</option>';
+      var seen = new Set();
       data.fields.forEach(function(f){
-        var op=document.createElement('option');
-        op.value        = f.id;
-        op.dataset.name = f.field_name;
-        op.textContent  = f.field_name;
-        fs.appendChild(op);
+        if(!seen.has(f.field_name)){
+          seen.add(f.field_name);
+          var op=document.createElement('option');
+          op.value        = f.id;
+          op.dataset.name = f.field_name;
+          op.textContent  = f.field_name;
+          fs.appendChild(op);
+        }
       });
       fs.disabled=false;
     } else {

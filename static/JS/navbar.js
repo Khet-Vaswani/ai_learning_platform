@@ -37,8 +37,11 @@ class NavbarManager {
         this.logoutBtn = document.getElementById('logoutBtn');
 
         // State
-        this.isDarkMode = localStorage.getItem('darkMode') === 'true';
-        this.recentSearches = JSON.parse(localStorage.getItem('recentSearches')) || [];
+        this.isDarkMode = false;
+        this.recentSearches = this.sanitizeRecentSearches(
+            JSON.parse(localStorage.getItem('recentSearches')) || []
+        );
+        localStorage.setItem('recentSearches', JSON.stringify(this.recentSearches));
         this.isVoiceSearching = false;
         this.recognition = null;
         this.activeSuggestionIndex = -1;
@@ -46,16 +49,16 @@ class NavbarManager {
         this.searchTimeout = null;
         this.mobileSearchTimeout = null;
 
-        // Sample Data
+        // Strictly Educational Trending Topics
         this.trendingTopics = [
             'Python Programming',
-            'Machine Learning',
-            'Web Development',
-            'Data Science',
-            'AI & Deep Learning',
-            'React.js',
-            'Cloud Computing',
-            'Cybersecurity'
+            'Machine Learning Basics',
+            'Data Structures & Algorithms',
+            'Web Development (Full Stack)',
+            'Database Systems & SQL',
+            'Artificial Intelligence',
+            'Linear Algebra & Calculus',
+            'Cybersecurity Fundamentals'
         ];
 
         this.init();
@@ -64,6 +67,7 @@ class NavbarManager {
     init() {
         this.setupEventListeners();
         this.initDarkMode();
+        this.loadNotifications();
         this.setupVoiceSearch();
         this.loadTrendingTopics();
         this.setupClickOutside();
@@ -85,10 +89,20 @@ class NavbarManager {
         this.voiceSearchBtn?.addEventListener('click', () => this.toggleVoiceSearch('desktop'));
         this.mobileVoiceBtn?.addEventListener('click', () => this.toggleVoiceSearch('mobile'));
 
-        // Notification Button
+        // Notification Button & Mark All Read
         this.notificationBtn?.addEventListener('click', (e) => this.togglePanel(e, this.notificationPanel));
+        document.getElementById('markAllReadBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.markAllNotificationsRead();
+        });
 
-        // Theme Toggle
+        // Clear Recent Searches
+        document.getElementById('clearRecentSearchesBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.clearRecentSearches();
+        });
+
+        // Theme Toggle (if exists)
         this.themeToggleBtn?.addEventListener('click', () => this.toggleDarkMode());
 
         // Profile Button
@@ -168,6 +182,14 @@ class NavbarManager {
                 item.addEventListener('click', () => this.selectSuggestion(search));
                 this.suggestionsList.appendChild(item);
             });
+        } else {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item disabled';
+            item.style.cursor = 'default';
+            item.style.fontSize = '0.76rem';
+            item.style.color = '#94a3b8';
+            item.innerHTML = `<i class="fas fa-graduation-cap text-primary"></i><span>Search educational topics & courses</span>`;
+            this.suggestionsList.appendChild(item);
         }
 
         // Trending Topics
@@ -175,7 +197,7 @@ class NavbarManager {
         this.trendingTopics.forEach(topic => {
             const item = document.createElement('div');
             item.className = 'trending-item';
-            item.innerHTML = `<i class="fas fa-fire"></i><span>${topic}</span>`;
+            item.innerHTML = `<i class="fas fa-book-reader text-primary"></i><span>${topic}</span>`;
             item.addEventListener('click', () => this.selectSuggestion(topic));
             this.trendingList.appendChild(item);
         });
@@ -244,12 +266,54 @@ class NavbarManager {
 
     selectSuggestion(suggestion) {
         this.searchInput.value = suggestion;
-        this.addToRecentSearches(suggestion);
         this.hideSearchSuggestions();
         this.performSearch(suggestion);
     }
 
+    isEducationalQuery(query) {
+        if (!query || !query.trim()) return false;
+        const q = query.trim().toLowerCase();
+        
+        // Entertainment / movie / song / gaming blacklists
+        const nonEduKeywords = [
+            'movie', 'movies', 'film', 'films', 'cinema', 'trailer', 'teaser',
+            'song', 'songs', 'music video', 'mp3', 'remix', 'drama', 'dramas',
+            'serial', 'serials', 'bollywood', 'hollywood', 'lollywood', 'tollywood',
+            'kdrama', 'k-drama', 'bhojpuri', 'dubbed', 'bajrangi', 'bhaijaan',
+            'airlift', 'dangal', 'pathaan', 'jawan', 'kgf', 'pushpa', 'bahubali',
+            'prank', 'pranks', 'vlog', 'vlogs', 'comedy show', 'standup', 'roast',
+            'reaction', 'tiktok', 'reels', 'shorts', 'pubg', 'free fire', 'fortnite',
+            'gta', 'roblox', 'minecraft gaming'
+        ];
+        
+        for (const kw of nonEduKeywords) {
+            if (q.includes(kw)) {
+                // If it has educational context like "film editing tutorial", permit it
+                const eduExceptions = ['tutorial', 'course', 'lecture', 'lesson', 'education', 'analysis', 'programming', 'study', 'how to', 'science', 'math'];
+                const hasException = eduExceptions.some(ex => q.includes(ex));
+                if (!hasException) return false;
+            }
+        }
+        
+        // Exact checks for single-word non-educational queries like "baby"
+        if (/^(\d+\.\s*)?baby$/i.test(q)) return false;
+
+        return true;
+    }
+
+    sanitizeRecentSearches(list) {
+        if (!Array.isArray(list)) return [];
+        return list.filter(item => typeof item === 'string' && this.isEducationalQuery(item));
+    }
+
+    clearRecentSearches() {
+        this.recentSearches = [];
+        localStorage.removeItem('recentSearches');
+        this.populateSuggestions();
+    }
+
     addToRecentSearches(search) {
+        if (!this.isEducationalQuery(search)) return;
         this.recentSearches = [search, ...this.recentSearches.filter(s => s !== search)].slice(0, 10);
         localStorage.setItem('recentSearches', JSON.stringify(this.recentSearches));
     }
@@ -322,6 +386,11 @@ class NavbarManager {
     }
 
     performSearch(query) {
+        if (!this.isEducationalQuery(query)) {
+            alert('🎓 LearnAI Platform Notice:\n\nThis platform is strictly dedicated to educational & academic content.\nSearching for movies, songs, dramas, or non-educational entertainment is not permitted.\n\nPlease search for learning subjects, tutorials, or courses (e.g. Python, Machine Learning, Data Science, Math).');
+            return;
+        }
+        this.addToRecentSearches(query);
         console.log('Searching for:', query);
         window.location.href = `/dashboard?search=${encodeURIComponent(query)}`;
     }
@@ -480,18 +549,16 @@ class NavbarManager {
 
     // ===== DARK MODE =====
     initDarkMode() {
-        if (this.isDarkMode) {
-            document.body.classList.add('dark-mode');
-        }
+        // Reset dark mode to keep bright mode consistent and clear contrast bugs
+        localStorage.removeItem('darkMode');
+        document.body.classList.remove('dark-mode');
+        this.isDarkMode = false;
     }
 
     toggleDarkMode() {
-        this.isDarkMode = !this.isDarkMode;
-        document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', this.isDarkMode);
-        
-        // Emit event for other components
-        window.dispatchEvent(new CustomEvent('themeChange', { detail: { isDarkMode: this.isDarkMode } }));
+        this.isDarkMode = false;
+        document.body.classList.remove('dark-mode');
+        localStorage.removeItem('darkMode');
     }
 
     // ===== MOBILE MENU =====
@@ -560,9 +627,101 @@ class NavbarManager {
         });
     }
 
-    // ===== NOTIFICATIONS =====
+    // ===== REAL STUDENT NOTIFICATIONS =====
+    async loadNotifications() {
+        const body = document.getElementById('notificationPanelBody');
+        const badge = this.notificationBadge;
+        try {
+            const res = await fetch('/api/notifications');
+            const data = await res.json();
+            if (!data.success) return;
+
+            const notifs = data.notifications || [];
+            const unread = data.unread_count || 0;
+
+            if (badge) {
+                badge.textContent = unread;
+                badge.style.display = unread > 0 ? 'flex' : 'none';
+            }
+
+            if (!body) return;
+
+            if (notifs.length === 0) {
+                body.innerHTML = '<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.8rem;">No notifications yet</div>';
+                return;
+            }
+
+            const iconMap = {
+                'quiz': 'fas fa-check-circle text-success',
+                'weak_topic': 'fas fa-exclamation-triangle text-warning',
+                'streak': 'fas fa-fire text-danger',
+                'plan': 'fas fa-calendar-check text-primary',
+                'welcome': 'fas fa-graduation-cap text-info',
+                'info': 'fas fa-bell text-primary'
+            };
+
+            body.innerHTML = notifs.map(n => {
+                const iconClass = iconMap[n.type] || ('fas ' + n.icon);
+                const unreadClass = n.is_read ? '' : 'unread';
+                return `
+                    <div class="notification-item ${unreadClass}" data-id="${n.id}">
+                        <div class="notification-icon">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="notification-content" style="flex: 1; min-width: 0;">
+                            <p class="notification-title" style="margin: 0 0 2px; font-weight: 700; font-size: 0.82rem; color: #0f172a;">${this.escapeHtml(n.title)}</p>
+                            <p class="notification-message" style="margin: 0 0 4px; font-size: 0.75rem; color: #64748b; line-height: 1.35;">${this.escapeHtml(n.message)}</p>
+                            <span class="notification-time" style="font-size: 0.65rem; color: #94a3b8;">${n.time_ago}</span>
+                        </div>
+                        <button class="dismiss-notification-btn" title="Dismiss" onclick="window.navbarManager?.dismissNotificationItem(${n.id}, this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (e) {
+            console.warn('Could not load notifications:', e);
+            if (body) {
+                body.innerHTML = '<div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.8rem;">No notifications at this time</div>';
+            }
+        }
+    }
+
+    async markAllNotificationsRead() {
+        try {
+            await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            if (this.notificationBadge) {
+                this.notificationBadge.style.display = 'none';
+                this.notificationBadge.textContent = '0';
+            }
+            document.querySelectorAll('#notificationPanelBody .notification-item').forEach(el => {
+                el.classList.remove('unread');
+            });
+        } catch (e) {}
+    }
+
+    async dismissNotificationItem(id, btnEl) {
+        try {
+            const item = btnEl.closest('.notification-item');
+            if (item) {
+                item.style.opacity = '0';
+                setTimeout(() => item.remove(), 200);
+            }
+            await fetch('/api/notifications/' + id + '/dismiss', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            this.clearNotification();
+        } catch (e) {}
+    }
+
     clearNotification() {
-        const newCount = Math.max(0, parseInt(this.notificationBadge.textContent) - 1);
+        const newCount = Math.max(0, parseInt(this.notificationBadge.textContent || 0) - 1);
         this.notificationBadge.textContent = newCount;
         
         if (newCount === 0) {
@@ -571,11 +730,10 @@ class NavbarManager {
     }
 
     addNotification(title, message, type = 'info') {
-        const count = parseInt(this.notificationBadge.textContent) + 1;
+        const count = parseInt(this.notificationBadge.textContent || 0) + 1;
         this.notificationBadge.textContent = count;
         this.notificationBadge.style.display = 'flex';
-        
-        this.showNotification(`${title}: ${message}`, type);
+        this.loadNotifications();
     }
 
     // ===== UTILITIES =====

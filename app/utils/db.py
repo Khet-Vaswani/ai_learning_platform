@@ -1,20 +1,46 @@
-import mysql.connector
+import mysql.connector.pooling
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+import mysql.connector
+import mysql.connector.pooling
+
+_db_pool = None
+
+def _get_pool():
+    global _db_pool
+    if _db_pool is None:
+        try:
+            _db_pool = mysql.connector.pooling.MySQLConnectionPool(
+                pool_name="ai_platform_pool",
+                pool_size=10,
+                pool_reset_session=True,
+                host=os.getenv('DB_HOST', 'localhost'),
+                port=int(os.getenv('DB_PORT', 3306)),
+                user=os.getenv('DB_USER', 'root'),
+                password=os.getenv('DB_PASSWORD', ''),
+                database=os.getenv('DB_NAME', 'ai_learning_platform'),
+            )
+        except Exception as e:
+            print(f"[WARN] Connection pool init warning: {e}")
+            return None
+    return _db_pool
+
 def get_db_connection():
     try:
-        conn = mysql.connector.connect(
-            host               = os.getenv('DB_HOST',     'localhost'),
-            port               = int(os.getenv('DB_PORT', 3306)),
-            user               = os.getenv('DB_USER',     'root'),
-            password           = os.getenv('DB_PASSWORD', ''),
-            database           = os.getenv('DB_NAME',     'ai_learning_platform'),
-            connection_timeout = 3
+        pool = _get_pool()
+        if pool:
+            return pool.get_connection()
+        return mysql.connector.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=int(os.getenv('DB_PORT', 3306)),
+            user=os.getenv('DB_USER', 'root'),
+            password=os.getenv('DB_PASSWORD', ''),
+            database=os.getenv('DB_NAME', 'ai_learning_platform'),
+            connection_timeout=3
         )
-        return conn
     except mysql.connector.Error as e:
         print(f"[ERROR] DB connection failed: {e}")
         return None

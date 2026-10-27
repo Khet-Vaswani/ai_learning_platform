@@ -93,13 +93,30 @@ def is_quota_error(e):
 
 
 ENTERTAINMENT_KEYWORDS = [
-    'drama', 'dramas', 'movie', 'movies', 'film', 'films', 'cinema',
-    'full movie', 'bollywood', 'hollywood', 'lollywood', 'kdrama', 'k-drama',
-    'serial', 'serials', 'tv serial', 'tv show', 'web series', 'trailer',
-    'official trailer', 'teaser', 'box office', 'entertainment', 'song', 'songs',
-    'music video', 'funny video', 'funny clips', 'comedy show', 'soap opera',
-    'action movie', 'romantic movie', 'horror movie', 'thriller movie',
-    'scene', 'movie scene', 'drama scene'
+    # Movies, Cinema & Film terms
+    'drama', 'dramas', 'movie', 'movies', 'film', 'films', 'cinema', 'theatre',
+    'full movie', 'full film', 'hd movie', 'action movie', 'romantic movie',
+    'horror movie', 'thriller movie', 'bollywood', 'hollywood', 'lollywood',
+    'tollywood', 'kollywood', 'bhojpuri', 'punjabi movie', 'hindi movie',
+    'south movie', 'south indian', 'dubbed movie', 'hindi dubbed',
+    # Specific popular movies/celebrity entertainment keywords
+    'bajrangi', 'bhaijaan', 'airlift', 'dangal', 'pathaan', 'jawan', 'kgf',
+    'pushpa', 'bahubali', 'animal movie', 'marvel', 'avengers', 'batman',
+    'superman', 'spiderman', 'trailer', 'official trailer', 'teaser',
+    'box office', 'box office collection', 'actor', 'actress', 'celeb', 'celebrity',
+    # Dramas & TV Shows
+    'serial', 'serials', 'tv serial', 'tv show', 'web series', 'season 1 episode',
+    'soap opera', 'kdrama', 'k-drama', 'pakistani drama', 'drama episode',
+    'scene', 'movie scene', 'drama scene',
+    # Songs & Music
+    'song', 'songs', 'music video', 'official song', 'audio song', 'video song',
+    'mp3 song', 'remix', 'dj remix', 'lyrics', 'soundtrack', 'ost', 'singing',
+    'rap song', 'hip hop song', 'punjabi song', 'hindi song', 'baby song', 'baby',
+    # Non-educational Entertainment, Comedy & Social Media
+    'entertainment', 'funny video', 'funny clips', 'comedy show', 'standup comedy',
+    'prank', 'pranks', 'vlog', 'daily vlog', 'roast', 'reaction video', 'tiktok',
+    'reels', 'shorts', 'challenge video', 'gameplay', 'gaming', 'pubg',
+    'free fire', 'gta 5', 'fortnite', 'roblox', 'minecraft gaming'
 ]
 
 EDUCATIONAL_EXCEPTIONS = [
@@ -107,7 +124,10 @@ EDUCATIONAL_EXCEPTIONS = [
     'explained', 'explanation', 'analysis', 'guide', 'study', 'how to',
     'history of', 'literature', 'acting course', 'filmmaking', 'film editing',
     'cinematography', 'script writing', 'screenwriting', 'science', 'math',
-    'python', 'programming', 'code', 'coding'
+    'mathematics', 'physics', 'chemistry', 'biology', 'python', 'programming',
+    'code', 'coding', 'algorithm', 'machine learning', 'data science',
+    'web development', 'database', 'sql', 'artificial intelligence',
+    'baby care', 'pediatrics', 'child development', 'infant'
 ]
 
 
@@ -115,7 +135,7 @@ def is_entertainment_query(query):
     """Detect if search query is purely entertainment/drama/movie without educational context."""
     if not query:
         return False
-    q = query.lower()
+    q = query.lower().strip()
 
     # Check if query matches any entertainment keyword
     has_entertainment = any(
@@ -148,14 +168,17 @@ def filter_educational_videos(videos):
             for kw in ['drama', 'dramas', 'movie', 'movies', 'film', 'films', 'cinema',
                        'full movie', 'official trailer', 'teaser', 'movie review', 'hd movie',
                        'full film', 'serial episode', 'drama episode', 'official song',
-                       'mp3 song', 'bollywood movie', 'hollywood movie', 'lollywood movie',
-                       'box office collection', 'season 1 episode', 'web series', 'tv serial']
+                       'mp3 song', 'audio song', 'video song', 'bollywood movie', 'hollywood movie',
+                       'lollywood movie', 'box office collection', 'season 1 episode',
+                       'web series', 'tv serial', 'remix', 'prank', 'standup comedy',
+                       'gameplay', 'vlog', 'bhaijaan', 'airlift', 'dubbed movie']
         )
 
         has_edu = any(
             re.search(r'\b' + re.escape(exc) + r'\b', text)
             for exc in ['tutorial', 'course', 'lecture', 'educational', 'education',
-                        'analysis', 'lesson', 'study', 'explained', 'guide', 'how to']
+                        'analysis', 'lesson', 'study', 'explained', 'guide', 'how to',
+                        'programming', 'algorithm', 'science', 'learning', 'class']
         )
 
         if has_ent and not has_edu:
@@ -230,19 +253,15 @@ def search_videos():
         })
 
     except Exception as e:
-        if is_quota_error(e):
-            print(f"⚠️ YouTube quota exceeded — using fallback for: {query}")
-            fallback = get_fallback(query)
-            return jsonify({
-                'success' : True,
-                'videos'  : fallback,
-                'query'   : query,
-                'total'   : len(fallback),
-                'fallback': True
-            })
-        else:
-            print(f"❌ YouTube error: {e}")
-            return jsonify({'success': False, 'message': str(e)})
+        print(f"⚠️ YouTube search issue ({e}) — using fallback for: {query}")
+        fallback = get_fallback(query)
+        return jsonify({
+            'success' : True,
+            'videos'  : fallback,
+            'query'   : query,
+            'total'   : len(fallback),
+            'fallback': True
+        })
 
 
 # ============================================================
@@ -549,40 +568,51 @@ def get_transcript():
     except Exception as e:
         print(f"⚠️ Whisper STT fallback failed: {e}")
 
-    # ── Step 3: Video description fallback ───────────────
+    # ── Step 3: Video description & metadata fallback ────────
     try:
-        yt = build('youtube', 'v3',
-                   developerKey=os.getenv('YOUTUBE_API_KEY'))
-        resp = yt.videos().list(
-            part='snippet',
-            id  = video_id
-        ).execute()
+        title = request.args.get('title', '').strip()
+        desc  = ''
+        tags  = ''
 
-        if resp.get('items'):
-            snippet = resp['items'][0]['snippet']
-            desc    = snippet.get('description', '')
-            title   = snippet.get('title', '')
-            tags    = ', '.join(snippet.get('tags', [])[:10])
+        try:
+            yt = build('youtube', 'v3', developerKey=os.getenv('YOUTUBE_API_KEY'))
+            resp = yt.videos().list(part='snippet', id=video_id).execute()
+            if resp.get('items'):
+                snippet = resp['items'][0]['snippet']
+                title   = snippet.get('title', '') or title
+                desc    = snippet.get('description', '')
+                tags    = ', '.join(snippet.get('tags', [])[:10])
+        except Exception as yt_err:
+            print(f"⚠️ YouTube API metadata lookup notice: {yt_err}")
 
-            if desc and len(desc) > 100:
-                fallback_text = (
-                    f"Video Title: {title}\n\n"
-                    f"Description: {desc[:2000]}\n\n"
-                    f"Tags: {tags}"
-                )
-                word_count = len(fallback_text.split())
-                language   = _detect_language(fallback_text)
-                _save_transcript_cache(video_id, fallback_text, 'description', word_count)
+        # If title is still missing, check watched_videos
+        if not title:
+            w_row = execute_query(
+                "SELECT video_title, topic FROM watched_videos WHERE video_id=%s ORDER BY watched_at DESC LIMIT 1",
+                (video_id,), fetch=True
+            )
+            if w_row:
+                title = w_row[0].get('video_title') or w_row[0].get('topic') or ''
 
-                print(f"✅ Description fallback: {word_count} words | language={language}")
-                return jsonify({
-                    'success'   : True,
-                    'transcript': fallback_text,
-                    'source'    : 'description',
-                    'language'  : language,
-                    'length'    : word_count,
-                    'cached'    : False,
-                })
+        if title or desc:
+            fallback_text = (
+                f"Video Title: {title}\n\n"
+                f"Summary & Overview: {desc[:2500] if desc else 'Educational tutorial lecture on ' + (title or 'this topic') + '. Covers core conceptual foundations, step-by-step guidance, and practical examples.'}\n\n"
+                f"Key Topics: {tags if tags else (title or 'General Educational Subject')}"
+            )
+            word_count = len(fallback_text.split())
+            language   = _detect_language(fallback_text)
+            _save_transcript_cache(video_id, fallback_text, 'metadata', word_count)
+
+            print(f"✅ Metadata overview generated: {word_count} words | language={language}")
+            return jsonify({
+                'success'   : True,
+                'transcript': fallback_text,
+                'source'    : 'description',
+                'language'  : language,
+                'length'    : word_count,
+                'cached'    : False,
+            })
     except Exception as e:
         print(f"⚠️ Description fallback error: {e}")
 

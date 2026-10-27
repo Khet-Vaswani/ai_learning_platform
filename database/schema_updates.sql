@@ -32,11 +32,12 @@ CREATE TABLE IF NOT EXISTS student_classes (
     category_id         INT NOT NULL,
     class_label         VARCHAR(50) NOT NULL,
     display_order       INT DEFAULT 0,
+    UNIQUE KEY uq_cat_class (category_id, class_label),
     FOREIGN KEY (category_id) REFERENCES educational_categories(id) ON DELETE CASCADE
 );
 
 -- Primary: Classes 1-5
-INSERT INTO student_classes (category_id, class_label, display_order) VALUES
+INSERT IGNORE INTO student_classes (category_id, class_label, display_order) VALUES
 (1, 'Class 1', 1),
 (1, 'Class 2', 2),
 (1, 'Class 3', 3),
@@ -44,18 +45,18 @@ INSERT INTO student_classes (category_id, class_label, display_order) VALUES
 (1, 'Class 5', 5);
 
 -- Secondary: Classes 6-8
-INSERT INTO student_classes (category_id, class_label, display_order) VALUES
+INSERT IGNORE INTO student_classes (category_id, class_label, display_order) VALUES
 (2, 'Class 6', 1),
 (2, 'Class 7', 2),
 (2, 'Class 8', 3);
 
 -- Matriculation: Classes 9-10
-INSERT INTO student_classes (category_id, class_label, display_order) VALUES
+INSERT IGNORE INTO student_classes (category_id, class_label, display_order) VALUES
 (3, 'Class 9', 1),
 (3, 'Class 10', 2);
 
 -- Intermediate: Streams
-INSERT INTO student_classes (category_id, class_label, display_order) VALUES
+INSERT IGNORE INTO student_classes (category_id, class_label, display_order) VALUES
 (4, 'Pre-Medical', 1),
 (4, 'Pre-Engineering', 2),
 (4, 'Commerce', 3),
@@ -93,11 +94,12 @@ CREATE TABLE IF NOT EXISTS university_fields_of_study (
     department_id   INT NOT NULL,
     field_name      VARCHAR(100) NOT NULL,
     display_order   INT DEFAULT 0,
+    UNIQUE KEY uq_dept_field (department_id, field_name),
     FOREIGN KEY (department_id) REFERENCES university_departments(id) ON DELETE CASCADE
 );
 
 -- Computer Science fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (1, 'Software Engineering', 1),
 (1, 'Data Science & AI', 2),
 (1, 'Web Development', 3),
@@ -107,7 +109,7 @@ INSERT INTO university_fields_of_study (department_id, field_name, display_order
 (1, 'Cloud Computing', 7);
 
 -- Engineering fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (2, 'Mechanical Engineering', 1),
 (2, 'Electrical Engineering', 2),
 (2, 'Civil Engineering', 3),
@@ -116,7 +118,7 @@ INSERT INTO university_fields_of_study (department_id, field_name, display_order
 (2, 'Aerospace Engineering', 6);
 
 -- Business fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (3, 'Finance & Banking', 1),
 (3, 'Marketing', 2),
 (3, 'Human Resources', 3),
@@ -125,7 +127,7 @@ INSERT INTO university_fields_of_study (department_id, field_name, display_order
 (3, 'Entrepreneurship', 6);
 
 -- Law fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (4, 'Constitutional Law', 1),
 (4, 'Criminal Law', 2),
 (4, 'Commercial Law', 3),
@@ -133,7 +135,7 @@ INSERT INTO university_fields_of_study (department_id, field_name, display_order
 (4, 'Administrative Law', 5);
 
 -- Medicine fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (5, 'Medicine', 1),
 (5, 'Nursing', 2),
 (5, 'Pharmacy', 3),
@@ -142,7 +144,7 @@ INSERT INTO university_fields_of_study (department_id, field_name, display_order
 (5, 'Physiotherapy', 6);
 
 -- Arts fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (6, 'English Literature', 1),
 (6, 'History', 2),
 (6, 'Philosophy', 3),
@@ -150,21 +152,21 @@ INSERT INTO university_fields_of_study (department_id, field_name, display_order
 (6, 'Linguistics', 5);
 
 -- Education fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (7, 'Educational Psychology', 1),
 (7, 'Curriculum Development', 2),
 (7, 'Higher Education', 3),
 (7, 'Special Education', 4);
 
 -- Social Sciences fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (8, 'Sociology', 1),
 (8, 'Political Science', 2),
 (8, 'Economics', 3),
 (8, 'Anthropology', 4);
 
 -- Agricultural fields
-INSERT INTO university_fields_of_study (department_id, field_name, display_order) VALUES
+INSERT IGNORE INTO university_fields_of_study (department_id, field_name, display_order) VALUES
 (9, 'Agriculture', 1),
 (9, 'Environmental Science', 2),
 (9, 'Biology', 3),
@@ -178,6 +180,13 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS student_class_id INT DEFAULT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS university_department_id INT DEFAULT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS university_field_id INT DEFAULT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS learning_level ENUM('Beginner','Intermediate','Advanced') DEFAULT 'Beginner';
+-- Denormalized names used by onboarding, dashboard, settings, admin and MoE engine
+ALTER TABLE users ADD COLUMN IF NOT EXISTS education_category VARCHAR(100) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department VARCHAR(150) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic VARCHAR(255) DEFAULT 'default.png';
+UPDATE users u JOIN educational_categories c ON c.id = u.educational_category_id
+    SET u.education_category = c.name
+    WHERE u.education_category IS NULL;
 
 ALTER TABLE users ADD CONSTRAINT fk_user_category 
     FOREIGN KEY (educational_category_id) REFERENCES educational_categories(id);

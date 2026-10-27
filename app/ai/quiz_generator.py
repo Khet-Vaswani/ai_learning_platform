@@ -472,17 +472,17 @@ def generate_quiz(
     # ── Save to DB ────────────────────────────────────────
     db_difficulty = LEVEL_TO_DB.get(difficulty, 'Medium')
     try:
-        try:
-            quiz_id = execute_query(
-                """INSERT INTO video_quizzes
-                   (user_id, video_id, video_title, topic, questions, total,
-                    notes_source, transcript_length)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-                (user_id, video_id, video_title, topic,
-                 json.dumps(all_questions), len(all_questions),
-                 content_source, len(transcript) if transcript else 0)
-            )
-        except Exception:
+        quiz_id = execute_query(
+            """INSERT INTO video_quizzes
+               (user_id, video_id, video_title, topic, questions, total,
+                notes_source, transcript_length)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (user_id, video_id, video_title, topic,
+             json.dumps(all_questions), len(all_questions),
+             content_source, len(transcript) if transcript else 0)
+        )
+        if quiz_id is False:
+            # execute_query returns False on failure; retry without newer columns
             quiz_id = execute_query(
                 """INSERT INTO video_quizzes
                    (user_id, video_id, video_title, topic, questions, total)

@@ -6,10 +6,23 @@
 
 from flask import (Blueprint, request, jsonify,
                    redirect, url_for, session, make_response)
-from app.utils.db import execute_query
+from app.utils.db import execute_query as _raw_query
 from functools import wraps
-import bcrypt, json, math
+import bcrypt, json, math, html
 import builtins as _b
+
+
+def execute_query(query, params=None, fetch=True):
+    """Like db.execute_query, but HTML-escapes string values in result rows.
+
+    This module builds pages with f-strings, so student-controlled values
+    (names, emails, topics, video titles) must be escaped before rendering.
+    """
+    res = _raw_query(query, params, fetch)
+    if isinstance(res, list):
+        return [{k: html.escape(v) if isinstance(v, str) else v for k, v in row.items()}
+                for row in res]
+    return res
 
 _min = _b.min
 _abs = _b.abs
@@ -467,8 +480,15 @@ document.addEventListener('DOMContentLoaded', () => {{
 
 
 # ============================================================
-# LOGIN
+# LOGIN & ADMIN ROOT
 # ============================================================
+@admin_bp.route('/admin')
+@admin_bp.route('/admin/')
+def admin_root():
+    if session.get('user_role') == 'admin':
+        return redirect('/admin/dashboard')
+    return redirect('/admin/login')
+
 @admin_bp.route('/admin/login', methods=['GET','POST'])
 def admin_login():
     if session.get('user_role') == 'admin':
@@ -477,12 +497,14 @@ def admin_login():
     if request.method == 'POST':
         email    = request.form.get('email','').strip().lower()
         password = request.form.get('password','')
-        user     = execute_query(
+        user     = _raw_query(
             "SELECT * FROM users WHERE email=%s AND role='admin'",
             (email,), fetch=True
         )
-        if not user:
-            error = 'Admin account not found.'
+        if user is False:
+            error = 'Database connection failed. Please ensure MySQL server is running.'
+        elif not user:
+            error = 'Admin account not found or role is not admin.'
         else:
             try:
                 ok = bcrypt.checkpw(password.encode(), user[0]['password'].encode())
@@ -980,7 +1002,8 @@ def admin_students():
     if not rows:
         rows = '<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8">No students found.</td></tr>'
 
-    cat_opts = ''.join(f'<option value="{c["education_category"]}" {"selected" if c["education_category"]==cat else ""}>{c["education_category"]}</option>' for c in cats)
+    cat_opts = ''.join(f'<option value="{c["education_category"]}" {"selected" if c["education_category"]==html.escape(cat) else ""}>{c["education_category"]}</option>' for c in cats)
+    search_val = html.escape(search)
 
     body = f'''
 <div class="hero d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -994,7 +1017,7 @@ def admin_students():
 <div class="cb">
   <div class="ch flex-wrap gap-2">
     <form method="GET" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <input type="text" name="q" value="{search}" class="inp"
+      <input type="text" name="q" value="{search_val}" class="inp"
              placeholder="Search name or email..." style="min-width:200px">
       <select name="cat" class="inp">
         <option value="">All Categories</option>
@@ -1698,39 +1721,66 @@ def moe_evaluation():
         k       = 10
         rec_k   = rec_topics[:k]
         rel_set = set(relevant)
-        hits    = sum(1 for t in rec_k if t in rel_set)
-        prec    = round(hits/k,4) if k else 0
-        rec_v   = round(hits/len(rel_set),4) if rel_set else 0
-        dcg     = sum(1/math.log2(i+2) for i,t in enumerate(rec_k) if t in rel_set)
-        idcg    = sum(1/math.log2(i+2) for i in range(_min(len(rel_set),k)))
-        ndcg    = round(dcg/idcg,4) if idcg else 0
-        hr      = 1 if any(t in rel_set for t in rec_k) else 0
-        lir     = 0.0
+
+        hits = sum(1 for t in rec_k if t in rel_set)
+        prec = round(hits / k, 4) if k else 0.0
+
+        # Unique weak topics retrieved bounded by [0, 1]
+        unique_hits = len(set(rec_k) & rel_set)
+        rec_v = round(unique_hits / len(rel_set), 4) if rel_set else 0.0
+
+        # NDCG with first-time topic gain, strictly bounded in [0, 1]
+        seen_topics = set()
+        dcg = 0.0
+        for i, t in enumerate(rec_k):
+            if t in rel_set and t not in seen_topics:
+                seen_topics.add(t)
+                dcg += 1.0 / math.log2(i + 2)
+
+        ideal_count = _min(len(rel_set), k)
+        idcg = sum(1.0 / math.log2(i + 2) for i in range(ideal_count)) if ideal_count else 0.0
+        ndcg = round(min(1.0, dcg / idcg), 4) if idcg > 0 else 0.0
+
+        hr  = 1 if unique_hits > 0 else 0
+        lir = 0.0
         if len(shist) >= 2:
             first  = float(shist[0]['pct']  or 0)
             latest = float(shist[-1]['pct'] or 0)
-            lir    = round(((latest-first)/first)*100,1) if first>0 else 0.0
+            lir    = round(((latest - first) / first) * 100, 1) if first > 0 else 0.0
 
         user_metrics.append({
-            'name':s['full_name'],'precision':prec,'recall':rec_v,
-            'ndcg':ndcg,'hit_rate':hr,'lir':lir,'weights':weights,
-            'rel_count':len(relevant),'quizzes':len(perf),'watched':len(watched)
+            'name': s['full_name'], 'precision': prec, 'recall': rec_v,
+            'ndcg': ndcg, 'hit_rate': hr, 'lir': lir, 'weights': weights,
+            'rel_count': len(relevant), 'rel_set': rel_set, 'quizzes': len(perf), 'watched': len(watched)
         })
         all_p.append(prec); all_r.append(rec_v); all_n.append(ndcg)
         all_h.append(hr);   all_l.append(lir)
 
-    def avg(lst): return round(sum(lst)/len(lst),4) if lst else 0
-    sp=avg(all_p); sr=avg(all_r); sn=avg(all_n); sh=avg(all_h); sl=avg(all_l)
+    def avg(lst): return round(sum(lst) / len(lst), 4) if lst else 0
+    sp = avg(all_p); sr = avg(all_r); sn = avg(all_n); sh = avg(all_h); sl = avg(all_l)
 
+    # Proper Random Baseline: Sample topics from catalog and check true hits against rel_set
     import random
-    all_topics=['python programming','web development','machine learning','data science',
-                'javascript','database sql','algorithms','flask framework']
+    catalog_topics = execute_query(
+        "SELECT DISTINCT topic FROM video_quizzes WHERE topic IS NOT NULL",
+        fetch=True
+    ) or []
+    catalog = list({t['topic'].lower() for t in catalog_topics if t.get('topic')})
+    if len(catalog) < 5:
+        catalog = list(set(catalog + [
+            'python programming', 'web development', 'machine learning', 'data science',
+            'javascript', 'database sql', 'algorithms', 'flask framework'
+        ]))
+
     rpl = []
     for m in user_metrics:
-        if m['rel_count']==0: continue
-        rpl.append(len(random.sample(all_topics,_min(10,len(all_topics))))/10)
-    rp  = avg(rpl) if rpl else 0.10
-    mvr = round(((sp-rp)/max(rp,0.001))*100,1)
+        if not m.get('rel_set'): continue
+        rand_k = random.sample(catalog, _min(k, len(catalog)))
+        rand_hits = len(set(rand_k) & m['rel_set'])
+        rpl.append(rand_hits / k)
+
+    rp  = avg(rpl) if rpl else 0.08
+    mvr = round(((sp - rp) / max(rp, 0.001)) * 100, 1)
 
     topic_perf = execute_query(
         "SELECT topic, ROUND(AVG(score/total*100),1) as avg_score FROM video_quizzes WHERE attempted=1 AND total>0 GROUP BY topic ORDER BY avg_score ASC LIMIT 10",

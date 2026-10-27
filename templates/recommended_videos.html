@@ -1,0 +1,979 @@
+{% extends 'base.html' %}
+{% block title %}Recommended Videos — LearnAI{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #4f46e5;
+  --primary-glow: rgba(79, 70, 229, 0.15);
+  --purple: #8b5cf6;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --teal: #06b6d4;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: rgba(15, 23, 42, 0.08);
+  --text: #0f172a;
+  --muted: #64748b;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+}
+
+/* ── Hero Banner ────────────────────────────────────────── */
+.rec-hero {
+  background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.2), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(79, 70, 229, 0.18), transparent 50%),
+              linear-gradient(135deg, #0b0f19 0%, #1e1b4b 100%);
+  border-radius: var(--radius-lg);
+  padding: 32px 36px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  color: white;
+}
+
+.rec-hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  padding: 5px 14px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #c7d2fe;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 14px;
+}
+
+.rec-hero h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.rec-hero p {
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.85);
+  margin-bottom: 20px;
+  max-width: 680px;
+  line-height: 1.5;
+}
+
+.rec-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rec-pill-item {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-refresh-btn {
+  background: white;
+  color: #1e1b4b;
+  border: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 8px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.rec-refresh-btn:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+/* ── Filter & Search Bar ────────────────────────────────── */
+.rec-nav-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.rec-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rec-tab-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rec-tab-btn:hover {
+  background: #f8fafc;
+  color: var(--primary);
+}
+.rec-tab-btn.active {
+  background: #eef2ff;
+  color: var(--primary);
+  border-color: #c7d2fe;
+}
+
+.rec-search-box {
+  position: relative;
+  min-width: 260px;
+}
+.rec-search-box input {
+  width: 100%;
+  padding: 8px 36px 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.rec-search-box input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+.rec-search-box i {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+/* Quick Topic Pills */
+.rec-topic-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.rec-chip {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.rec-chip:hover {
+  background: #eef2ff;
+  color: var(--primary);
+  border-color: #c7d2fe;
+  transform: translateY(-1px);
+}
+.rec-chip.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ── Video Grid Card ────────────────────────────────────── */
+.vcard {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--card);
+  border: 1px solid var(--border);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.vcard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  border-color: rgba(79, 70, 229, 0.25);
+}
+.vthumb {
+  position: relative;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: #0f172a;
+}
+.vthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+.vcard:hover .vthumb img {
+  transform: scale(1.06);
+}
+.voverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  backdrop-filter: blur(2px);
+}
+.vcard:hover .voverlay {
+  opacity: 1;
+}
+.vplay {
+  width: 48px;
+  height: 48px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--primary);
+  transform: scale(0.8);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+.vcard:hover .vplay {
+  transform: scale(1);
+}
+.vbadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 2;
+}
+.vmatch {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(4px);
+  color: #38bdf8;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.1);
+  z-index: 2;
+}
+.vinfo {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.vtitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+.vmeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  gap: 8px;
+}
+.vtag {
+  background: #f1f5f9;
+  color: var(--muted);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vaction-btn {
+  background: #eef2ff;
+  color: var(--primary);
+  border: 1px solid #c7d2fe;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vcard:hover .vaction-btn {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ── Modal styling ──────────────────────────────────────── */
+.vmodal-wrap {
+  border-radius: 16px!important;
+  overflow: hidden;
+  border: none!important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35)!important;
+  background: #ffffff;
+}
+.vmodal-hdr {
+  background: #0f0f0f;
+  border-bottom: 1px solid #272727;
+  padding: 12px 20px;
+}
+.vbtn, .yt-pill-btn {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #e5e5e5;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f2f2f2;
+  color: #0f0f0f;
+}
+.vbtn:hover, .yt-pill-btn:hover {
+  background: #e5e5e5;
+  transform: translateY(-1px);
+}
+.vbtn-notes, .yt-pill-notes {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  border-color: rgba(79, 70, 229, 0.25);
+}
+.vbtn-notes:hover, .yt-pill-notes:hover {
+  background: rgba(79, 70, 229, 0.18);
+  color: #4338ca;
+}
+.vbtn-quiz, .yt-pill-quiz {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.vbtn-quiz:hover:not(:disabled), .yt-pill-quiz:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.18);
+  color: #047857;
+}
+.yt-pill-stat {
+  background: #f2f2f2;
+  color: #0f0f0f;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e5e5e5;
+}
+.yt-sub-btn {
+  background: #0f0f0f;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.yt-sub-btn:hover {
+  background: #272727;
+}
+
+.empty-state-box {
+  background: white;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- ── 1. Hero Banner ─────────────────────────────────── -->
+  <div class="rec-hero">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+      <div>
+        <div class="rec-hero-tag">
+          <i class="fas fa-brain"></i> AI Recommendation Engine
+        </div>
+        <h2>Recommended Learning Videos</h2>
+        <p>
+          Curated video tutorials selected dynamically for your target field 
+          <strong class="text-white">{{ field_of_interest }}</strong> and proficiency level 
+          <strong class="text-white">{{ skill_level }}</strong>.
+        </p>
+        
+        <div class="rec-pills">
+          <div class="rec-pill-item">
+            <i class="fas fa-graduation-cap text-indigo-300"></i>
+            <span>{{ field_of_interest }}</span>
+          </div>
+          <div class="rec-pill-item">
+            <i class="fas fa-layer-group text-purple-300"></i>
+            <span>{{ skill_level }}</span>
+          </div>
+          <div class="rec-pill-item">
+            <i class="fas fa-network-wired text-emerald-300"></i>
+            <span>MoE AI Active</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button class="rec-refresh-btn" onclick="refreshRecommendations()" id="refreshBtn">
+          <i class="fas fa-sync-alt" id="refreshIcon"></i>
+          <span>Refresh Picks</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. Filter Tabs & Search Bar ───────────────────── -->
+  <div class="rec-nav-card">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <!-- Tabs -->
+      <div class="rec-tabs" id="recTabGroup">
+        <button class="rec-tab-btn active" data-tab="all" onclick="selectTab('all')">
+          <i class="fas fa-robot"></i> All AI Picks
+        </button>
+        <button class="rec-tab-btn" data-tab="field" onclick="selectTab('field')">
+          <i class="fas fa-compass"></i> {{ field_of_interest }}
+        </button>
+        {% if weak_topics and weak_topics|length > 0 %}
+        <button class="rec-tab-btn" data-tab="weak" onclick="selectTab('weak')">
+          <i class="fas fa-exclamation-triangle text-amber-500"></i> Weak Topics Help
+        </button>
+        {% endif %}
+        <button class="rec-tab-btn" data-tab="trending" onclick="selectTab('trending')">
+          <i class="fas fa-fire text-red-500"></i> Popular Essentials
+        </button>
+      </div>
+
+      <!-- Quick Search Within Recommendations -->
+      <div class="rec-search-box">
+        <input type="text" id="recSearchInput" placeholder="Filter or search any topic..." value="{{ search_query }}">
+        <i class="fas fa-search" onclick="handleSearchClick()" style="cursor: pointer;"></i>
+      </div>
+    </div>
+
+    <!-- Quick topic keyword chips -->
+    <div class="rec-topic-chips" id="topicChips">
+      <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600; margin-right: 4px;">Suggestions:</span>
+      <span class="rec-chip" onclick="searchTopic('{{ field_of_interest }} full course')">{{ field_of_interest }} Full Course</span>
+      <span class="rec-chip" onclick="searchTopic('{{ field_of_interest }} for {{ skill_level }}')">{{ field_of_interest }} ({{ skill_level }})</span>
+      <span class="rec-chip" onclick="searchTopic('{{ field_of_interest }} practical project')">Hands-on Projects</span>
+      {% for wt in weak_topics[:3] %}
+      <span class="rec-chip" style="color: #d97706; background: #fffbeb; border-color: #fde68a;" onclick="searchTopic('{{ wt.topic }} tutorial')">
+        <i class="fas fa-shield-alt me-1"></i>{{ wt.topic }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── 3. Section Title & Count ───────────────────────── -->
+  <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+    <div class="d-flex align-items-center gap-2">
+      <h5 class="fw-bold mb-0" id="sectionHeading" style="font-size: 1.05rem; color: #0f172a;">
+        Recommended Videos
+      </h5>
+      <span class="badge bg-light text-muted border px-2 py-1 rounded-pill" id="videoCountBadge" style="font-size: 0.72rem;">
+        Loading...
+      </span>
+    </div>
+    <div style="font-size: 0.75rem; color: #64748b;">
+      Click any video to watch, get AI notes & take quiz
+    </div>
+  </div>
+
+  <!-- ── 4. Video Grid Container ────────────────────────── -->
+  <div class="row g-4" id="videoGrid">
+    <div class="col-12 text-center py-5">
+      <div class="spinner-border text-primary" style="width: 2.2rem; height: 2.2rem;"></div>
+      <p class="mt-3 text-muted" style="font-size: 0.85rem;">Curating the best educational videos for you...</p>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════ VIDEO PLAYER MODAL ══════════════════ -->
+<div class="modal fade" id="videoModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content vmodal-wrap">
+
+      <div class="modal-header vmodal-hdr d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fab fa-youtube text-danger fs-5"></i>
+          <h5 class="modal-title" id="modalTitle" style="color: #f1f1f1; font-size: 0.88rem; font-weight: 600; margin: 0;">Loading...</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopVideo()"></button>
+      </div>
+
+      <div class="modal-body p-0" style="background: #ffffff;">
+        <div class="row g-0">
+
+          <!-- LEFT: Video Player & Watch Details -->
+          <div class="col-lg-8" style="border-right: 1px solid #e5e5e5;">
+
+            <!-- Player wrapper -->
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; background: #000;">
+              <iframe id="ytPlayer" src="" frameborder="0" allowfullscreen
+                      style="position: absolute; inset: 0; width: 100%; height: 100%;"></iframe>
+            </div>
+
+            <!-- Video info content -->
+            <div style="padding: 18px 20px 14px; background: white;">
+              
+              <!-- 1. Video Title -->
+              <h5 id="vidTitle" style="font-size: 1.15rem; font-weight: 700; color: #0f0f0f; margin: 0 0 12px; line-height: 1.35; letter-spacing: -0.01em;"></h5>
+
+              <!-- 2. Channel Bar & Action Pills -->
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 12px;">
+                
+                <!-- Left: Channel Info -->
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div id="chanAvatar" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.88rem; font-weight: 700; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">YT</div>
+                  <div>
+                    <div id="chanName" style="font-size: 0.88rem; font-weight: 700; color: #0f0f0f; line-height: 1.2;"></div>
+                    <div id="pubDate" style="font-size: 0.72rem; color: #606060;"></div>
+                  </div>
+                  <button class="yt-sub-btn ms-2">Subscribe</button>
+                </div>
+
+                <!-- Right: Action Pills Bar -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <div class="yt-pill-stat">
+                    <i class="fas fa-thumbs-up" style="color: #606060;"></i>
+                    <span id="likeCount">—</span>
+                  </div>
+                  <div class="yt-pill-stat">
+                    <i class="fas fa-eye" style="color: #606060;"></i>
+                    <span id="viewCount">—</span>
+                  </div>
+                  
+                  <button onclick="if(window.generateNotes) generateNotes(); switchAiTab('notes');" id="notesBtn" class="yt-pill-btn yt-pill-notes">
+                    <i class="fas fa-sticky-note"></i>
+                    <span>Notes</span>
+                  </button>
+
+                  <button onclick="if(window.generateQuiz) generateQuiz(); switchAiTab('quiz');" id="quizBtn" class="yt-pill-btn yt-pill-quiz">
+                    <i class="fas fa-bolt" id="quizLockIcon"></i>
+                    <span id="quizBtnLabel">Take Quiz</span>
+                  </button>
+                </div>
+
+              </div>
+
+              <!-- YouTube Description Box -->
+              <div id="vidDesc" onclick="toggleDesc(this)"
+                   style="margin-top: 6px; padding: 12px 14px; background: #f2f2f2; border-radius: 12px; font-size: 0.78rem; color: #0f0f0f; line-height: 1.6; max-height: 62px; overflow: hidden; cursor: pointer; border: 1px solid #e5e5e5; transition: max-height 0.3s;">
+              </div>
+            </div>
+
+            <!-- AI Processing Status -->
+            <div id="aiLoadingSection" style="display: none; padding: 20px;">
+              <div class="ai-loading-container" style="text-align: center; padding: 20px;">
+                <div class="spinner-border text-primary" style="width: 2rem; height: 2rem;"></div>
+                <div class="mt-2 fw-bold text-dark" id="aiLoadingTitle">Curating Learning Content...</div>
+                <div class="text-muted small" id="aiLoadingSubtitle">This can take a few moments for speech extraction</div>
+              </div>
+            </div>
+
+            <!-- AI Learning Content Container -->
+            <div id="aiContentContainer" style="margin: 14px 20px 20px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              
+              <!-- Tab Header for Notes & Quiz -->
+              <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button id="aiTabNotesBtn" onclick="switchAiTab('notes')" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; color: #4f46e5; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
+                    📝 AI Study Notes
+                  </button>
+                  <button id="aiTabQuizBtn" onclick="switchAiTab('quiz')" style="background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem; font-weight: 600; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    ⚡ Video Quiz
+                  </button>
+                </div>
+                <span id="notesSourceBadge" style="background: rgba(79,70,229,0.08); color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 600; border: 1px solid rgba(79,70,229,0.15);"></span>
+              </div>
+
+              <!-- Notes Content View -->
+              <div id="notesSection" style="padding: 16px; display: block;">
+                <div id="notesContent" style="font-size: 0.82rem; line-height: 1.75; color: #37352f; max-height: 320px; overflow-y: auto; padding-right: 6px;"></div>
+              </div>
+
+              <!-- Quiz Content View -->
+              <div id="quizTabSection" style="padding: 16px; display: none;">
+                <div id="quizReadyBanner" style="display: none; padding: 20px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; border-radius: 12px; text-align: center;">
+                  <div style="font-size: 2rem; margin-bottom: 6px;">✅</div>
+                  <div style="font-size: 0.95rem; font-weight: 700; color: #166534; margin-bottom: 4px;">Quiz Ready!</div>
+                  <div style="font-size: 0.78rem; color: #166534; margin-bottom: 14px;">Generated from video transcript & AI study points</div>
+                  <button id="quizReadyBtn" onclick="if(window.generateQuiz) window.generateQuiz();"
+                          style="background: linear-gradient(135deg, #10b981, #047857); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
+                    <i class="fas fa-play me-2"></i>Start Interactive Quiz
+                  </button>
+                </div>
+
+                <div id="quizLockedBanner" style="padding: 24px; text-align: center; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                  <div style="font-size: 2rem; margin-bottom: 8px;">🔒</div>
+                  <div style="font-size: 0.88rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Quiz Locked</div>
+                  <div style="font-size: 0.78rem; color: #64748b;">Watch 60 seconds of video or wait for transcript to unlock the quiz.</div>
+                </div>
+              </div>
+
+            </div>
+          </div><!-- /col-lg-8 -->
+
+          <!-- RIGHT: Related Videos List -->
+          <div class="col-lg-4" style="background: #f9f9f9;">
+            <div style="height: 100%; overflow-y: auto; max-height: 640px; padding: 16px;">
+              <div style="font-size: 0.82rem; font-weight: 700; color: #0f0f0f; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="fab fa-youtube" style="color: #ff0000; font-size: 1.1rem;"></i>
+                Related Videos
+              </div>
+              <div id="relatedList">
+                <div class="text-center py-4">
+                  <div class="spinner-border spinner-border-sm text-secondary"></div>
+                </div>
+              </div>
+            </div>
+          </div><!-- /col-lg-4 -->
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ══════════ /VIDEO MODAL ═════════════════ -->
+
+<!-- INLINE QUIZ MODAL -->
+<div class="modal fade" id="quizInlineModal" tabindex="-1" aria-hidden="true" style="backdrop-filter: blur(4px);">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 18px 24px; border-bottom: none;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width: 42px; height: 42px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-bolt" style="color: #60a5fa; font-size: 1.25rem;"></i>
+          </div>
+          <div>
+            <h5 class="modal-title fw-bold mb-0" id="quizModalTitle" style="font-size: 1.1rem; color: #f8fafc;">Interactive AI Quiz</h5>
+            <small id="quizModalSub" style="color: #94a3b8; font-size: 0.8rem;">Auto-adapted to your learning level</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="if(window.closeQuizModal) closeQuizModal();"></button>
+      </div>
+      <div class="modal-body" id="quizModalBody" style="padding: 24px; max-height: 72vh; overflow-y: auto; background: #f8fafc;"></div>
+      <div class="modal-footer" id="quizModalFooter" style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/youtube.js') }}"></script>
+<script src="{{ url_for('static', filename='js/gemini.js') }}"></script>
+<script>
+var USER_CONF = {
+  field: {{ (field_of_interest or 'General Learning')|tojson }},
+  level: {{ (skill_level or 'Beginner')|tojson }},
+  isNewUser: {{ 'true' if is_new_user else 'false' }},
+  searchQuery: {{ (search_query or '')|tojson }}
+};
+
+var currentTab = 'all';
+var allFetchedVideos = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  var searchInput = document.getElementById('recSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        var q = this.value.trim();
+        if (q) searchTopic(q);
+      }
+    });
+  }
+
+  if (USER_CONF.searchQuery) {
+    searchTopic(USER_CONF.searchQuery);
+  } else {
+    loadTabContent('all');
+  }
+});
+
+function handleSearchClick() {
+  var q = document.getElementById('recSearchInput')?.value.trim();
+  if (q) searchTopic(q);
+}
+
+function selectTab(tabKey) {
+  currentTab = tabKey;
+  document.querySelectorAll('.rec-tab-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.tab === tabKey);
+  });
+  loadTabContent(tabKey);
+}
+
+async function loadTabContent(tabKey) {
+  var grid = document.getElementById('videoGrid');
+  var heading = document.getElementById('sectionHeading');
+  var badge = document.getElementById('videoCountBadge');
+
+  badge.textContent = 'Loading...';
+  grid.innerHTML = '<div class="col-12 text-center py-5">' +
+    '<div class="spinner-border text-primary" style="width: 2.2rem; height: 2.2rem;"></div>' +
+    '<p class="mt-3 text-muted" style="font-size: 0.85rem;">Finding best videos for ' + USER_CONF.field + '...</p>' +
+    '</div>';
+
+  if (tabKey === 'all') {
+    heading.textContent = 'AI Multi-Expert Recommended Videos';
+    try {
+      var res = await fetch('/recommend/videos');
+      var data = await res.json();
+      if (data.success && data.recommendations && data.recommendations.length > 0) {
+        allFetchedVideos = data.recommendations;
+        renderVideos(allFetchedVideos, 'moe');
+        return;
+      }
+    } catch(e) {}
+    // Fallback to preference videos
+    loadPreferenceVideos();
+  } else if (tabKey === 'field') {
+    heading.textContent = USER_CONF.field + ' — Core Topics';
+    loadPreferenceVideos();
+  } else if (tabKey === 'weak') {
+    heading.textContent = 'Targeted Review for Weak Quiz Topics';
+    loadWeakTopicVideos();
+  } else if (tabKey === 'trending') {
+    heading.textContent = 'Popular & Highly Rated Lessons';
+    searchTopic(USER_CONF.field + ' tutorial full course');
+  }
+}
+
+async function loadPreferenceVideos() {
+  try {
+    var res = await fetch('/recommend/preference-videos');
+    var data = await res.json();
+    if (data.success && data.videos && data.videos.length > 0) {
+      allFetchedVideos = data.videos;
+      renderVideos(allFetchedVideos, 'pref');
+    } else {
+      searchTopic(USER_CONF.field + ' ' + USER_CONF.level + ' tutorial');
+    }
+  } catch(e) {
+    searchTopic(USER_CONF.field + ' tutorial');
+  }
+}
+
+async function loadWeakTopicVideos() {
+  try {
+    var res = await fetch('/recommend/weak-topics');
+    var data = await res.json();
+    if (data.success && data.weak_topics && data.weak_topics.length > 0) {
+      var firstWeak = data.weak_topics[0].topic;
+      var q = encodeURIComponent(firstWeak + ' tutorial explanation');
+      var sRes = await fetch('/youtube/search?q=' + q + '&limit=9');
+      var sData = await sRes.json();
+      if (sData.success && sData.videos && sData.videos.length > 0) {
+        renderVideos(sData.videos.map(function(v) {
+          v.reason = 'Review for weak topic: ' + firstWeak;
+          v.expert = 'weak_topic';
+          return v;
+        }), 'weak');
+        return;
+      }
+    }
+  } catch(e) {}
+  loadPreferenceVideos();
+}
+
+async function searchTopic(query) {
+  var grid = document.getElementById('videoGrid');
+  var heading = document.getElementById('sectionHeading');
+  var badge = document.getElementById('videoCountBadge');
+  var searchInput = document.getElementById('recSearchInput');
+  if (searchInput) searchInput.value = query;
+
+  heading.textContent = 'Results for: "' + query + '"';
+  badge.textContent = 'Searching...';
+  grid.innerHTML = '<div class="col-12 text-center py-5">' +
+    '<div class="spinner-border text-primary" style="width: 2.2rem; height: 2.2rem;"></div>' +
+    '<p class="mt-3 text-muted" style="font-size: 0.85rem;">Searching educational lessons...</p>' +
+    '</div>';
+
+  try {
+    var res = await fetch('/youtube/search?q=' + encodeURIComponent(query) + '&limit=12');
+    var data = await res.json();
+    if (data.success && data.videos && data.videos.length > 0) {
+      allFetchedVideos = data.videos;
+      renderVideos(allFetchedVideos, 'search');
+    } else {
+      renderEmpty('No videos found for "' + query + '". Try a different search term.');
+    }
+  } catch(e) {
+    renderEmpty('Failed to load videos. Please check connection and refresh.');
+  }
+}
+
+function renderVideos(videos, type) {
+  var grid = document.getElementById('videoGrid');
+  var badge = document.getElementById('videoCountBadge');
+  badge.textContent = videos.length + ' videos found';
+
+  if (!videos || videos.length === 0) {
+    renderEmpty('No recommendations available right now. Click refresh or search a topic.');
+    return;
+  }
+
+  var expertStyles = {
+    'weak_topic' : {bg:'rgba(239, 68, 68, 0.9)', color:'#ffffff', label:'⚠️ Weak Topic Review'},
+    'performance': {bg:'rgba(16, 185, 129, 0.9)', color:'#ffffff', label:'📊 Mastery Goal'},
+    'history'    : {bg:'rgba(139, 92, 246, 0.9)', color:'#ffffff', label:'🎯 Personalized'},
+    'post_quiz'  : {bg:'rgba(245, 158, 11, 0.9)', color:'#ffffff', label:'⚡ Recommended Next'},
+  };
+
+  var html = '';
+  videos.forEach(function(v) {
+    var vid = v.video_id;
+    var title = v.title || 'Educational Lesson';
+    var channel = v.channel || 'Educational Channel';
+    var thumb = v.thumbnail || ('https://img.youtube.com/vi/' + vid + '/mqdefault.jpg');
+    var topic = v.topic || USER_CONF.field;
+    var reason = v.reason || ('Curated for ' + USER_CONF.field + ' (' + USER_CONF.level + ')');
+
+    var tagBadge = expertStyles[v.expert] || {
+      bg: 'rgba(79, 70, 229, 0.9)',
+      color: '#ffffff',
+      label: '✨ ' + (v.expert ? v.expert.replace('_', ' ') : 'AI Pick')
+    };
+
+    var matchScore = v.final_score ? Math.round(v.final_score * 100) : 95;
+
+    var safeTitle = JSON.stringify(title);
+    var safeTopic = JSON.stringify(topic);
+
+    html += '<div class="col-xl-3 col-lg-4 col-md-6 col-12">' +
+      '<div class="vcard" onclick=\'openVideo("' + vid + '", ' + safeTitle + ', ' + safeTopic + ')\'>' +
+        '<div class="vthumb">' +
+          '<img src="' + thumb + '" alt="' + title.replace(/"/g, '&quot;') + '" onerror="this.src=\'https://via.placeholder.com/320x180\'">' +
+          '<div class="voverlay">' +
+            '<div class="vplay"><i class="fas fa-play ms-1"></i></div>' +
+          '</div>' +
+          '<div class="vbadge" style="background:' + tagBadge.bg + '; color:' + tagBadge.color + ';">' +
+            tagBadge.label +
+          '</div>' +
+          '<div class="vmatch">' + matchScore + '% match</div>' +
+        '</div>' +
+        '<div class="vinfo">' +
+          '<h6 class="vtitle" title="' + title.replace(/"/g, '&quot;') + '">' + title + '</h6>' +
+          '<div class="d-flex align-items-center gap-1 mb-2" style="font-size:0.72rem; color:#64748b;">' +
+            '<i class="fab fa-youtube text-danger"></i> ' + channel +
+          '</div>' +
+          '<div style="font-size:0.7rem; color:#94a3b8; margin-bottom:12px; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+            reason +
+          '</div>' +
+          '<div class="vmeta">' +
+            '<span class="vtag">' + topic + '</span>' +
+            '<button class="vaction-btn">' +
+              '<i class="fas fa-play" style="font-size: 0.65rem;"></i> Watch' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  grid.innerHTML = html;
+}
+
+function renderEmpty(msg) {
+  var grid = document.getElementById('videoGrid');
+  var badge = document.getElementById('videoCountBadge');
+  badge.textContent = '0 videos';
+  grid.innerHTML = '<div class="col-12">' +
+    '<div class="empty-state-box">' +
+      '<div style="font-size: 3rem; margin-bottom: 12px;">🎬</div>' +
+      '<h5 class="fw-bold text-dark">No Videos To Display</h5>' +
+      '<p class="text-muted small mb-3">' + msg + '</p>' +
+      '<button class="btn btn-sm btn-primary rounded-pill px-4" onclick="loadTabContent(\'all\')">' +
+        '<i class="fas fa-redo me-1"></i> Reset To All Recommendations' +
+      '</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function refreshRecommendations() {
+  var icon = document.getElementById('refreshIcon');
+  if (icon) icon.classList.add('fa-spin');
+  loadTabContent(currentTab).then(function() {
+    setTimeout(function() {
+      if (icon) icon.classList.remove('fa-spin');
+    }, 600);
+  });
+}
+</script>
+{% endblock %}

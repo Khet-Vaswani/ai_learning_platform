@@ -87,10 +87,11 @@ class RecommendationEvaluator:
             return 0.0
 
         top_k  = recommended[:k]
-        hits   = sum(1 for r in top_k if r in relevant)
-        recall = hits / len(relevant)
+        # Count unique relevant items retrieved so Recall is bounded in [0, 1]
+        unique_hits = len(set(top_k) & set(relevant))
+        recall = unique_hits / len(relevant)
 
-        return round(recall, 4)
+        return round(min(1.0, recall), 4)
 
     # ══════════════════════════════════════════════════════
     # METRIC 3 — NDCG@K
@@ -107,16 +108,18 @@ class RecommendationEvaluator:
             return 0.0
 
         top_k = recommended[:k]
+        rel_set = set(relevant)
 
-        # DCG — actual ranking
+        # DCG — actual ranking (first-time gain per unique relevant item)
         dcg = 0.0
+        seen = set()
         for i, item in enumerate(top_k):
-            if item in relevant:
-                # Position 1-indexed
+            if item in rel_set and item not in seen:
+                seen.add(item)
                 dcg += 1.0 / math.log2(i + 2)
 
-        # IDCG — ideal ranking (all relevant first)
-        ideal_hits = min(len(relevant), k)
+        # IDCG — ideal ranking (all unique relevant items first)
+        ideal_hits = min(len(rel_set), k)
         idcg       = sum(1.0 / math.log2(i + 2)
                          for i in range(ideal_hits))
 
@@ -124,7 +127,7 @@ class RecommendationEvaluator:
             return 0.0
 
         ndcg = dcg / idcg
-        return round(ndcg, 4)
+        return round(min(1.0, ndcg), 4)
 
     # ══════════════════════════════════════════════════════
     # METRIC 4 — Hit Rate
@@ -244,7 +247,7 @@ class RecommendationEvaluator:
             return {
                 'moe_precision'   : 0,
                 'random_precision': 0,
-                'improvement'     : 0
+                'improvement_pct' : 0
             }
 
         # Random recommendations

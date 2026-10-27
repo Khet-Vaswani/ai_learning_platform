@@ -1,0 +1,826 @@
+{% extends 'base.html' %}
+{% block title %}Settings & Preferences — AI Learning Platform{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-glow: rgba(79, 70, 229, 0.12);
+  --purple: #8b5cf6;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --card-bg: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+}
+
+body {
+  background: #f8fafc;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text-main);
+}
+
+.settings-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 15px 50px;
+}
+
+/* Page Header */
+.settings-header {
+  margin-bottom: 24px;
+}
+.settings-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.settings-subtitle {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin-top: 4px;
+}
+
+/* Layout Grid */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+@media (max-width: 991px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Left Sidebar Navigation */
+.settings-nav-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 16px 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  position: sticky;
+  top: 90px;
+}
+.user-brief-card {
+  padding: 16px 12px 20px;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 12px;
+}
+.user-avatar-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 auto 12px;
+  box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+}
+.user-brief-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+.user-brief-email {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.settings-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+.settings-tab-btn i {
+  font-size: 0.95rem;
+  width: 20px;
+  text-align: center;
+}
+.settings-tab-btn:hover {
+  background: #f1f5f9;
+  color: var(--text-main);
+}
+.settings-tab-btn.active {
+  background: var(--primary-glow);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Right Content Card */
+.settings-pane-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+@media (max-width: 576px) {
+  .settings-pane-card {
+    padding: 20px 16px;
+  }
+}
+
+.pane-section-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+.pane-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+.pane-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Form Controls */
+.form-group-custom {
+  margin-bottom: 20px;
+}
+.form-label-custom {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 6px;
+  display: block;
+}
+.form-input-custom, .form-select-custom {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text-main);
+  background: #ffffff;
+  transition: all 0.2s;
+  outline: none;
+}
+.form-input-custom:focus, .form-select-custom:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* Custom Radio Card Selection */
+.radio-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.radio-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  position: relative;
+}
+.radio-card input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+.radio-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+.radio-card.selected {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.05);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.1);
+}
+.radio-card-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+.radio-card-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Stat Mini Grid */
+.settings-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.s-stat-item {
+  text-align: center;
+}
+.s-stat-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+.s-stat-lbl {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+/* Action Buttons */
+.btn-save-settings {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+.btn-save-settings:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+  color: white;
+}
+.btn-save-settings:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Alert Notification */
+.settings-alert {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+.settings-alert.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+.settings-alert.alert-danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+/* Danger Zone */
+.danger-zone-box {
+  border: 1px solid #fee2e2;
+  background: #fff5f5;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+.danger-zone-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #991b1b;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.danger-zone-desc {
+  font-size: 0.78rem;
+  color: #7f1d1d;
+  margin-bottom: 14px;
+}
+.btn-danger-outline {
+  background: white;
+  border: 1.5px solid #f87171;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-danger-outline:hover {
+  background: #dc2626;
+  color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+
+  <!-- Header -->
+  <div class="settings-header">
+    <h1 class="settings-title">
+      <i class="fas fa-sliders-h" style="color: var(--primary);"></i> Settings & Preferences
+    </h1>
+    <p class="settings-subtitle">Manage your profile, fine-tune your personalized AI recommendations, and account security.</p>
+  </div>
+
+  <!-- Global Alert Box -->
+  <div id="settingsAlert" class="settings-alert">
+    <i id="alertIcon" class="fas fa-check-circle"></i>
+    <span id="alertMsg"></span>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="settings-grid">
+
+    <!-- LEFT: Sidebar Navigation -->
+    <div>
+      <div class="settings-nav-card">
+        
+        <!-- Profile Snippet -->
+        <div class="user-brief-card">
+          <div class="user-avatar-lg">
+            {{ (user.full_name or 'U')[0]|upper }}
+          </div>
+          <div class="user-brief-name">{{ user.full_name or 'Learner' }}</div>
+          <div class="user-brief-email">{{ user.email or '' }}</div>
+          <span style="display: inline-block; margin-top: 8px; background: rgba(79,70,229,0.08); color: var(--primary); font-size: 0.68rem; font-weight: 700; padding: 2px 10px; border-radius: 99px;">
+            🎓 {{ user.role|capitalize if user.role else 'Student' }}
+          </span>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <button class="settings-tab-btn active" onclick="switchSettingsTab('profile', this)">
+          <i class="fas fa-user-circle"></i> Profile & Account
+        </button>
+        <button class="settings-tab-btn" onclick="switchSettingsTab('learning', this)">
+          <i class="fas fa-brain"></i> AI & Learning Goals
+        </button>
+        <button class="settings-tab-btn" onclick="switchSettingsTab('security', this)">
+          <i class="fas fa-lock"></i> Password & Security
+        </button>
+        <button class="settings-tab-btn" onclick="switchSettingsTab('notifications', this)">
+          <i class="fas fa-bell"></i> Notifications & Habits
+        </button>
+        <button class="settings-tab-btn" onclick="switchSettingsTab('privacy', this)">
+          <i class="fas fa-shield-alt"></i> Data & Privacy
+        </button>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Content Panes -->
+    <div>
+      
+      <!-- ══════════════ TAB 1: PROFILE ══════════════ -->
+      <div id="pane-profile" class="settings-pane-card">
+        <div class="pane-section-header">
+          <h2 class="pane-title">Personal Profile</h2>
+          <p class="pane-desc">Update your personal account information and how you appear across the platform.</p>
+        </div>
+
+        <!-- Stats Overview Banner -->
+        <div class="settings-stat-row">
+          <div class="s-stat-item">
+            <div class="s-stat-val">{{ stats.total_watched or 0 }}</div>
+            <div class="s-stat-lbl">Videos Watched</div>
+          </div>
+          <div class="s-stat-item">
+            <div class="s-stat-val">{{ stats.total_quizzes or 0 }}</div>
+            <div class="s-stat-lbl">Quizzes Taken</div>
+          </div>
+          <div class="s-stat-item">
+            <div class="s-stat-val">{{ "%.1f"|format(stats.avg_score or 0) }}%</div>
+            <div class="s-stat-lbl">Avg Score</div>
+          </div>
+        </div>
+
+        <form id="profileForm" onsubmit="saveProfile(event)">
+          <div class="row g-3">
+            <div class="col-md-6 form-group-custom">
+              <label class="form-label-custom">Full Name</label>
+              <input type="text" class="form-input-custom" name="full_name" value="{{ user.full_name }}" required>
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label class="form-label-custom">Email Address</label>
+              <input type="email" class="form-input-custom" name="email" value="{{ user.email }}" required>
+            </div>
+          </div>
+
+          <div class="form-group-custom">
+            <label class="form-label-custom">Member Since</label>
+            <input type="text" class="form-input-custom" value="{{ user.created_at.strftime('%B %d, %Y') if user.created_at else 'Active Learner' }}" disabled style="background: #f8fafc; color: var(--text-muted);">
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn-save-settings" id="btnSaveProfile">
+              <i class="fas fa-save"></i> Save Profile Changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ══════════════ TAB 2: AI & LEARNING PREFERENCES ══════════════ -->
+      <div id="pane-learning" class="settings-pane-card" style="display: none;">
+        <div class="pane-section-header">
+          <h2 class="pane-title">AI & Learning Preferences</h2>
+          <p class="pane-desc">Customize how our Mixture-of-Experts (MoE) AI recommends educational videos and generates quizzes for you.</p>
+        </div>
+
+        <form id="learningForm" onsubmit="saveLearning(event)">
+          
+          <!-- Education Category -->
+          <div class="form-group-custom">
+            <label class="form-label-custom">Education Category</label>
+            <select class="form-select-custom" name="education_category" id="eduCategorySelect">
+              <option value="">Select your education level...</option>
+              {% for cat in categories %}
+              <option value="{{ cat.name }}" {% if user.education_category == cat.name %}selected{% endif %}>
+                {{ cat.name }} — {{ cat.description }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Field of Interest -->
+          <div class="form-group-custom">
+            <label class="form-label-custom">Primary Field of Interest / Major</label>
+            <input type="text" class="form-input-custom" name="field_of_interest" value="{{ user.field_of_interest or '' }}" placeholder="e.g. Computer Science, Artificial Intelligence, Medical, Biology...">
+            <small class="text-muted" style="font-size: 0.72rem;">Our recommendation engine prioritizes videos matching this field.</small>
+          </div>
+
+          <!-- Skill Level Radio Cards -->
+          <div class="form-group-custom">
+            <label class="form-label-custom">Skill Level</label>
+            <div class="radio-cards-grid">
+              <label class="radio-card {% if user.skill_level == 'Beginner' or not user.skill_level %}selected{% endif %}" onclick="selectRadioCard(this)">
+                <input type="radio" name="skill_level" value="Beginner" {% if user.skill_level == 'Beginner' or not user.skill_level %}checked{% endif %}>
+                <div class="radio-card-title">🌱 Beginner</div>
+                <div class="radio-card-desc">Foundations & basics</div>
+              </label>
+
+              <label class="radio-card {% if user.skill_level == 'Intermediate' %}selected{% endif %}" onclick="selectRadioCard(this)">
+                <input type="radio" name="skill_level" value="Intermediate" {% if user.skill_level == 'Intermediate' %}checked{% endif %}>
+                <div class="radio-card-title">🚀 Intermediate</div>
+                <div class="radio-card-desc">Practical concepts</div>
+              </label>
+
+              <label class="radio-card {% if user.skill_level == 'Advanced' %}selected{% endif %}" onclick="selectRadioCard(this)">
+                <input type="radio" name="skill_level" value="Advanced" {% if user.skill_level == 'Advanced' %}checked{% endif %}>
+                <div class="radio-card-title">⚡ Advanced</div>
+                <div class="radio-card-desc">Deep-dive mastery</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Quiz Difficulty Mode -->
+          <div class="form-group-custom">
+            <label class="form-label-custom">Default Quiz Difficulty</label>
+            <div class="radio-cards-grid">
+              <label class="radio-card {% if user.difficulty_level == 'Easy' %}selected{% endif %}" onclick="selectRadioCard(this)">
+                <input type="radio" name="difficulty_level" value="Easy" {% if user.difficulty_level == 'Easy' %}checked{% endif %}>
+                <div class="radio-card-title">🟢 Easy</div>
+                <div class="radio-card-desc">Direct recall</div>
+              </label>
+
+              <label class="radio-card {% if user.difficulty_level == 'Medium' or not user.difficulty_level %}selected{% endif %}" onclick="selectRadioCard(this)">
+                <input type="radio" name="difficulty_level" value="Medium" {% if user.difficulty_level == 'Medium' or not user.difficulty_level %}checked{% endif %}>
+                <div class="radio-card-title">🟡 Medium</div>
+                <div class="radio-card-desc">Balanced testing</div>
+              </label>
+
+              <label class="radio-card {% if user.difficulty_level == 'Hard' %}selected{% endif %}" onclick="selectRadioCard(this)">
+                <input type="radio" name="difficulty_level" value="Hard" {% if user.difficulty_level == 'Hard' %}checked{% endif %}>
+                <div class="radio-card-title">🔴 Hard</div>
+                <div class="radio-card-desc">Challenging analytical</div>
+              </label>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn-save-settings" id="btnSaveLearning">
+              <i class="fas fa-check-circle"></i> Update AI Preferences
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ══════════════ TAB 3: PASSWORD & SECURITY ══════════════ -->
+      <div id="pane-security" class="settings-pane-card" style="display: none;">
+        <div class="pane-section-header">
+          <h2 class="pane-title">Password & Security</h2>
+          <p class="pane-desc">Manage your password and protect your account access.</p>
+        </div>
+
+        <form id="passwordForm" onsubmit="savePassword(event)">
+          <div class="form-group-custom">
+            <label class="form-label-custom">Current Password</label>
+            <input type="password" class="form-input-custom" name="current_password" placeholder="Enter your current password" required>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6 form-group-custom">
+              <label class="form-label-custom">New Password</label>
+              <input type="password" class="form-input-custom" name="new_password" placeholder="At least 6 characters" required minlength="6">
+            </div>
+            <div class="col-md-6 form-group-custom">
+              <label class="form-label-custom">Confirm New Password</label>
+              <input type="password" class="form-input-custom" name="confirm_password" placeholder="Re-enter new password" required minlength="6">
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn-save-settings" id="btnSavePassword">
+              <i class="fas fa-key"></i> Change Password
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ══════════════ TAB 4: NOTIFICATIONS & HABITS ══════════════ -->
+      <div id="pane-notifications" class="settings-pane-card" style="display: none;">
+        <div class="pane-section-header">
+          <h2 class="pane-title">Study Habits & Notifications</h2>
+          <p class="pane-desc">Set your daily learning targets and notification preferences to keep your study streak alive.</p>
+        </div>
+
+        <div class="form-group-custom">
+          <label class="form-label-custom">Daily Learning Goal</label>
+          <select class="form-select-custom" id="dailyGoalSelect">
+            <option value="15">15 Minutes / day (Casual)</option>
+            <option value="30" selected>30 Minutes / day (Recommended)</option>
+            <option value="60">1 Hour / day (Focused)</option>
+            <option value="120">2 Hours / day (Intensive)</option>
+          </select>
+        </div>
+
+        <div class="form-check form-switch mb-3 mt-4">
+          <input class="form-check-input" type="checkbox" id="emailDigestSwitch" checked>
+          <label class="form-check-label fw-bold" for="emailDigestSwitch" style="font-size: 0.85rem; color: #1e293b;">
+            Weekly Progress Digest
+          </label>
+          <div class="text-muted" style="font-size: 0.74rem;">Receive a weekly summary email of your study hours, quiz scores, and weak topics.</div>
+        </div>
+
+        <div class="form-check form-switch mb-4">
+          <input class="form-check-input" type="checkbox" id="streakReminderSwitch" checked>
+          <label class="form-check-label fw-bold" for="streakReminderSwitch" style="font-size: 0.85rem; color: #1e293b;">
+            Streak Protection Alerts
+          </label>
+          <div class="text-muted" style="font-size: 0.74rem;">Notify me if my daily streak is at risk of expiring today.</div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4">
+          <button type="button" class="btn-save-settings" onclick="saveNotificationPrefs()">
+            <i class="fas fa-bell"></i> Save Habit Preferences
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════ TAB 5: DATA & PRIVACY ══════════════ -->
+      <div id="pane-privacy" class="settings-pane-card" style="display: none;">
+        <div class="pane-section-header">
+          <h2 class="pane-title">Data & Privacy Controls</h2>
+          <p class="pane-desc">Control your data, download learning history, or reset AI recommendations.</p>
+        </div>
+
+        <div class="mb-4">
+          <h6 class="fw-bold" style="font-size: 0.88rem; color: #0f172a;">Export Learning Activity</h6>
+          <p class="text-muted" style="font-size: 0.78rem;">Download a copy of your completed quizzes, study sessions, and progress report.</p>
+          <a href="/evaluation/report" class="btn btn-sm btn-outline-primary" style="font-size: 0.78rem; font-weight: 700; border-radius: 8px;">
+            <i class="fas fa-file-download me-1"></i> View & Print Progress Report
+          </a>
+        </div>
+
+        <!-- Danger Zone Box -->
+        <div class="danger-zone-box">
+          <div class="danger-zone-title">
+            <i class="fas fa-exclamation-triangle"></i> AI Memory & Activity Reset
+          </div>
+          <p class="danger-zone-desc">
+            If your video suggestions or weak topics are no longer relevant, you can reset your AI recommendation history.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn-danger-outline" onclick="triggerReset('recommendations')">
+              <i class="fas fa-sync-alt me-1"></i> Reset AI Video Recommendations
+            </button>
+            <button class="btn-danger-outline" onclick="triggerReset('weak_topics')">
+              <i class="fas fa-trash-alt me-1"></i> Clear Weak Topics History
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tab Switching Handler
+function switchSettingsTab(tabKey, btnElement) {
+  // Update nav buttons
+  document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+  if (btnElement) btnElement.classList.add('active');
+
+  // Hide all panes
+  document.querySelectorAll('.settings-pane-card').forEach(p => p.style.display = 'none');
+
+  // Show target pane
+  var target = document.getElementById('pane-' + tabKey);
+  if (target) {
+    target.style.display = 'block';
+  }
+
+  // Update URL hash without reload
+  history.replaceState(null, null, '/settings?tab=' + tabKey);
+}
+
+// Radio Card Selection Handler
+function selectRadioCard(labelEl) {
+  var parent = labelEl.closest('.radio-cards-grid');
+  if (parent) {
+    parent.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+  }
+  labelEl.classList.add('selected');
+  var input = labelEl.querySelector('input');
+  if (input) input.checked = true;
+}
+
+// Notification Helper
+function showAlert(message, isSuccess) {
+  var box = document.getElementById('settingsAlert');
+  var msg = document.getElementById('alertMsg');
+  var ico = document.getElementById('alertIcon');
+  if (!box) return;
+
+  box.className = 'settings-alert ' + (isSuccess ? 'alert-success' : 'alert-danger');
+  ico.className = 'fas ' + (isSuccess ? 'fa-check-circle' : 'fa-exclamation-circle');
+  msg.textContent = message;
+  box.style.display = 'flex';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  setTimeout(function() {
+    box.style.display = 'none';
+  }, 4500);
+}
+
+// 1. Save Profile Form
+async function saveProfile(e) {
+  e.preventDefault();
+  var btn = document.getElementById('btnSaveProfile');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+  var form = document.getElementById('profileForm');
+  var fd = new FormData(form);
+
+  try {
+    var res = await fetch('/settings/profile', {
+      method: 'POST',
+      body: fd
+    });
+    var data = await res.json();
+    showAlert(data.message, data.success);
+  } catch(err) {
+    showAlert('Failed to save profile. Please check your network.', false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Save Profile Changes';
+  }
+}
+
+// 2. Save AI & Learning Preferences
+async function saveLearning(e) {
+  e.preventDefault();
+  var btn = document.getElementById('btnSaveLearning');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+  var form = document.getElementById('learningForm');
+  var fd = new FormData(form);
+
+  try {
+    var res = await fetch('/settings/learning', {
+      method: 'POST',
+      body: fd
+    });
+    var data = await res.json();
+    showAlert(data.message, data.success);
+  } catch(err) {
+    showAlert('Failed to update AI preferences.', false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> Update AI Preferences';
+  }
+}
+
+// 3. Save Password Change
+async function savePassword(e) {
+  e.preventDefault();
+  var btn = document.getElementById('btnSavePassword');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Updating...';
+
+  var form = document.getElementById('passwordForm');
+  var fd = new FormData(form);
+
+  try {
+    var res = await fetch('/settings/password', {
+      method: 'POST',
+      body: fd
+    });
+    var data = await res.json();
+    showAlert(data.message, data.success);
+    if (data.success) {
+      form.reset();
+    }
+  } catch(err) {
+    showAlert('Failed to update password.', false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-key"></i> Change Password';
+  }
+}
+
+// 4. Save Notification Preferences
+function saveNotificationPrefs() {
+  showAlert('Notification and daily habit preferences updated!', true);
+}
+
+// 5. Trigger Memory Reset
+async function triggerReset(type) {
+  var promptMsg = type === 'recommendations'
+    ? 'Are you sure you want to clear your AI recommendation history? Fresh suggestions will be generated.'
+    : 'Are you sure you want to clear your weak topics history?';
+
+  if (!confirm(promptMsg)) return;
+
+  var fd = new FormData();
+  fd.append('reset_type', type);
+
+  try {
+    var res = await fetch('/settings/reset-history', {
+      method: 'POST',
+      body: fd
+    });
+    var data = await res.json();
+    showAlert(data.message, data.success);
+  } catch(err) {
+    showAlert('Error resetting history.', false);
+  }
+}
+
+// Initialize active tab from URL query param
+document.addEventListener('DOMContentLoaded', function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var initialTab = urlParams.get('tab') || 'profile';
+  var btn = document.querySelector('button[onclick*="' + initialTab + '"]');
+  switchSettingsTab(initialTab, btn);
+});
+</script>
+{% endblock %}

@@ -173,12 +173,12 @@
         </div>
         <div class="dropdown">
             <button class="btn btn-outline-secondary dropdown-toggle px-3 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;" type="button" data-bs-toggle="dropdown">
-                Last 30 Days
+                {{ range_label or 'Last 30 Days' }}
             </button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#">Last 7 Days</a></li>
-                <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
-                <li><a class="dropdown-item" href="#">All Time</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_range == '7d' else '' }}" href="{{ url_for('dashboard.progress', range='7d') }}">Last 7 Days</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_range == '30d' or not current_range else '' }}" href="{{ url_for('dashboard.progress', range='30d') }}">Last 30 Days</a></li>
+                <li><a class="dropdown-item {{ 'active' if current_range == 'all' else '' }}" href="{{ url_for('dashboard.progress', range='all') }}">All Time</a></li>
             </ul>
         </div>
     </div>

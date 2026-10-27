@@ -125,7 +125,7 @@ def get_departments():
 # ── Load fields for a department ─────────────────────────
 def get_fields(dept_id):
     rows = execute_query(
-        "SELECT id, field_name FROM university_fields_of_study WHERE department_id=%s ORDER BY display_order",
+        "SELECT MIN(id) as id, field_name FROM university_fields_of_study WHERE department_id=%s GROUP BY field_name ORDER BY MIN(display_order), MIN(id)",
         (dept_id,), fetch=True
     ) or []
     return [{'id': r['id'], 'field_name': r['field_name']} for r in rows]
@@ -204,24 +204,23 @@ def save_preferences():
     diff_map   = {'Beginner': 'Easy', 'Intermediate': 'Medium', 'Advanced': 'Hard'}
     difficulty = diff_map.get(level, 'Easy')
 
-    # Save
-    try:
-        execute_query(
-            """UPDATE users
-               SET education_category       = %s,
-                   educational_category_id  = %s,
-                   field_of_interest        = %s,
-                   skill_level              = %s,
-                   difficulty_level         = %s,
-                   department               = %s,
-                   university_department_id = %s,
-                   university_field_id      = %s,
-                   onboarding_done          = 1
-               WHERE id = %s""",
-            (cat_name, cat_id, field_of_interest, level, difficulty,
-             dept_name or None, dept_id or None, field_id or None, user_id)
-        )
-    except Exception as e:
+    # Save (execute_query returns False on failure instead of raising)
+    saved = execute_query(
+        """UPDATE users
+           SET education_category       = %s,
+               educational_category_id  = %s,
+               field_of_interest        = %s,
+               skill_level              = %s,
+               difficulty_level         = %s,
+               department               = %s,
+               university_department_id = %s,
+               university_field_id      = %s,
+               onboarding_done          = 1
+           WHERE id = %s""",
+        (cat_name, cat_id, field_of_interest, level, difficulty,
+         dept_name or None, dept_id or None, field_id or None, user_id)
+    )
+    if saved is False:
         # Fallback without new columns
         execute_query(
             """UPDATE users

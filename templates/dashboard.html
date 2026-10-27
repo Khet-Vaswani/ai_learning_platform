@@ -691,7 +691,7 @@ body {
 
   <div class="learnai-stat-card green">
     <div>
-      <div class="learnai-stat-num">{{ total_quizzes if total_quizzes else 8 }}</div>
+      <div class="learnai-stat-num">{{ total_quizzes if total_quizzes is not none else 0 }}</div>
       <div class="learnai-stat-label">Quizzes Completed</div>
     </div>
     <div class="learnai-stat-icon" style="color: #16a34a;">
@@ -711,7 +711,7 @@ body {
 
   <div class="learnai-stat-card orange">
     <div>
-      <div class="learnai-stat-num">5 Days</div>
+      <div class="learnai-stat-num">{{ streak_days or 0 }} Day{% if streak_days != 1 %}s{% endif %}</div>
       <div class="learnai-stat-label">Learning Streak</div>
     </div>
     <div class="learnai-stat-icon" style="color: #ea580c;">
@@ -842,18 +842,12 @@ body {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
             <input type="text" id="pTopic" placeholder="Topic" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
             <input type="date" id="pDate" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <div style="margin-bottom: 12px;">
             <select id="pDur" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
               <option value="30">30 min</option>
               <option value="60" selected>1 hour</option>
               <option value="90">1.5 hrs</option>
               <option value="120">2 hours</option>
-            </select>
-            <select id="pPri" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
-              <option value="high">🔴 High</option>
-              <option value="medium" selected>🟡 Medium</option>
-              <option value="low">🟢 Low</option>
             </select>
           </div>
           <div style="display: flex; gap: 8px;">
@@ -1234,7 +1228,7 @@ async function savePlan(){
   var topic=document.getElementById('pTopic').value.trim();
   var date=document.getElementById('pDate').value;
   var dur=document.getElementById('pDur').value;
-  var pri=document.getElementById('pPri').value;
+  var pri='medium';
   if(!topic||!date){ alert('Fill topic and date!'); return; }
   try{
     var r=await fetch('/study/plan/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,date,duration:dur,priority:pri})});
@@ -1250,12 +1244,10 @@ async function loadPlans(){
       l.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);"><div style="font-size:1.8rem;margin-bottom:6px;">📅</div><div style="font-size:.76rem;font-weight:600;color:#64748b;">No plans yet</div></div>';
       return;
     }
-    var pc={high:{bg:'rgba(239, 68, 68, 0.08)',color:'#ef4444',dot:'🔴'},medium:{bg:'rgba(245, 158, 11, 0.08)',color:'#f59e0b',dot:'🟡'},low:{bg:'rgba(16, 185, 129, 0.08)',color:'#10b981',dot:'🟢'}};
     l.innerHTML=d.plans.map(function(p){
-      var c=pc[p.priority]||pc.medium;
       var hrs=p.duration>=60?Math.floor(p.duration/60)+'h'+(p.duration%60?' '+p.duration%60+'m':''):p.duration+'min';
       var isToday=p.study_date===new Date().toISOString().split('T')[0];
-      return '<div class="plan-row" style="border:1px solid '+(isToday?'rgba(79,70,229,0.3)':'rgba(15,23,42,0.04)')+';opacity:'+(p.completed?.65:1)+';"><button onclick="togglePlan('+p.id+','+p.completed+')" style="width:20px;height:20px;border-radius:6px;flex-shrink:0;border:2px solid '+(p.completed?'var(--green)':'#cbd5e1')+';background:'+(p.completed?'var(--green)':'white')+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:white;">'+(p.completed?'✓':'')+'</button><div style="flex:1;min-width:0;"><div style="font-size:.78rem;font-weight:700;color:'+(p.completed?'#94a3b8':'#1e293b')+';text-decoration:'+(p.completed?'line-through':'none')+';">'+p.topic+'</div><div style="font-size:.64rem;color:var(--muted);margin-top:2px;display:flex;gap:6px;font-weight:500;"><span>📅 '+p.study_date+'</span><span>⏱ '+hrs+'</span>'+(isToday?'<span style="color:var(--primary);font-weight:700;">Today!</span>':'')+'</div></div><span style="background:'+c.bg+';color:'+c.color+';padding:2px 8px;border-radius:6px;font-size:.62rem;font-weight:700;flex-shrink:0;">'+c.dot+' '+p.priority+'</span><button onclick="delPlan('+p.id+')" style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(239,68,68,0.05);color:#dc2626;cursor:pointer;font-size:.65rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background=\'rgba(239,68,68,0.1)\'" onmouseout="this.style.background=\'rgba(239,68,68,0.05)\'">✕</button></div>';
+      return '<div class="plan-row" style="border:1px solid '+(isToday?'rgba(79,70,229,0.3)':'rgba(15,23,42,0.04)')+';opacity:'+(p.completed?.65:1)+';"><button onclick="togglePlan('+p.id+','+p.completed+')" style="width:20px;height:20px;border-radius:6px;flex-shrink:0;border:2px solid '+(p.completed?'var(--green)':'#cbd5e1')+';background:'+(p.completed?'var(--green)':'white')+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:white;">'+(p.completed?'✓':'')+'</button><div style="flex:1;min-width:0;"><div style="font-size:.78rem;font-weight:700;color:'+(p.completed?'#94a3b8':'#1e293b')+';text-decoration:'+(p.completed?'line-through':'none')+';">'+p.topic+'</div><div style="font-size:.64rem;color:var(--muted);margin-top:2px;display:flex;gap:6px;font-weight:500;"><span>📅 '+p.study_date+'</span><span>⏱ '+hrs+'</span>'+(isToday?'<span style="color:var(--primary);font-weight:700;">Today!</span>':'')+'</div></div><button onclick="delPlan('+p.id+')" style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(239,68,68,0.05);color:#dc2626;cursor:pointer;font-size:.65rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background=\'rgba(239,68,68,0.1)\'" onmouseout="this.style.background=\'rgba(239,68,68,0.05)\'">✕</button></div>';
     }).join('');
   } catch(e){}
 }

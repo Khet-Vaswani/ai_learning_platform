@@ -8,6 +8,7 @@ from app.utils.db import execute_query
 from app.utils.auth_helpers import (hash_password,
                                      verify_password,
                                      check_rate_limit)
+import os
 import re
 
 auth = Blueprint('auth', __name__)
@@ -162,9 +163,11 @@ def forgot_password():
             (email,), fetch=True
         )
 
+        # Same response whether or not the email exists (prevents account enumeration)
+        generic_msg = 'If that email is registered, password reset instructions have been generated.'
+
         if not users:
-            return render_template('forgot_password.html',
-                success='If that email is registered, we have generated password reset instructions.')
+            return render_template('forgot_password.html', success=generic_msg)
 
         user = users[0]
         token = secrets.token_urlsafe(32)
@@ -186,9 +189,15 @@ def forgot_password():
 
         reset_link = url_for('auth.reset_password', token=token, _external=True)
 
+        # No mail server is configured, so the link goes to the server console.
+        # Showing it to whoever submitted the form would let anyone reset any
+        # account; set SHOW_RESET_LINK=1 only for local demos.
+        print(f"[PASSWORD RESET] {email}: {reset_link}")
+        show_link = os.getenv('SHOW_RESET_LINK') == '1'
+
         return render_template('forgot_password.html',
-            success='Password reset instructions generated successfully!',
-            reset_link=reset_link)
+            success=generic_msg,
+            reset_link=reset_link if show_link else None)
 
     return render_template('forgot_password.html')
 

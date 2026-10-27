@@ -1,14 +1,14 @@
 USE ai_learning_platform;
 
 -- Cognitive Categories
-INSERT INTO cognitive_categories (name, description, icon) VALUES
+INSERT IGNORE INTO cognitive_categories (name, description, icon) VALUES
 ('Logical Reasoning',  'Tests pattern recognition', '🔷'),
 ('Numerical Ability',  'Tests mathematical skills', '🔢'),
 ('Verbal Ability',     'Tests language skills',     '📝'),
 ('Problem Solving',    'Tests critical thinking',   '💡');
 
 -- Cognitive Questions
-INSERT INTO cognitive_questions
+INSERT IGNORE INTO cognitive_questions
 (category_id, question_text,
  option_a, option_b, option_c, option_d,
  correct_answer, difficulty, time_limit)

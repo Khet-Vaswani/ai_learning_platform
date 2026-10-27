@@ -5,7 +5,7 @@
 from flask import (Blueprint, redirect, url_for,
                    session, request, jsonify)
 from app.utils.db import execute_query
-import os, requests, json
+import os, requests, json, secrets
 
 social_bp = Blueprint('social', __name__)
 
@@ -26,6 +26,19 @@ LINKEDIN_TOKEN_URL   = 'https://www.linkedin.com/oauth/v2/accessToken'
 LINKEDIN_USERINFO_URL= 'https://api.linkedin.com/v2/userinfo'
 
 
+def _new_state(provider):
+    """Random OAuth state stored in the session (prevents login CSRF)."""
+    state = secrets.token_urlsafe(24)
+    session[f'oauth_state_{provider}'] = state
+    return state
+
+
+def _valid_state(provider):
+    expected = session.pop(f'oauth_state_{provider}', None)
+    received = request.args.get('state', '')
+    return bool(expected) and secrets.compare_digest(expected, received)
+
+
 def login_or_register_social(email, full_name, provider):
     """
     Check if user exists → login
@@ -33,6 +46,7 @@ def login_or_register_social(email, full_name, provider):
     """
     if not email:
         return None
+    email = email.strip().lower()   # stored emails are lowercase
 
     # Check existing user
     user = execute_query(
@@ -62,6 +76,8 @@ def login_or_register_social(email, full_name, provider):
            VALUES (%s,%s,%s,'student',0)""",
         (full_name, email, fake_pw)
     )
+    if not user_id:
+        return None
 
     session['user_id']         = user_id
     session['user_name']       = full_name
@@ -85,7 +101,8 @@ def google_login():
                                   _external=True),
         'response_type': 'code',
         'scope'        : 'openid email profile',
-        'access_type'  : 'offline'
+        'access_type'  : 'offline',
+        'state'        : _new_state('google')
     }
     url = GOOGLE_AUTH_URL + '?' + urllib.parse.urlencode(params)
     return redirect(url)
@@ -94,7 +111,7 @@ def google_login():
 @social_bp.route('/auth/google/callback')
 def google_callback():
     code = request.args.get('code')
-    if not code:
+    if not code or not _valid_state('google'):
         return redirect('/login?error=google_failed')
 
     try:
@@ -119,7 +136,7 @@ def google_callback():
             headers={'Authorization': f'Bearer {access_token}'}
         )
         user_data  = user_res.json()
-        email      = user_data.get('email', '')
+        email      = user_data.get('email', '') if user_data.get('verified_email') else ''
         full_name  = user_data.get('name', email.split('@')[0])
 
         user = login_or_register_social(email, full_name, 'Google')
@@ -147,7 +164,8 @@ def github_login():
         'client_id'   : os.getenv('GITHUB_CLIENT_ID'),
         'redirect_uri': url_for('social.github_callback',
                                  _external=True),
-        'scope'       : 'user:email'
+        'scope'       : 'user:email',
+        'state'       : _new_state('github')
     }
     url = GITHUB_AUTH_URL + '?' + urllib.parse.urlencode(params)
     return redirect(url)
@@ -156,7 +174,7 @@ def github_login():
 @social_bp.route('/auth/github/callback')
 def github_callback():
     code = request.args.get('code')
-    if not code:
+    if not code or not _valid_state('github'):
         return redirect('/login?error=github_failed')
 
     try:
@@ -188,16 +206,15 @@ def github_callback():
         user_data = user_res.json()
         full_name = user_data.get('name') or \
                     user_data.get('login', 'GitHub User')
-        email     = user_data.get('email')
-
-        # If email private, fetch from emails endpoint
-        if not email:
-            emails_res = requests.get(GITHUB_EMAIL_URL, headers=headers)
-            emails     = emails_res.json()
-            for e in emails:
-                if e.get('primary') and e.get('verified'):
-                    email = e['email']
-                    break
+        # Always use the emails endpoint: only a verified primary email
+        # may be matched to an existing account
+        email      = None
+        emails_res = requests.get(GITHUB_EMAIL_URL, headers=headers)
+        emails     = emails_res.json()
+        for e in emails if isinstance(emails, list) else []:
+            if e.get('primary') and e.get('verified'):
+                email = e['email']
+                break
 
         user = login_or_register_social(email, full_name, 'GitHub')
 
@@ -225,7 +242,8 @@ def linkedin_login():
         'client_id'    : os.getenv('LINKEDIN_CLIENT_ID'),
         'redirect_uri' : url_for('social.linkedin_callback',
                                   _external=True),
-        'scope'        : 'openid profile email'
+        'scope'        : 'openid profile email',
+        'state'        : _new_state('linkedin')
     }
     url = LINKEDIN_AUTH_URL + '?' + urllib.parse.urlencode(params)
     return redirect(url)
@@ -234,7 +252,7 @@ def linkedin_login():
 @social_bp.route('/auth/linkedin/callback')
 def linkedin_callback():
     code = request.args.get('code')
-    if not code:
+    if not code or not _valid_state('linkedin'):
         return redirect('/login?error=linkedin_failed')
 
     try:
@@ -263,7 +281,7 @@ def linkedin_callback():
             headers={'Authorization': f'Bearer {access_token}'}
         )
         user_data = user_res.json()
-        email     = user_data.get('email', '')
+        email     = user_data.get('email', '') if user_data.get('email_verified') else ''
         full_name = user_data.get('name', '') or \
                     (user_data.get('given_name', '') + ' ' +
                      user_data.get('family_name', '')).strip()

@@ -16,15 +16,20 @@ FIELD_TOPICS = {
     'Software Engineering'   : ['Software Engineering', 'System Design', 'Algorithms', 'Database Design', 'Web Development'],
     'Data Science & AI'      : ['Machine Learning', 'Data Analysis', 'Deep Learning', 'Statistics', 'Python'],
     'Web Development'        : ['HTML CSS', 'JavaScript', 'React', 'Flask Framework', 'Node.js'],
+    # ── Database & Cloud ──────────────────────────────────
     'Database & Backend'     : ['Database SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Database Design'],
+    'Database Administration': ['Database SQL', 'MySQL', 'PostgreSQL', 'MongoDB', 'Database Design'],
     'Mobile Development'     : ['React Native', 'Flutter', 'Android Development', 'iOS Development'],
     'Cybersecurity'          : ['Network Security', 'Ethical Hacking', 'Cryptography', 'Cyber Forensics'],
     'Cloud & DevOps'         : ['AWS', 'Docker', 'Linux', 'CI/CD', 'Kubernetes'],
+    'Cloud Computing'        : ['Cloud Computing Basics', 'AWS Tutorial', 'Docker & Containers', 'DevOps Fundamentals', 'Linux'],
 
     # ── Business ──────────────────────────────────────────
     'BBA / Business Admin'   : ['Business Management', 'Marketing Strategy', 'Financial Management', 'Entrepreneurship'],
     'Marketing'              : ['Digital Marketing', 'Brand Management', 'Sales Strategy', 'Market Research'],
     'Finance & Accounting'   : ['Financial Accounting', 'Managerial Accounting', 'Taxation', 'Auditing'],
+    'Finance & Banking'      : ['Financial Management', 'Banking Operations', 'Financial Accounting', 'Corporate Finance', 'Investment Analysis'],
+    'Accounting'             : ['Financial Accounting', 'Managerial Accounting', 'Auditing Basics', 'Cost Accounting'],
     'Human Resources'        : ['HR Management', 'Recruitment', 'Employee Relations', 'Training and Development'],
     'International Business' : ['International Trade', 'Global Supply Chain', 'Trade Agreements', 'Export Import'],
     'Entrepreneurship'       : ['Startup Strategy', 'Business Planning', 'Funding', 'Innovation Management'],
@@ -34,11 +39,14 @@ FIELD_TOPICS = {
     'Constitutional Law'     : ['Constitutional Law', 'Human Rights', 'Administrative Law', 'Federal System'],
     'Criminal Law'           : ['Criminal Law', 'Criminal Procedure', 'Evidence Law', 'Criminology'],
     'Civil Law'              : ['Contract Law', 'Property Law', 'Tort Law', 'Civil Procedure'],
+    'Commercial Law'         : ['Commercial Law', 'Contract Law', 'Company Law', 'Banking Law', 'Business Regulations'],
     'International Law'      : ['International Law', 'Treaties', 'Diplomacy', 'Trade Law'],
     'Corporate Law'          : ['Corporate Law', 'Company Law', 'Securities Law', 'Business Contracts'],
+    'Administrative Law'     : ['Administrative Law', 'Constitutional Law', 'Public Administration', 'Judicial Review'],
 
     # ── Medicine ──────────────────────────────────────────
     'MBBS / Medicine'        : ['Anatomy', 'Physiology', 'Pharmacology', 'Clinical Medicine', 'Pathology'],
+    'Medicine'               : ['Anatomy', 'Physiology', 'Pharmacology', 'Clinical Medicine', 'Pathology'],
     'Nursing'                : ['Nursing Fundamentals', 'Medical-Surgical Nursing', 'Patient Care', 'Pediatric Nursing'],
     'Pharmacy'               : ['Pharmaceutical Chemistry', 'Pharmacology', 'Clinical Pharmacy', 'Drug Interactions'],
     'Dentistry'              : ['Dental Science', 'Oral Surgery', 'Prosthodontics', 'Orthodontics'],
@@ -51,13 +59,16 @@ FIELD_TOPICS = {
     'Political Science'      : ['Political Theory', 'International Relations', 'Public Policy', 'Comparative Politics'],
     'International Relations': ['International Relations', 'Foreign Policy', 'Geopolitics', 'Diplomacy'],
     'Social Work'            : ['Social Work Practice', 'Community Development', 'Counseling'],
+    'Anthropology'           : ['Cultural Anthropology', 'Physical Anthropology', 'Archaeology Basics', 'Linguistic Anthropology'],
 
-    # ── Natural Sciences ──────────────────────────────────
+    # ── Natural Sciences & Agriculture ────────────────────
     'Physics'                : ['Classical Physics', 'Quantum Physics', 'Thermodynamics', 'Electromagnetism'],
     'Chemistry'              : ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
     'Biology'                : ['Molecular Biology', 'Genetics', 'Ecology', 'Microbiology'],
     'Mathematics'            : ['Calculus', 'Linear Algebra', 'Statistics', 'Discrete Mathematics'],
     'Environmental Science'  : ['Environmental Science', 'Ecology', 'Climate Science', 'Sustainability'],
+    'Agriculture'            : ['Agronomy Basics', 'Soil Science', 'Crop Production', 'Agricultural Economics', 'Plant Pathology'],
+    'Botany'                 : ['Plant Physiology', 'Plant Anatomy', 'Plant Taxonomy', 'Plant Ecology', 'Cell Biology'],
 
     # ── Engineering ───────────────────────────────────────
     'Mechanical Engineering' : ['Thermodynamics', 'Fluid Mechanics', 'Machine Design', 'Materials Science'],
@@ -69,6 +80,7 @@ FIELD_TOPICS = {
 
     # ── Arts & Humanities ─────────────────────────────────
     'English Literature'     : ['American Literature', 'British Literature', 'Literary Theory', 'Poetry Analysis'],
+    'Linguistics'            : ['Introduction to Linguistics', 'Phonetics and Phonology', 'Syntax and Morphology', 'Semantics and Pragmatics'],
     'History'                : ['World History', 'Pakistani History', 'European History', 'Asian History'],
     'Philosophy'             : ['Western Philosophy', 'Eastern Philosophy', 'Ethics', 'Logic'],
     'Journalism & Media'     : ['News Writing', 'Broadcast Journalism', 'Digital Media', 'Media Ethics'],
@@ -79,6 +91,9 @@ FIELD_TOPICS = {
     'Education / Teaching'   : ['Educational Psychology', 'Curriculum Development', 'Teaching Methods', 'Assessment'],
     'Educational Psychology' : ['Learning Theories', 'Behavioral Psychology', 'Cognitive Development'],
     'Curriculum Design'      : ['Curriculum Design', 'Instructional Design', 'Assessment Methods'],
+    'Curriculum Development' : ['Curriculum Design', 'Instructional Design', 'Educational Assessment', 'Pedagogy Methods'],
+    'Higher Education'       : ['Higher Education Administration', 'Academic Leadership', 'University Governance', 'Educational Policy'],
+    'Special Education'      : ['Special Education Principles', 'Inclusive Education', 'Learning Disabilities', 'Behavior Management'],
 
     # ── Economics ─────────────────────────────────────────
     'Economics'              : ['Microeconomics', 'Macroeconomics', 'International Economics', 'Economic Policy'],
@@ -242,9 +257,12 @@ def get_topics_for_field(field):
     cleaned = field_lower.replace('—', ' ').replace('-', ' ').replace('/', ' ').replace('&', ' ').replace('(', '').replace(')', '')
     cleaned = ' '.join(cleaned.split())
 
-    # 1. Substring matching against predefined mappings
-    for label_pattern, target_key in label_to_key.items():
-        if label_pattern in cleaned:
+    # 1. Match against predefined mappings using word boundaries (longest pattern first)
+    import re
+    sorted_patterns = sorted(label_to_key.items(), key=lambda x: len(x[0]), reverse=True)
+    for label_pattern, target_key in sorted_patterns:
+        pattern = r'\b' + re.escape(label_pattern) + r'\b'
+        if re.search(pattern, cleaned):
             return CLASS_TOPICS[target_key]
 
     # 2. Case-insensitive substring match in FIELD_TOPICS

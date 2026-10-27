@@ -26,17 +26,19 @@ def _load_sql_file(filepath):
 
 
 def run_migrations():
+    db_name = os.getenv('DB_NAME', 'ai_learning_platform')
     try:
         conn = mysql.connector.connect(
             host               = os.getenv('DB_HOST',     'localhost'),
             port               = int(os.getenv('DB_PORT', 3306)),
             user               = os.getenv('DB_USER',     'root'),
             password           = os.getenv('DB_PASSWORD', ''),
-            database           = os.getenv('DB_NAME',     'ai_learning_platform'),
             connection_timeout = 3
         )
         cursor = conn.cursor()
-        print("[OK] Database connected")
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}`;")
+        cursor.execute(f"USE `{db_name}`;")
+        print(f"[OK] Database '{db_name}' ready & connected")
     except Exception as e:
         print(f"[ERROR] Connection failed: {e}")
         return False
@@ -44,8 +46,9 @@ def run_migrations():
     base_dir = os.path.dirname(__file__)
     schema_path = os.path.join(base_dir, 'database', 'schema.sql')
     updates_path = os.path.join(base_dir, 'database', 'schema_updates.sql')
+    seed_path = os.path.join(base_dir, 'database', 'seed_data.sql')
 
-    sql_statements = _load_sql_file(schema_path) + _load_sql_file(updates_path)
+    sql_statements = _load_sql_file(schema_path) + _load_sql_file(updates_path) + _load_sql_file(seed_path)
 
     # Execute statements
     try:
@@ -63,6 +66,22 @@ def run_migrations():
                     continue
                 print(f"[WARN] Migration step {i} warning: {stmt_err}")
         
+        # Seed default Admin user if none exists
+        try:
+            import bcrypt
+            cursor.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
+            admin_user = cursor.fetchone()
+            if not admin_user:
+                admin_pass_hash = bcrypt.hashpw(b'Admin@123', bcrypt.gensalt()).decode('utf-8')
+                cursor.execute("""
+                    INSERT INTO users (full_name, email, password, role, onboarding_done)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE role='admin'
+                """, ('System Administrator', 'admin@platform.com', admin_pass_hash, 'admin', 1))
+                print("[OK] Default Admin account seeded: admin@platform.com / Admin@123")
+        except Exception as seed_err:
+            print(f"[WARN] Failed to auto-seed admin: {seed_err}")
+
         conn.commit()
         print("\n[OK] All migrations executed successfully!")
         print("=" * 60)

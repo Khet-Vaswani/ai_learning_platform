@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- TABLE 2: cognitive_categories
 CREATE TABLE IF NOT EXISTS cognitive_categories (
     id          INT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(100) NOT NULL,
+    name        VARCHAR(100) NOT NULL UNIQUE,
     description VARCHAR(255),
     icon        VARCHAR(50)
 );
@@ -169,5 +169,29 @@ CREATE TABLE IF NOT EXISTS password_resets (
     expires_at  DATETIME NOT NULL,
     used        TINYINT(1) DEFAULT 0,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- TABLE 16: study_schedule
+CREATE TABLE IF NOT EXISTS study_schedule (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL,
+    topic      VARCHAR(100) NOT NULL,
+    study_date DATE NOT NULL,
+    duration   INT NOT NULL,
+    priority   VARCHAR(20) DEFAULT 'medium',
+    completed  TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- TABLE 17: study_sessions
+CREATE TABLE IF NOT EXISTS study_sessions (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    user_id      INT NOT NULL,
+    topic        VARCHAR(100) NOT NULL,
+    duration_min INT NOT NULL,
+    session_date DATE NOT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
