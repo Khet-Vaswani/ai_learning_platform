@@ -630,6 +630,227 @@ body {
   50% { transform: scale(1.06); opacity: 1; box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
   100% { transform: scale(0.92); opacity: 0.6; box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
 }
+
+/* ══════════ Dashboard layout (clean card style) ══════════ */
+.dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.dash-greet { font-size: 1.45rem; font-weight: 800; color: var(--text); margin: 0 0 4px; letter-spacing: -0.01em; }
+.dash-sub   { font-size: 0.85rem; color: var(--muted); }
+.dash-dot   { margin: 0 6px; color: #cbd5e1; }
+.dash-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 10px 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.dash-cta:hover { background: #4338ca; color: #fff; }
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 991px) { .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dash-stat {
+  background: var(--card);
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dash-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+.dash-stat-num   { font-size: 1.4rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+.dash-stat-label { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+
+.dash-card {
+  background: var(--card);
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+.dash-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dash-card-title { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
+.dash-card-sub   { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.dash-link { font-size: 0.78rem; font-weight: 700; color: var(--primary); text-decoration: none; white-space: nowrap; }
+.dash-link i { font-size: 0.65rem; margin-left: 2px; }
+.dash-link:hover { color: #4338ca; }
+
+/* Video cards on the dashboard */
+.dash-vcard .vtitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dash-reason {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 99px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash-reason.r-weak     { background: #fef2f2; color: #b91c1c; }
+.dash-reason.r-continue { background: #eef2ff; color: #4338ca; }
+.dash-reason.r-levelup  { background: #f0fdf4; color: #15803d; }
+
+/* Focus areas */
+.focus-list { display: flex; flex-direction: column; gap: 4px; }
+.focus-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.15s;
+}
+.focus-row:hover { background: #f8fafc; color: var(--text); }
+.focus-dot   { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+.focus-topic { flex: 1; min-width: 0; font-size: 0.84rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.focus-count { font-size: 0.7rem; color: #b91c1c; background: #fef2f2; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+.focus-arrow { font-size: 0.65rem; color: #cbd5e1; }
+
+.dash-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.dash-empty i { color: #94a3b8; font-size: 1.1rem; }
+
+/* Buttons and inputs */
+.dash-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dash-btn:hover { border-color: #c7d2fe; color: var(--primary); }
+.dash-btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.dash-btn-primary:hover { background: #4338ca; color: #fff; }
+.dash-btn-sm { padding: 5px 12px; font-size: 0.72rem; }
+.dash-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: #fff;
+  outline: none;
+}
+.dash-input:focus { border-color: #a5b4fc; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+/* Timer */
+.timer-box { text-align: center; padding: 6px 0 16px; border-bottom: 1px solid #f1f5f9; margin-bottom: 14px; }
+.timer-box .timer-num { font-size: 2rem; font-weight: 800; letter-spacing: 0.02em; color: var(--text); }
+.timer-box #topicWrap { margin-top: 10px; }
+.timer-btns { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+.week-title  { font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 8px; }
+.week-chart  { display: flex; gap: 6px; align-items: flex-end; height: 50px; }
+.week-labels { display: flex; gap: 6px; margin-top: 4px; }
+
+/* Planner */
+.plan-form {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.plan-form-row { display: flex; gap: 8px; }
+.plan-form-row > * { flex: 1; }
+.plan-err { font-size: 0.72rem; color: #dc2626; min-height: 0; }
+.plan-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.plan-item:last-child { border-bottom: none; }
+.plan-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  background: #fff;
+  color: #fff;
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.plan-check.done { background: var(--green); border-color: var(--green); }
+.plan-topic { font-size: 0.82rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-item.done .plan-topic { color: #94a3b8; text-decoration: line-through; }
+.plan-meta  { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+.plan-today { color: var(--primary); font-weight: 700; }
+.plan-del {
+  border: none;
+  background: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.plan-del:hover { color: #dc2626; background: #fef2f2; }
 </style>
 {% endblock %}
 
@@ -661,239 +882,188 @@ body {
 {% else %}
 <!-- MAIN DASHBOARD -->
 
-<!-- LearnAI Header Banner -->
-<div class="d-flex align-items-center justify-content-between mb-4">
+<!-- Header -->
+<div class="dash-head">
   <div>
-    <h3 class="fw-bold mb-1" style="font-size: 1.5rem; color: #0f172a;">Good morning, {{ user_name }}! 👋</h3>
-    <p class="text-muted mb-0" style="font-size: 0.88rem;">Keep learning, keep growing. Your learning journey is making progress.</p>
+    <h3 class="dash-greet"><span id="greetText">Welcome back</span>, {{ user_name }}</h3>
+    <div class="dash-sub">
+      <span id="todayDate"></span>
+      {% if field_of_interest %}<span class="dash-dot">·</span>{{ field_of_interest }}{% endif %}
+      {% if skill_level %}<span class="dash-dot">·</span>{{ skill_level }}{% endif %}
+    </div>
   </div>
-  <div class="d-flex align-items-center gap-2">
-    {% if education_category %}
-    <span class="learnai-user-badge">🏫 {{ education_category }}</span>
-    {% endif %}
-    {% if skill_level %}
-    <span class="learnai-user-badge" style="background:#fef3c7; color:#b45309;">📊 {{ skill_level }}</span>
-    {% endif %}
-  </div>
+  <a href="/recommended-videos" class="dash-cta">
+    <i class="fas fa-play"></i> Start learning
+  </a>
 </div>
 
-<!-- LearnAI 4 Stat Metric Cards Grid -->
-<div class="learnai-stats-grid">
-  <div class="learnai-stat-card blue">
+<!-- Stats -->
+<div class="dash-stats">
+  <div class="dash-stat">
+    <div class="dash-stat-icon" style="background:#eef2ff; color:#4f46e5;"><i class="fas fa-play-circle"></i></div>
     <div>
-      <div class="learnai-stat-num">{{ watched_count }}</div>
-      <div class="learnai-stat-label">Videos Watched</div>
-    </div>
-    <div class="learnai-stat-icon" style="color: #2563eb;">
-      <i class="fas fa-play-circle"></i>
+      <div class="dash-stat-num">{{ watched_count }}</div>
+      <div class="dash-stat-label">Videos watched</div>
     </div>
   </div>
-
-  <div class="learnai-stat-card green">
+  <div class="dash-stat">
+    <div class="dash-stat-icon" style="background:#f0fdf4; color:#16a34a;"><i class="fas fa-check-circle"></i></div>
     <div>
-      <div class="learnai-stat-num">{{ total_quizzes if total_quizzes is not none else 0 }}</div>
-      <div class="learnai-stat-label">Quizzes Completed</div>
-    </div>
-    <div class="learnai-stat-icon" style="color: #16a34a;">
-      <i class="fas fa-check-circle"></i>
+      <div class="dash-stat-num">{{ total_quizzes or 0 }}</div>
+      <div class="dash-stat-label">Quizzes completed</div>
     </div>
   </div>
-
-  <div class="learnai-stat-card purple">
+  <div class="dash-stat">
+    <div class="dash-stat-icon" style="background:#faf5ff; color:#9333ea;"><i class="fas fa-chart-line"></i></div>
     <div>
-      <div class="learnai-stat-num">{{ avg_score }}%</div>
-      <div class="learnai-stat-label">Average Score</div>
-    </div>
-    <div class="learnai-stat-icon" style="color: #9333ea;">
-      <i class="fas fa-chart-line"></i>
+      <div class="dash-stat-num">{{ (avg_score|round|int ~ '%') if has_quiz_attempts else '—' }}</div>
+      <div class="dash-stat-label">Average score</div>
     </div>
   </div>
-
-  <div class="learnai-stat-card orange">
+  <div class="dash-stat">
+    <div class="dash-stat-icon" style="background:#fff7ed; color:#ea580c;"><i class="fas fa-fire"></i></div>
     <div>
-      <div class="learnai-stat-num">{{ streak_days or 0 }} Day{% if streak_days != 1 %}s{% endif %}</div>
-      <div class="learnai-stat-label">Learning Streak</div>
-    </div>
-    <div class="learnai-stat-icon" style="color: #ea580c;">
-      <i class="fas fa-fire"></i>
+      <div class="dash-stat-num" id="streakNum">—</div>
+      <div class="dash-stat-label">Day streak</div>
     </div>
   </div>
 </div>
 
-
-<!-- Main Grid Columns -->
 <div class="row g-4">
 
-  <!-- LEFT COLUMN (Main Content) -->
+  <!-- LEFT COLUMN -->
   <div class="col-lg-8">
 
-    <!-- Recommended Videos list -->
-    <div class="scard" id="recCard">
-      <div class="scard-hdr">
-        <h5 class="scard-title">
-          <div class="sc-ico" id="recIcon" style="background: linear-gradient(135deg, var(--purple), #a78bfa); color: white;">
-            <i class="fas fa-star"></i>
-          </div>
-          <span id="recLabel">Recommended For You</span>
-          <span id="recBadge" style="background: var(--purple); color: white; font-size: 0.65rem; padding: 2px 10px; border-radius: 99px; margin-left: 6px; font-weight: 600;">
-            {{ skill_level or 'All Levels' }}
-          </span>
-        </h5>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span id="recSub" style="font-size: 0.72rem; color: var(--muted); font-weight: 500;">{{ field_of_interest or 'Education' }}</span>
-          <button onclick="refreshRec()"
-                  style="background: none; border: 1px solid var(--border); color: var(--primary); font-size: 0.72rem; font-weight: 600; cursor: pointer; padding: 5px 12px; border-radius: 8px; font-family: inherit; transition: all 0.2s;"
-                  onmouseover="this.style.background='rgba(79,70,229,0.05)'" onmouseout="this.style.background='none'">
-            <i class="fas fa-sync me-1"></i>Refresh
-          </button>
+    <!-- Up next -->
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <div>
+          <h5 class="dash-card-title">Up next for you</h5>
+          <div class="dash-card-sub" id="recSub">Picked by AI from your quizzes and interests</div>
         </div>
+        <a href="/recommended-videos" class="dash-link">See all picks <i class="fas fa-arrow-right"></i></a>
       </div>
-      <div class="scard-body">
-        <div class="row g-3" id="recVideos">
-          <div class="col-12 text-center py-5">
-            <div class="spinner-border" style="width: 2rem; height: 2rem; color: var(--purple);"></div>
-            <p class="mt-2 text-muted" style="font-size: 0.8rem;">Loading videos for you...</p>
-          </div>
+      <div class="row g-3" id="recVideos">
+        <div class="col-12 text-center py-4">
+          <div class="spinner-border text-primary" style="width: 1.8rem; height: 1.8rem;"></div>
+          <p class="mt-2 text-muted" style="font-size: 0.8rem;">Finding videos for you...</p>
         </div>
       </div>
     </div>
 
-
-
-    <!-- Continue Learning list -->
+    <!-- Continue watching -->
     {% if recent_watched %}
-    <div class="scard">
-      <div class="scard-hdr">
-        <h5 class="scard-title">
-          <div class="sc-ico" style="background: rgba(79,70,229,0.08); color: var(--primary);"><i class="fas fa-history"></i></div>
-          Continue Learning
-        </h5>
-        <a href="/my-learning" style="font-size: 0.72rem; color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-          View All <i class="fas fa-arrow-right" style="font-size: 0.6rem;"></i>
-        </a>
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <div>
+          <h5 class="dash-card-title">Continue watching</h5>
+          <div class="dash-card-sub">Pick up where you left off</div>
+        </div>
+        <a href="/my-learning" class="dash-link">My learning <i class="fas fa-arrow-right"></i></a>
       </div>
-      <div class="scard-body">
-        <div class="row g-3">
-          {% for v in recent_watched %}
-          <div class="col-md-4 col-6">
-            <div class="vcard" data-video-id="{{ v.video_id }}" data-video-title="{{ v.video_title }}" data-topic="{{ v.topic }}" onclick="openVideo(this.dataset.videoId, this.dataset.videoTitle, this.dataset.topic)">
-              <div class="vthumb">
-                <img src="https://img.youtube.com/vi/{{ v.video_id }}/mqdefault.jpg" alt="" onerror="this.src='https://via.placeholder.com/320x180'">
-                <div class="voverlay"><div class="vplay"><i class="fas fa-play ms-1"></i></div></div>
-                <div style="position: absolute; bottom: 8px; right: 8px; background: rgba(15, 23, 42, 0.85); color: white; padding: 3px 8px; border-radius: 6px; font-size: 0.62rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.1);">▶ Resume</div>
-              </div>
-              <div class="vinfo">
-                <p class="vtitle">{{ (v.video_title or 'Video')[:58] }}</p>
-                <span class="vtag">{{ v.topic }}</span>
-              </div>
+      <div class="row g-3" id="recentVideos">
+        {% for v in recent_watched %}
+        <div class="col-md-4 col-6">
+          <div class="vcard dash-vcard" data-video-id="{{ v.video_id }}" data-title="{{ v.video_title }}" data-topic="{{ v.topic }}">
+            <div class="vthumb">
+              <img src="https://img.youtube.com/vi/{{ v.video_id }}/mqdefault.jpg" alt="" loading="lazy">
+              <div class="voverlay"><div class="vplay"><i class="fas fa-play ms-1"></i></div></div>
+            </div>
+            <div class="vinfo">
+              <p class="vtitle">{{ v.video_title or 'Video' }}</p>
+              {% if v.topic %}<span class="vtag">{{ v.topic }}</span>{% endif %}
             </div>
           </div>
-          {% endfor %}
         </div>
+        {% endfor %}
       </div>
     </div>
     {% endif %}
-
-    <!-- Study Streak tracker -->
-    <div class="scard">
-      <div class="scard-hdr">
-        <h5 class="scard-title">
-          <div class="sc-ico" style="background: rgba(16, 185, 129, 0.08); color: var(--green);"><i class="fas fa-fire"></i></div>
-          Study Streak
-        </h5>
-        <span id="streakBadge" style="background: rgba(245, 158, 11, 0.08); color: #b45309; padding: 4px 12px; border-radius: 99px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.15);">Loading...</span>
-      </div>
-      <div class="scard-body">
-        <div id="streakGrid" class="streak-grid">
-          <div class="w-100 text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(15, 23, 42, 0.04);">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div style="width: 12px; height: 12px; border-radius: 3px; background: var(--green);"></div>
-            <span style="font-size: 0.65rem; color: var(--muted); font-weight: 500;">Active</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <div style="width: 12px; height: 12px; border-radius: 3px; background: #e2e8f0;"></div>
-            <span style="font-size: 0.65rem; color: var(--muted); font-weight: 500;">Inactive</span>
-          </div>
-          <span id="totalDays" style="margin-left: auto; font-size: 0.72rem; color: var(--text); font-weight: 600;"></span>
-        </div>
-      </div>
-    </div>
 
   </div><!-- /col-lg-8 -->
 
-  <!-- RIGHT COLUMN (Widgets) -->
+  <!-- RIGHT COLUMN -->
   <div class="col-lg-4">
 
-    <!-- Study Planner widget -->
-    <div class="scard mb-3">
-      <div class="scard-hdr">
-        <h5 class="scard-title">
-          <div class="sc-ico" style="background: rgba(79,70,229,0.08); color: var(--primary);"><i class="fas fa-calendar-check"></i></div>
-          Study Planner
-        </h5>
-        <button onclick="showPlanForm()" style="background: linear-gradient(135deg, var(--primary), var(--purple)); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-size: 0.72rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 4px 10px rgba(79,70,229,0.15);">
-          <i class="fas fa-plus me-1"></i>Add
-        </button>
-      </div>
-      <div class="scard-body">
-        <div id="planForm" style="display: none; background: #f8fafc; border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; border: 1px solid var(--border);">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-            <input type="text" id="pTopic" placeholder="Topic" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
-            <input type="date" id="pDate" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
-          <div style="margin-bottom: 12px;">
-            <select id="pDur" style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; background: white; width: 100%;">
-              <option value="30">30 min</option>
-              <option value="60" selected>1 hour</option>
-              <option value="90">1.5 hrs</option>
-              <option value="120">2 hours</option>
-            </select>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button onclick="savePlan()" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--purple)); color: white; border: none; padding: 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit;">Save</button>
-            <button onclick="hidePlanForm()" style="padding: 8px 16px; background: white; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-family: inherit; color: var(--text);">Cancel</button>
-          </div>
-        </div>
-        <div id="planList">
-          <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+    <!-- Focus areas -->
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <div>
+          <h5 class="dash-card-title">Focus areas</h5>
+          <div class="dash-card-sub">Topics from quizzes to review</div>
         </div>
       </div>
+      {% if weak_topics %}
+      <div class="focus-list">
+        {% for wt in weak_topics %}
+        <a class="focus-row" href="/recommended-videos?search={{ (wt.topic ~ ' explained')|urlencode }}">
+          <span class="focus-dot"></span>
+          <span class="focus-topic">{{ wt.topic }}</span>
+          <span class="focus-count">{{ wt.fail_count }} miss{{ 'es' if wt.fail_count != 1 }}</span>
+          <i class="fas fa-chevron-right focus-arrow"></i>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="dash-empty">
+        <i class="fas fa-bullseye"></i>
+        <div>{{ 'No weak topics right now. Nice work!' if has_quiz_attempts else 'Take a quiz on any video to find what to review.' }}</div>
+      </div>
+      {% endif %}
     </div>
 
-    <!-- Study Session timer widget -->
-    <div class="scard">
-      <div class="scard-hdr">
-        <h5 class="scard-title">
-          <div class="sc-ico" style="background: rgba(139,92,246,0.08); color: var(--purple);"><i class="fas fa-stopwatch"></i></div>
-          Study Session
-        </h5>
-        <span id="todayMins" style="background: rgba(139,92,246,0.08); color: var(--purple); padding: 4px 12px; border-radius: 99px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(139,92,246,0.15);">0 min today</span>
+    <!-- Study timer -->
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <div>
+          <h5 class="dash-card-title">Study timer</h5>
+          <div class="dash-card-sub" id="todayMins">0 min today</div>
+        </div>
       </div>
-      <div class="scard-body">
-        <div style="text-align: center; padding: 16px 0 20px; border-bottom: 1px solid rgba(15, 23, 42, 0.04); margin-bottom: 16px;">
-          <div class="timer-num" id="timerDisplay">00:00:00</div>
-          <div style="font-size: 0.65rem; color: var(--muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Session Duration</div>
-          <div id="topicWrap" style="display: none; margin-top: 12px;">
-            <input type="text" id="seshTopic" placeholder="What topic are you studying?" style="width: 100%; padding: 8px 14px; border: 1.5px solid rgba(139,92,246,0.25); border-radius: 8px; font-size: 0.75rem; font-family: inherit; outline: none; text-align: center; color: var(--purple); background: rgba(139,92,246,0.02);">
-          </div>
-          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 14px;">
-            <button id="btnStart" onclick="startSesh()" style="background: linear-gradient(135deg, var(--purple), var(--primary)); color: white; border: none; padding: 8px 20px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit;"><i class="fas fa-play me-1"></i>Start</button>
-            <button id="btnPause" onclick="pauseSesh()" style="display: none; background: #ffffff; color: var(--purple); border: 1.5px solid rgba(139,92,246,0.2); padding: 8px 20px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit;"><i class="fas fa-pause me-1"></i>Pause</button>
-            <button id="btnStop" onclick="stopSesh()" style="display: none; background: rgba(239, 68, 68, 0.05); color: var(--red); border: 1.5px solid rgba(239, 68, 68, 0.2); padding: 8px 20px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit;"><i class="fas fa-stop me-1"></i>Save</button>
-          </div>
+      <div class="timer-box">
+        <div class="timer-num" id="timerDisplay">00:00:00</div>
+        <div id="topicWrap" style="display: none;">
+          <input type="text" id="seshTopic" class="dash-input" placeholder="What are you studying?">
         </div>
-        <div style="margin-bottom: 14px;">
-          <div style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 8px;">📊 This Week</div>
-          <div id="weekChart" style="display: flex; gap: 6px; align-items: flex-end; height: 50px;"></div>
-          <div id="weekLabels" style="display: flex; gap: 6px; margin-top: 4px;"></div>
+        <div class="timer-btns">
+          <button id="btnStart" class="dash-btn dash-btn-primary" onclick="startSesh()"><i class="fas fa-play"></i> Start</button>
+          <button id="btnPause" class="dash-btn" onclick="pauseSesh()" style="display: none;"><i class="fas fa-pause"></i> Pause</button>
+          <button id="btnStop" class="dash-btn" onclick="stopSesh()" style="display: none;"><i class="fas fa-check"></i> Save</button>
         </div>
-        <div style="padding-top: 12px; border-top: 1px solid rgba(15, 23, 42, 0.04);">
-          <div style="font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 8px;">Recent Sessions</div>
-          <div id="recentSesh">
-            <p style="font-size: 0.72rem; color: var(--muted); text-align: center; padding: 10px 0; margin: 0;">No sessions yet. Start studying! 🎯</p>
-          </div>
+      </div>
+      <div class="week-title">This week</div>
+      <div id="weekChart" class="week-chart"></div>
+      <div id="weekLabels" class="week-labels"></div>
+    </div>
+
+    <!-- Study plan -->
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <div>
+          <h5 class="dash-card-title">Study plan</h5>
+          <div class="dash-card-sub">Your upcoming sessions</div>
         </div>
+        <button class="dash-btn dash-btn-sm" onclick="showPlanForm()"><i class="fas fa-plus"></i> Add</button>
+      </div>
+      <div id="planForm" class="plan-form" style="display: none;">
+        <input type="text" id="pTopic" class="dash-input" placeholder="Topic, e.g. Linear algebra">
+        <div class="plan-form-row">
+          <input type="date" id="pDate" class="dash-input">
+          <select id="pDur" class="dash-input">
+            <option value="30">30 min</option>
+            <option value="60" selected>1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+          </select>
+        </div>
+        <div id="planErr" class="plan-err"></div>
+        <div class="plan-form-row">
+          <button class="dash-btn dash-btn-primary" onclick="savePlan()">Save</button>
+          <button class="dash-btn" onclick="hidePlanForm()">Cancel</button>
+        </div>
+      </div>
+      <div id="planList">
+        <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
       </div>
     </div>
 
@@ -903,162 +1073,8 @@ body {
 </div>
 
 
-<!-- ══════════ VIDEO MODAL ══════════════════ -->
-<div class="modal fade" id="videoModal" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content vmodal-wrap">
+{% include 'partials/video_modal.html' %}
 
-      <div class="modal-header vmodal-hdr d-flex align-items-center justify-content-between">
-        <div class="d-flex align-items-center gap-2">
-          <i class="fab fa-youtube text-danger fs-5"></i>
-          <h5 class="modal-title" id="modalTitle" style="color: #f1f1f1; font-size: 0.88rem; font-weight: 600; margin: 0;">Loading...</h5>
-        </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopVideo()"></button>
-      </div>
-
-      <div class="modal-body p-0" style="background: #ffffff;">
-        <div class="row g-0">
-
-          <!-- LEFT: Video Player & Watch Details (YouTube Watch Page Layout) -->
-          <div class="col-lg-8" style="border-right: 1px solid #e5e5e5;">
-
-            <!-- Player wrapper -->
-            <div style="position: relative; padding-bottom: 56.25%; height: 0; background: #000;">
-              <iframe id="ytPlayer" src="" frameborder="0" allowfullscreen
-                      style="position: absolute; inset: 0; width: 100%; height: 100%;"></iframe>
-            </div>
-
-            <!-- Video info content -->
-            <div style="padding: 18px 20px 14px; background: white;">
-              
-              <!-- 1. Video Title -->
-              <h5 id="vidTitle" style="font-size: 1.15rem; font-weight: 700; color: #0f0f0f; margin: 0 0 12px; line-height: 1.35; letter-spacing: -0.01em;"></h5>
-
-              <!-- 2. Channel Bar & Action Pills (Single Row Flex Container) -->
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 12px;">
-                
-                <!-- Left: Channel Info -->
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <div id="chanAvatar" style="width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.88rem; font-weight: 700; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">YT</div>
-                  <div>
-                    <div id="chanName" style="font-size: 0.88rem; font-weight: 700; color: #0f0f0f; line-height: 1.2;"></div>
-                    <div id="pubDate" style="font-size: 0.72rem; color: #606060;"></div>
-                  </div>
-                  <button class="yt-sub-btn ms-2">Subscribe</button>
-                </div>
-
-                <!-- Right: Action Pills Bar (Placement of BOTH Notes & Quiz Buttons at the SAME PLACE!) -->
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                  <div class="yt-pill-stat">
-                    <i class="fas fa-thumbs-up" style="color: #606060;"></i>
-                    <span id="likeCount">—</span>
-                  </div>
-                  <div class="yt-pill-stat">
-                    <i class="fas fa-eye" style="color: #606060;"></i>
-                    <span id="viewCount">—</span>
-                  </div>
-                  
-                  <!-- BOTH Notes and Quiz buttons placed side-by-side at the EXACT SAME PLACE -->
-                  <button onclick="if(window.generateNotes) generateNotes(); switchAiTab('notes');" id="notesBtn" class="yt-pill-btn yt-pill-notes">
-                    <i class="fas fa-sticky-note"></i>
-                    <span>Notes</span>
-                  </button>
-
-                  <button onclick="if(window.generateQuiz) generateQuiz(); switchAiTab('quiz');" id="quizBtn" class="yt-pill-btn yt-pill-quiz">
-                    <i class="fas fa-bolt" id="quizLockIcon"></i>
-                    <span id="quizBtnLabel">Take Quiz</span>
-                  </button>
-                </div>
-
-              </div>
-
-              <!-- YouTube Description Box -->
-              <div id="vidDesc" onclick="toggleDesc(this)"
-                   style="margin-top: 6px; padding: 12px 14px; background: #f2f2f2; border-radius: 12px; font-size: 0.78rem; color: #0f0f0f; line-height: 1.6; max-height: 62px; overflow: hidden; cursor: pointer; border: 1px solid #e5e5e5; transition: max-height 0.3s;">
-              </div>
-            </div>
-
-            <!-- AI Processing Status -->
-            <div id="aiLoadingSection" style="display: none; padding: 20px;">
-              <div class="ai-loading-container">
-                <div class="pulse-circle">
-                  <i class="fas fa-brain" style="color: var(--primary); font-size: 1.3rem;"></i>
-                </div>
-                <div class="loading-pulse-text" id="aiLoadingTitle">Curating Learning Content...</div>
-                <div class="loading-subtext" id="aiLoadingSubtitle">This can take up to 30 seconds for speech-to-text voice extraction</div>
-              </div>
-            </div>
-
-            <!-- AI Learning Content Container (BOTH Notes & Quiz displayed AT THE SAME PLACE below description) -->
-            <div id="aiContentContainer" style="margin: 14px 20px 20px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-              
-              <!-- Tab Header for Notes & Quiz -->
-              <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid #e2e8f0;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <button id="aiTabNotesBtn" onclick="switchAiTab('notes')" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; color: #4f46e5; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;">
-                    📝 AI Study Notes
-                  </button>
-                  <button id="aiTabQuizBtn" onclick="switchAiTab('quiz')" style="background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem; font-weight: 600; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                    ⚡ Video Quiz
-                  </button>
-                </div>
-                <span id="notesSourceBadge" style="background: rgba(79,70,229,0.08); color: var(--primary); padding: 2px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 600; border: 1px solid rgba(79,70,229,0.15);"></span>
-              </div>
-
-              <!-- Notes Content View -->
-              <div id="notesSection" style="padding: 16px; display: block;">
-                <div id="notesContent" style="font-size: 0.82rem; line-height: 1.75; color: #37352f; max-height: 320px; overflow-y: auto; padding-right: 6px;"></div>
-              </div>
-
-              <!-- Quiz Content View (Placed at the SAME PLACE as Notes!) -->
-              <div id="quizTabSection" style="padding: 16px; display: none;">
-                <!-- Banner shown when Quiz is Ready -->
-                <div id="quizReadyBanner" style="display: none; padding: 20px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #86efac; border-radius: 12px; text-align: center;">
-                  <div style="font-size: 2rem; margin-bottom: 6px;">✅</div>
-                  <div style="font-size: 0.95rem; font-weight: 700; color: #166534; margin-bottom: 4px;">Quiz Ready!</div>
-                  <div style="font-size: 0.78rem; color: #166534; margin-bottom: 14px;">Generated from video transcript & AI study points</div>
-                  <button id="quizReadyBtn" onclick="if(window.generateQuiz) window.generateQuiz();"
-                          style="background: linear-gradient(135deg, #10b981, #047857); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
-                    <i class="fas fa-play me-2"></i>Start Interactive Quiz
-                  </button>
-                </div>
-
-                <!-- Quiz Locked Placeholder -->
-                <div id="quizLockedBanner" style="padding: 24px; text-align: center; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
-                  <div style="font-size: 2rem; margin-bottom: 8px;">🔒</div>
-                  <div style="font-size: 0.88rem; font-weight: 700; color: #334155; margin-bottom: 4px;">Quiz Locked</div>
-                  <div style="font-size: 0.78rem; color: #64748b;">Watch 60 seconds of video or wait for transcript to unlock the quiz.</div>
-                </div>
-              </div>
-
-            </div>
-          </div><!-- /col-lg-8 -->
-
-          <!-- RIGHT: Related Videos List (Clean YouTube Sidebar) -->
-          <div class="col-lg-4" style="background: #f9f9f9;">
-            <div style="height: 100%; overflow-y: auto; max-height: 640px; padding: 16px;">
-
-              <div style="font-size: 0.82rem; font-weight: 700; color: #0f0f0f; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-                <i class="fab fa-youtube" style="color: #ff0000; font-size: 1.1rem;"></i>
-                Related Videos
-              </div>
-
-              <div id="relatedList">
-                <div class="text-center py-4">
-                  <div class="spinner-border spinner-border-sm text-secondary"></div>
-                </div>
-              </div>
-
-            </div>
-          </div><!-- /col-lg-4 -->
-
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-<!-- ══════════ /VIDEO MODAL ═════════════════ -->
 
 {% endblock %}
 
@@ -1067,265 +1083,282 @@ body {
 <script src="{{ url_for('static', filename='js/gemini.js') }}"></script>
 <script src="{{ url_for('static', filename='js/recommend.js') }}"></script>
 <script>
-// Date initialization
-var d = document.getElementById('heroDate');
-if(d) d.textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
 // Dashboard flask context config
 var DASH = {
-  isNewUser  : "{{ 'true' if is_new_user else 'false' }}" === "true",
-  hasPrefs   : "{{ 'true' if field_of_interest else 'false' }}" === "true",
-  hasQuiz    : "{{ 'true' if has_quiz_attempts else 'false' }}" === "true",
-  field      : JSON.parse('{{ (field_of_interest or "")|tojson }}'),
-  level      : JSON.parse('{{ (skill_level or "Beginner")|tojson }}'),
-  category   : JSON.parse('{{ (education_category or "")|tojson }}'),
-  searchQuery: JSON.parse('{{ (search_query or "")|tojson }}'),
+  isNewUser  : {{ 'true' if is_new_user else 'false' }},
+  hasPrefs   : {{ 'true' if field_of_interest else 'false' }},
+  field      : {{ (field_of_interest or '')|tojson }},
+  searchQuery: {{ (search_query or '')|tojson }}
 };
 
-// Difficulty level tracker
-async function loadDiff() {
-  try {
-    var r = await fetch('/gemini/get-difficulty?topic=General');
-    var d = await r.json();
-    var diff = d.difficulty || 'Medium';
-    var el   = document.getElementById('diffBadge');
-    var cfg  = {Easy:{icon:'🟢',color:'#10b981'},Medium:{icon:'🟡',color:'#f59e0b'},Hard:{icon:'🔴',color:'#ef4444'}};
-    var c    = cfg[diff] || cfg.Medium;
-    if(el){ el.textContent = c.icon+' '+diff; el.style.color = c.color; }
-  } catch(e){}
+// YouTube API titles arrive HTML-encoded (e.g. "&amp;"); decode before escaping
+function decodeEntities(str) {
+  var t = document.createElement('textarea');
+  t.innerHTML = String(str == null ? '' : str);
+  return t.value;
 }
 
-// Recommended video loading orchestrator
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function localDateKey(dt) {
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+
+// Greeting + date
+(function() {
+  var h = new Date().getHours();
+  var g = h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening');
+  var gEl = document.getElementById('greetText');
+  if (gEl) gEl.textContent = g;
+  var dEl = document.getElementById('todayDate');
+  if (dEl) dEl.textContent = new Date().toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'});
+})();
+
+// ── Up next: top 3 picks ─────────────────────────────────
+var PICKS_SHOWN = 3;
+
+function groupOf(v) {
+  if (v.expert === 'weak_topic') return 'weak';
+  if (v.expert === 'performance') {
+    return (typeof v.topic_score === 'number' && v.topic_score < 60) ? 'weak' : 'levelup';
+  }
+  return 'continue';
+}
+
+// One video per topic so the three cards aren't all the same subject
+function topPicks(recs) {
+  var seen = {}, picks = [];
+  recs.forEach(function(v) {
+    var key = (v.topic || v.video_id).toLowerCase();
+    if (picks.length < PICKS_SHOWN && !seen[key]) { seen[key] = true; picks.push(v); }
+  });
+  recs.forEach(function(v) {
+    if (picks.length < PICKS_SHOWN && picks.indexOf(v) === -1) picks.push(v);
+  });
+  return picks;
+}
+
+function pickCardHTML(v, reason, group) {
+  var title = decodeEntities(v.title) || 'Educational lesson';
+  var topic = v.topic || DASH.field || '';
+  var thumb = v.thumbnail || ('https://img.youtube.com/vi/' + v.video_id + '/mqdefault.jpg');
+  return '<div class="col-md-4 col-12">' +
+    '<div class="vcard dash-vcard" data-video-id="' + escapeHtml(v.video_id) + '" data-title="' + escapeHtml(title) + '" data-topic="' + escapeHtml(topic) + '">' +
+      '<div class="vthumb">' +
+        '<img src="' + escapeHtml(thumb) + '" alt="" loading="lazy">' +
+        '<div class="voverlay"><div class="vplay"><i class="fas fa-play ms-1"></i></div></div>' +
+      '</div>' +
+      '<div class="vinfo">' +
+        '<p class="vtitle" title="' + escapeHtml(title) + '">' + escapeHtml(title) + '</p>' +
+        (reason ? '<span class="dash-reason r-' + group + '" title="' + escapeHtml(reason) + '">' + escapeHtml(reason) + '</span>' : '') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function loadingHTML(msg) {
+  return '<div class="col-12 text-center py-4">' +
+    '<div class="spinner-border text-primary" style="width:1.8rem;height:1.8rem;"></div>' +
+    '<p class="mt-2 text-muted" style="font-size:.8rem;">' + escapeHtml(msg) + '</p></div>';
+}
+
+function emptyHTML(msg) {
+  return '<div class="col-12"><div class="dash-empty"><i class="fas fa-video"></i><div>' + escapeHtml(msg) + '</div></div></div>';
+}
+
 async function loadRec() {
   var con = document.getElementById('recVideos');
-  var lbl = document.getElementById('recLabel');
-  var ico = document.getElementById('recIcon');
-  var bdg = document.getElementById('recBadge');
-  var sub = document.getElementById('recSub');
-  if(!con) return;
+  if (!con) return;
+  con.innerHTML = loadingHTML('Finding videos for you...');
 
-  if(DASH.isNewUser && DASH.hasPrefs) {
-    if(lbl) lbl.textContent = 'Recommended For You';
-    if(bdg) bdg.textContent = DASH.level;
-    if(sub) sub.textContent = DASH.field;
-    await renderPrefVideos(con); return;
+  // Returning learners: MoE picks
+  if (!DASH.isNewUser) {
+    try {
+      var r = await fetch('/recommend/videos');
+      var d = await r.json();
+      if (d.success && d.recommendations && d.recommendations.length) {
+        con.innerHTML = topPicks(d.recommendations).map(function(v) {
+          return pickCardHTML(v, v.reason, groupOf(v));
+        }).join('');
+        return;
+      }
+    } catch(e) {}
   }
-  if(DASH.isNewUser && !DASH.hasPrefs) {
-    if(lbl) lbl.textContent = 'Start Learning Today';
-    if(bdg) bdg.textContent = 'All Levels';
-    if(sub) sub.textContent = 'Popular education';
-    if(ico) ico.style.background = 'linear-gradient(135deg,#10b981,#06b6d4)';
-    await renderGeneralVideos(con); return;
+
+  // New learners (or MoE unavailable): videos for their field
+  if (DASH.hasPrefs) {
+    try {
+      var r2 = await fetch('/recommend/preference-videos');
+      var d2 = await r2.json();
+      if (d2.success && d2.videos && d2.videos.length) {
+        document.getElementById('recSub').textContent = 'Popular starting points for ' + DASH.field;
+        con.innerHTML = d2.videos.slice(0, PICKS_SHOWN).map(function(v) {
+          return pickCardHTML(v, 'Start with: ' + (v.topic || DASH.field), 'continue');
+        }).join('');
+        return;
+      }
+    } catch(e) {}
   }
-  if(lbl) lbl.textContent = 'AI Recommended For You';
-  if(bdg) bdg.innerHTML = '<i class="fas fa-robot me-1"></i>MoE AI';
-  if(sub) sub.textContent = DASH.field || 'Personalized';
-  if(ico){ ico.style.background='rgba(79,70,229,0.08)'; ico.style.color='var(--primary)'; }
-  await renderMoEVideos(con);
-}
 
-async function renderPrefVideos(con) {
-  con.innerHTML = loadHTML('Loading '+DASH.field+' videos...');
   try {
-    var r = await fetch('/recommend/preference-videos');
-    var d = await r.json();
-    if(!d.success||!d.videos||!d.videos.length){ await renderGeneralVideos(con); return; }
-    con.innerHTML = d.videos.map(v=>vidCardHTML(v,v.topic||d.field||'',{bg:'rgba(139,92,246,0.08)',color:'var(--purple)',label:'🎯 '+(d.field||'Your Field')})).join('');
-  } catch(e){ await renderGeneralVideos(con); }
-}
-
-async function renderGeneralVideos(con) {
-  con.innerHTML = loadHTML('Loading educational videos...');
-  try {
-    var r = await fetch('/youtube/search?q=education+tutorial+beginners&limit=6');
-    var d = await r.json();
-    if(!d.success||!d.videos||!d.videos.length){ con.innerHTML=emptyHTML('No videos found.'); return; }
-    con.innerHTML = d.videos.map(v=>vidCardHTML(v,v.topic||'Education',{bg:'rgba(16,185,129,0.08)',color:'var(--green)',label:'📚 Education'})).join('');
-  } catch(e){ con.innerHTML=emptyHTML('Could not load videos.'); }
-}
-
-async function renderMoEVideos(con) {
-  con.innerHTML = loadHTML('AI is curating videos for you...');
-  try {
-    var r = await fetch('/recommend/videos');
-    var d = await r.json();
-    if(!d.success||!d.recommendations||!d.recommendations.length){
-      if(DASH.hasPrefs) await renderPrefVideos(con); else await renderGeneralVideos(con); return;
-    }
-    var es = {
-      'weak_topic' : {bg:'rgba(239, 68, 68, 0.08)',color:'#ef4444',label:'⚠️ Weak Topic'},
-      'performance': {bg:'rgba(16, 185, 129, 0.08)',color:'#10b981',label:'📊 Performance'},
-      'history'    : {bg:'rgba(139, 92, 246, 0.08)',color:'#8b5cf6',label:'🎯 For You'},
-      'post_quiz'  : {bg:'rgba(245, 158, 11, 0.08)',color:'#f59e0b',label:'📝 Post Quiz'},
-    };
-    con.innerHTML = d.recommendations.map(v=>{
-      var s = es[v.expert]||{bg:'#f8fafc',color:'#64748b',label:'🤖 AI'};
-      return vidCardHTML(v,v.reason||'',s,v.final_score);
-    }).join('');
-  } catch(e){ con.innerHTML=emptyHTML('Could not load. Try refreshing.'); }
-}
-
-function refreshRec(){ loadRec(); }
-function searchAndLoad(q){ window.location.href='/dashboard?search='+encodeURIComponent(q); }
-
-function vidCardHTML(v,topic,es,score){
-  var tj=JSON.stringify(v.title||'');
-  var topj=JSON.stringify(topic||'');
-  var thumb=v.thumbnail||'https://img.youtube.com/vi/'+v.video_id+'/mqdefault.jpg';
-  var pct=score?Math.round(score*100):0;
-  es=es||{bg:'#f8fafc',color:'#64748b',label:'📹'};
-  return '<div class="col-md-4 col-6">'+
-    '<div class="vcard" onclick=\'openVideo("'+v.video_id+'",'+tj+','+topj+')\'>' +
-    '<div class="vthumb">' +
-    '<img src="'+thumb+'" alt="" onerror="this.src=\'https://via.placeholder.com/320x180\'">' +
-    '<div class="voverlay"><div class="vplay"><i class="fas fa-play ms-1"></i></div></div>' +
-    '<div class="vbadge" style="background:'+es.bg+';color:'+es.color+';border:1px solid '+es.color+'33;">'+es.label+'</div>' +
-    (pct>0?'<div style="position:absolute;bottom:8px;right:8px;background:rgba(15,23,42,0.85);color:white;padding:3px 8px;border-radius:6px;font-size:.57rem;font-weight:700;border:1px solid rgba(255,255,255,0.1);">'+pct+'% match</div>':'') +
-    '</div>' +
-    '<div class="vinfo">' +
-    '<p class="vtitle">'+(v.title||'').substring(0,58)+(v.title&&v.title.length>58?'...':'')+'</p>'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;">'+
-    '<span class="vtag">'+(v.channel||'YouTube')+'</span>'+
-    (v.reason?'<span style="font-size:.59rem;color:var(--muted);">'+v.reason.substring(0,20)+'</span>':'') +
-    '</div></div></div></div>';
-}
-
-function loadHTML(msg){
-  return '<div class="col-12 text-center py-5">'+
-    '<div class="spinner-border text-primary" style="width:2rem;height:2rem;"></div>'+
-    '<p class="mt-3 text-muted" style="font-size:.8rem;">'+(msg||'Loading...')+'</p></div>';
-}
-function emptyHTML(msg){
-  return '<div class="col-12"><div class="empty-box"><span class="ei">🎥</span><p>'+(msg||'No videos found.')+'</p></div></div>';
-}
-
-// Study Streak Tracker rendering
-async function loadStreak(){
-  try {
-    var r=await fetch('/study/streak'); var d=await r.json(); if(!d.success) return;
-    var g=document.getElementById('streakGrid');
-    var b=document.getElementById('streakBadge');
-    var t=document.getElementById('totalDays');
-    var days=d.days||[];
-    if(b) b.textContent=(d.current_streak||0)+' 🔥 day streak';
-    if(t) t.textContent=(d.total_days||0)+' total study days';
-    if(!g) return;
-    var html='';
-    for(var i=34;i>=0;i--){
-      var dt=new Date(); dt.setDate(dt.getDate()-i);
-      var k=dt.toISOString().split('T')[0];
-      var ac=days.includes(k),today=i===0;
-      html+='<div class="streak-dot" title="'+k+'" style="background:'+(ac?'var(--green)':'#e2e8f0')+';opacity:'+(ac?1:.5)+';border:'+(today?'2px solid var(--primary)':'none')+';"></div>';
-    }
-    g.innerHTML=html;
-  } catch(e){}
-}
-
-// Planner forms & state updates
-function showPlanForm(){ document.getElementById('planForm').style.display='block'; document.getElementById('pDate').value=new Date().toISOString().split('T')[0]; document.getElementById('pTopic').focus(); }
-function hidePlanForm(){ document.getElementById('planForm').style.display='none'; }
-async function savePlan(){
-  var topic=document.getElementById('pTopic').value.trim();
-  var date=document.getElementById('pDate').value;
-  var dur=document.getElementById('pDur').value;
-  var pri='medium';
-  if(!topic||!date){ alert('Fill topic and date!'); return; }
-  try{
-    var r=await fetch('/study/plan/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,date,duration:dur,priority:pri})});
-    var d=await r.json();
-    if(d.success){ hidePlanForm(); document.getElementById('pTopic').value=''; loadPlans(); }
-  } catch(e){}
-}
-async function loadPlans(){
-  try{
-    var r=await fetch('/study/plans'); var d=await r.json(); var l=document.getElementById('planList');
-    if(!l) return;
-    if(!d.success||!d.plans.length){
-      l.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);"><div style="font-size:1.8rem;margin-bottom:6px;">📅</div><div style="font-size:.76rem;font-weight:600;color:#64748b;">No plans yet</div></div>';
+    var r3 = await fetch('/youtube/search?q=education+tutorial+beginners&limit=3');
+    var d3 = await r3.json();
+    if (d3.success && d3.videos && d3.videos.length) {
+      con.innerHTML = d3.videos.slice(0, PICKS_SHOWN).map(function(v) {
+        return pickCardHTML(v, '', 'continue');
+      }).join('');
       return;
     }
-    l.innerHTML=d.plans.map(function(p){
-      var hrs=p.duration>=60?Math.floor(p.duration/60)+'h'+(p.duration%60?' '+p.duration%60+'m':''):p.duration+'min';
-      var isToday=p.study_date===new Date().toISOString().split('T')[0];
-      return '<div class="plan-row" style="border:1px solid '+(isToday?'rgba(79,70,229,0.3)':'rgba(15,23,42,0.04)')+';opacity:'+(p.completed?.65:1)+';"><button onclick="togglePlan('+p.id+','+p.completed+')" style="width:20px;height:20px;border-radius:6px;flex-shrink:0;border:2px solid '+(p.completed?'var(--green)':'#cbd5e1')+';background:'+(p.completed?'var(--green)':'white')+';cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:white;">'+(p.completed?'✓':'')+'</button><div style="flex:1;min-width:0;"><div style="font-size:.78rem;font-weight:700;color:'+(p.completed?'#94a3b8':'#1e293b')+';text-decoration:'+(p.completed?'line-through':'none')+';">'+p.topic+'</div><div style="font-size:.64rem;color:var(--muted);margin-top:2px;display:flex;gap:6px;font-weight:500;"><span>📅 '+p.study_date+'</span><span>⏱ '+hrs+'</span>'+(isToday?'<span style="color:var(--primary);font-weight:700;">Today!</span>':'')+'</div></div><button onclick="delPlan('+p.id+')" style="width:22px;height:22px;border-radius:6px;border:none;background:rgba(239,68,68,0.05);color:#dc2626;cursor:pointer;font-size:.65rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background=\'rgba(239,68,68,0.1)\'" onmouseout="this.style.background=\'rgba(239,68,68,0.05)\'">✕</button></div>';
+  } catch(e) {}
+  con.innerHTML = emptyHTML("Couldn't load videos right now. Try again in a moment.");
+}
+
+// One click handler for all video cards on the page
+document.addEventListener('click', function(e) {
+  var card = e.target.closest('.dash-vcard');
+  if (card) openVideo(card.dataset.videoId, card.dataset.title, card.dataset.topic);
+});
+
+// ── Streak ───────────────────────────────────────────────
+async function loadStreak() {
+  try {
+    var r = await fetch('/study/streak');
+    var d = await r.json();
+    if (!d.success) return;
+    var el = document.getElementById('streakNum');
+    if (el) el.textContent = d.current_streak || 0;
+  } catch(e) {}
+}
+
+// ── Study plan ───────────────────────────────────────────
+function showPlanForm() {
+  document.getElementById('planForm').style.display = 'flex';
+  document.getElementById('pDate').value = localDateKey(new Date());
+  document.getElementById('planErr').textContent = '';
+  document.getElementById('pTopic').focus();
+}
+function hidePlanForm() { document.getElementById('planForm').style.display = 'none'; }
+
+async function savePlan() {
+  var topic = document.getElementById('pTopic').value.trim();
+  var date  = document.getElementById('pDate').value;
+  var dur   = document.getElementById('pDur').value;
+  var err   = document.getElementById('planErr');
+  if (!topic || !date) { err.textContent = 'Enter a topic and a date.'; return; }
+  err.textContent = '';
+  try {
+    var r = await fetch('/study/plan/add', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({topic: topic, date: date, duration: dur, priority: 'medium'})});
+    var d = await r.json();
+    if (d.success) { hidePlanForm(); document.getElementById('pTopic').value = ''; loadPlans(); }
+    else err.textContent = "Couldn't save. Try again.";
+  } catch(e) { err.textContent = "Couldn't save. Try again."; }
+}
+
+async function loadPlans() {
+  var l = document.getElementById('planList');
+  if (!l) return;
+  try {
+    var r = await fetch('/study/plans'); var d = await r.json();
+    if (!d.success || !d.plans.length) {
+      l.innerHTML = '<div class="dash-empty"><i class="fas fa-calendar"></i><div>No sessions planned. Add one to stay on track.</div></div>';
+      return;
+    }
+    var today = localDateKey(new Date());
+    l.innerHTML = d.plans.map(function(p) {
+      var hrs = p.duration >= 60 ? Math.floor(p.duration / 60) + 'h' + (p.duration % 60 ? ' ' + p.duration % 60 + 'm' : '') : p.duration + ' min';
+      var isToday = p.study_date === today;
+      return '<div class="plan-item' + (p.completed ? ' done' : '') + '">' +
+        '<button class="plan-check' + (p.completed ? ' done' : '') + '" onclick="togglePlan(' + p.id + ',' + (p.completed ? 'true' : 'false') + ')" aria-label="Mark done">' + (p.completed ? '<i class="fas fa-check"></i>' : '') + '</button>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="plan-topic">' + escapeHtml(p.topic) + '</div>' +
+          '<div class="plan-meta">' + (isToday ? '<span class="plan-today">Today</span>' : escapeHtml(p.study_date)) + ' · ' + hrs + '</div>' +
+        '</div>' +
+        '<button class="plan-del" onclick="delPlan(' + p.id + ')" aria-label="Delete"><i class="fas fa-times"></i></button>' +
+      '</div>';
     }).join('');
-  } catch(e){}
+  } catch(e) {}
 }
-async function togglePlan(id,done){ try{ await fetch('/study/plan/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,completed:!done})}); loadPlans(); } catch(e){} }
-async function delPlan(id){ try{ await fetch('/study/plan/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})}); loadPlans(); } catch(e){} }
+async function togglePlan(id, done) { try { await fetch('/study/plan/toggle', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id, completed: !done})}); loadPlans(); } catch(e) {} }
+async function delPlan(id) { try { await fetch('/study/plan/delete', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id})}); loadPlans(); } catch(e) {} }
 
-// Study Session stopwatch timer variables & logic
-var _secs=0,_timer=null,_paused=false;
-function startSesh(){ document.getElementById('btnStart').style.display='none'; document.getElementById('btnPause').style.display='inline-block'; document.getElementById('btnStop').style.display='inline-block'; document.getElementById('topicWrap').style.display='block'; _timer=setInterval(function(){_secs++;updateTimerDisplay();},1000); }
-function pauseSesh(){ if(_paused){ _paused=false; _timer=setInterval(function(){_secs++;updateTimerDisplay();},1000); document.getElementById('btnPause').innerHTML='<i class="fas fa-pause me-1"></i>Pause'; } else { _paused=true; clearInterval(_timer); document.getElementById('btnPause').innerHTML='<i class="fas fa-play me-1"></i>Resume'; } }
-async function stopSesh(){ clearInterval(_timer); if(_secs<60){ alert('Study at least 1 minute!'); resetSesh(); return; } var topic=document.getElementById('seshTopic').value.trim()||'General Study'; var mins=Math.floor(_secs/60); try{ await fetch('/study/session/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,duration:mins})}); loadSessions(); loadStreak(); } catch(e){} resetSesh(); }
-function resetSesh(){ _secs=0;_paused=false;clearInterval(_timer);updateTimerDisplay(); document.getElementById('btnStart').style.display='inline-block'; document.getElementById('btnPause').style.display='none'; document.getElementById('btnStop').style.display='none'; document.getElementById('topicWrap').style.display='none'; document.getElementById('seshTopic').value=''; document.getElementById('btnPause').innerHTML='<i class="fas fa-pause me-1"></i>Pause'; }
-function updateTimerDisplay(){ var h=Math.floor(_secs/3600),m=Math.floor((_secs%3600)/60),s=_secs%60; document.getElementById('timerDisplay').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+// ── Study timer ──────────────────────────────────────────
+var _secs = 0, _timer = null, _paused = false;
+function tick() { _secs++; updateTimerDisplay(); }
+function startSesh() {
+  document.getElementById('btnStart').style.display = 'none';
+  document.getElementById('btnPause').style.display = 'inline-flex';
+  document.getElementById('btnStop').style.display = 'inline-flex';
+  document.getElementById('topicWrap').style.display = 'block';
+  _timer = setInterval(tick, 1000);
+}
+function pauseSesh() {
+  var b = document.getElementById('btnPause');
+  if (_paused) { _paused = false; _timer = setInterval(tick, 1000); b.innerHTML = '<i class="fas fa-pause"></i> Pause'; }
+  else { _paused = true; clearInterval(_timer); b.innerHTML = '<i class="fas fa-play"></i> Resume'; }
+}
+async function stopSesh() {
+  clearInterval(_timer);
+  if (_secs < 60) { alert('Study for at least 1 minute to save a session.'); resetSesh(); return; }
+  var topic = document.getElementById('seshTopic').value.trim() || 'General study';
+  var mins = Math.floor(_secs / 60);
+  try {
+    await fetch('/study/session/save', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic: topic, duration: mins})});
+    loadSessions(); loadStreak();
+  } catch(e) {}
+  resetSesh();
+}
+function resetSesh() {
+  _secs = 0; _paused = false; clearInterval(_timer); updateTimerDisplay();
+  document.getElementById('btnStart').style.display = 'inline-flex';
+  document.getElementById('btnPause').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('topicWrap').style.display = 'none';
+  document.getElementById('seshTopic').value = '';
+  document.getElementById('btnPause').innerHTML = '<i class="fas fa-pause"></i> Pause';
+}
+function updateTimerDisplay() {
+  var h = Math.floor(_secs / 3600), m = Math.floor((_secs % 3600) / 60), s = _secs % 60;
+  document.getElementById('timerDisplay').textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
 
-async function loadSessions(){
-  try{
-    var r=await fetch('/study/sessions'); var d=await r.json(); if(!d.success) return;
-    var te=document.getElementById('todayMins');
-    if(te) te.textContent=d.today_mins+' min today';
+async function loadSessions() {
+  try {
+    var r = await fetch('/study/sessions'); var d = await r.json(); if (!d.success) return;
+    var te = document.getElementById('todayMins');
+    if (te) te.textContent = d.today_mins + ' min today';
     buildWeekChart(d.weekly);
-    var re=document.getElementById('recentSesh');
-    if(!re||!d.recent||!d.recent.length) return;
-    re.innerHTML=d.recent.map(function(s){ return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(15,23,42,0.02);"><div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--primary));display:flex;align-items:center;justify-content:center;color:white;font-size:.68rem;font-weight:800;flex-shrink:0;">'+s.duration_min+'m</div><div style="flex:1;"><div style="font-size:.75rem;font-weight:700;color:#1e293b;">'+s.topic+'</div><div style="font-size:.62rem;color:var(--muted);font-weight:500;">'+s.session_date+'</div></div></div>'; }).join('');
-  } catch(e){}
+  } catch(e) {}
 }
-function buildWeekChart(weekly){
-  var ce=document.getElementById('weekChart'); var le=document.getElementById('weekLabels');
-  if(!ce) return;
-  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; var today=new Date().getDay();
-  var max=Math.max.apply(null,weekly.map(function(w){return w.mins;}).concat([60]));
-  ce.innerHTML=weekly.map(function(w,i){ var h=Math.max((w.mins/max)*44,4),isT=i===today; return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="font-size:.52rem;color:var(--muted);height:10px;font-weight:600;">'+(w.mins>0?w.mins+'m':'')+'</div><div style="width:100%;height:'+h+'px;background:'+(isT?'var(--purple)':w.mins>0?'#c4b5fd':'#f1f5f9')+';border-radius:4px 4px 0 0;"></div></div>'; }).join('');
-  le.innerHTML=weekly.map(function(w,i){ var isT=i===today; return '<div style="flex:1;text-align:center;font-size:.58rem;color:'+(isT?'var(--purple)':'var(--muted)')+';font-weight:'+(isT?700:500)+';">'+days[i]+'</div>'; }).join('');
+function buildWeekChart(weekly) {
+  var ce = document.getElementById('weekChart'), le = document.getElementById('weekLabels');
+  if (!ce || !weekly) return;
+  var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], today = new Date().getDay();
+  var max = Math.max.apply(null, weekly.map(function(w) { return w.mins; }).concat([60]));
+  ce.innerHTML = weekly.map(function(w, i) {
+    var h = Math.max((w.mins / max) * 44, 4), isT = i === today;
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;" title="' + w.mins + ' min">' +
+      '<div style="width:100%;height:' + h + 'px;background:' + (isT ? 'var(--primary)' : (w.mins > 0 ? '#c7d2fe' : '#f1f5f9')) + ';border-radius:4px 4px 0 0;"></div></div>';
+  }).join('');
+  le.innerHTML = weekly.map(function(w, i) {
+    var isT = i === today;
+    return '<div style="flex:1;text-align:center;font-size:.62rem;color:' + (isT ? 'var(--primary)' : 'var(--muted)') + ';font-weight:' + (isT ? 700 : 500) + ';">' + days[i] + '</div>';
+  }).join('');
 }
 
-// Init triggers
-if(DASH.searchQuery && DASH.searchQuery.trim()){
-  if(typeof searchYouTube === 'function') searchYouTube(DASH.searchQuery);
+// Init
+if (DASH.searchQuery && DASH.searchQuery.trim()) {
+  if (typeof searchYouTube === 'function') searchYouTube(DASH.searchQuery);
 } else {
   loadRec();
-  loadDiff();
+  loadStreak();
+  loadPlans();
+  loadSessions();
 }
-loadStreak();
-loadPlans();
-loadSessions();
 </script>
 
-<!-- ============================================================ -->
-<!-- INLINE QUIZ MODAL OVERLAY (1-Screen Zero-Friction Flow)      -->
-<!-- ============================================================ -->
-<div class="modal fade" id="quizInlineModal" tabindex="-1" aria-hidden="true" style="backdrop-filter: blur(4px);">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content" style="border-radius: 18px; border: 1px solid #e2e8f0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
-      
-      <!-- Header -->
-      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #fff; padding: 18px 24px; border-bottom: none;">
-        <div class="d-flex align-items-center gap-3">
-          <div style="width: 42px; height: 42px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-bolt" style="color: #60a5fa; font-size: 1.25rem;"></i>
-          </div>
-          <div>
-            <h5 class="modal-title fw-bold mb-0" id="quizModalTitle" style="font-size: 1.1rem; color: #f8fafc;">Interactive AI Quiz</h5>
-            <small id="quizModalSub" style="color: #94a3b8; font-size: 0.8rem;">Auto-adapted to your learning level</small>
-          </div>
-        </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="if(window.closeQuizModal) closeQuizModal();"></button>
-      </div>
-
-      <!-- Body -->
-      <div class="modal-body" id="quizModalBody" style="padding: 24px; max-height: 72vh; overflow-y: auto; background: #f8fafc;">
-        <!-- Dynamically rendered by gemini.js -->
-      </div>
-
-      <!-- Footer -->
-      <div class="modal-footer" id="quizModalFooter" style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;">
-        <!-- Dynamic footer controls -->
-      </div>
-
-    </div>
-  </div>
-</div>
 {% endblock %}

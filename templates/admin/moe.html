@@ -1,0 +1,160 @@
+{% extends 'admin/base.html' %}
+{% from 'admin/_macros.html' import person %}
+{% block title %}Recommender evaluation{% endblock %}
+
+{% macro pct(v) %}{{ (v * 100)|round|int }}%{% endmacro %}
+{% macro tone(v) %}{{ 'green' if v >= 0.6 else ('amber' if v >= 0.4 else 'red') }}{% endmacro %}
+
+{% block content %}
+<div class="ui-page-head">
+  <div>
+    <h1 class="ui-page-title">Recommender evaluation</h1>
+    <p class="ui-page-sub">How well the mixture-of-experts recommender's top {{ k }} topics match what each student needs.</p>
+  </div>
+</div>
+
+{% if not user_metrics %}
+<div class="ui-card">
+  <div class="ui-empty">
+    <div class="ui-empty-icon"><i class="fas fa-diagram-project"></i></div>
+    <div class="ui-empty-title">Not enough data yet</div>
+    <div class="ui-empty-text">The evaluation needs students who have taken at least one quiz.</div>
+  </div>
+</div>
+{% else %}
+
+<div class="ui-alert info">
+  <i class="fas fa-circle-info"></i>
+  <div>A topic counts as <strong>relevant</strong> for a student if it's one of their weak topics or they average under 60% on it.
+    Results are averaged over {{ user_metrics|length }} student{{ 's' if user_metrics|length != 1 }} with quiz data.</div>
+</div>
+
+<div class="ui-stats cols-5">
+  {% for key, label in [('precision', 'Precision@' ~ k), ('recall', 'Recall@' ~ k), ('ndcg', 'NDCG@' ~ k), ('hit_rate', 'Hit rate')] %}
+  <div class="ui-stat" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+    <div class="ui-stat-label">{{ label }}</div>
+    <div class="ui-stat-num">{{ pct(summary[key]) }}</div>
+    <div class="ui-bar" style="width: 100%;"><span class="{{ tone(summary[key]) }}" style="width: {{ pct(summary[key]) }};"></span></div>
+  </div>
+  {% endfor %}
+  <div class="ui-stat" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+    <div class="ui-stat-label">Learning improvement</div>
+    <div class="ui-stat-num" style="color: {{ '#16a34a' if summary.lir > 0 else ('#ef4444' if summary.lir < 0 else 'inherit') }};">{{ '+' if summary.lir > 0 }}{{ summary.lir|round(1) }}%</div>
+    <div class="ui-list-meta">First quiz vs latest quiz</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="ui-card">
+      <h2 class="ui-card-title">Compared with random picks</h2>
+      <div class="ui-card-sub" style="margin-bottom: 10px;">Precision@{{ k }}</div>
+      <div class="ui-list-row" style="padding: 10px 0;"><span class="ui-list-main">AI recommender</span><strong style="color: var(--ui-primary);">{{ pct(summary.precision) }}</strong></div>
+      <div class="ui-list-row" style="padding: 10px 0;"><span class="ui-list-main">Random baseline</span><strong style="color: var(--ui-muted);">{{ pct(baseline) if baseline is not none else '—' }}</strong></div>
+      {% if gain is not none %}
+      <div class="ui-alert {{ 'success' if gain > 0 else ('error' if gain < 0 else 'info') }}" style="margin: 12px 0 0;">
+        <div>{{ (gain ~ '% better than random') if gain > 0 else ((-gain) ~ '% worse than random' if gain < 0 else 'Same as random') }}</div>
+      </div>
+      {% else %}
+      <div class="ui-list-meta" style="margin-top: 10px;">The random baseline scored 0, so a relative gain can't be calculated.</div>
+      {% endif %}
+    </div>
+
+    <div class="ui-card">
+      <h2 class="ui-card-title">Average expert weights</h2>
+      <div class="ui-card-sub" style="margin-bottom: 14px;">How much the router relied on each expert</div>
+      {% for key, label, color in [('weak_topic', 'Weak topics', '#ef4444'), ('performance', 'Quiz performance', '#16a34a'), ('history', 'Student interests', '#4f46e5')] %}
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 5px;">
+          <span style="font-weight: 600;">{{ label }}</span><span style="color: var(--ui-muted);">{{ pct(weights[key]) }}</span>
+        </div>
+        <div class="ui-bar"><span style="width: {{ pct(weights[key]) }}; background: {{ color }};"></span></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Per-student results</h2><div class="ui-card-sub">Precision and NDCG at {{ k }}</div></div></div>
+      <div class="ad-chart"><canvas id="studentChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="ui-card ui-card-flush">
+  <div class="ui-card-head"><div><h2 class="ui-card-title">Students</h2><div class="ui-card-sub">Metrics for each student with quiz data</div></div></div>
+  <div class="ui-table-wrap" style="margin-top: 14px;">
+    <table class="ui-table">
+      <thead><tr><th>Student</th><th>Precision</th><th>Recall</th><th>NDCG</th><th>Hit</th><th>Improvement</th><th style="text-align:center;">Quiz topics</th><th style="text-align:center;">Videos</th></tr></thead>
+      <tbody>
+        {% for m in user_metrics %}
+        <tr>
+          <td>{{ person(m.name, '', '/admin/student/' ~ m.id) }}</td>
+          <td><span class="ui-chip {{ tone(m.precision) }}">{{ pct(m.precision) }}</span></td>
+          <td>{{ pct(m.recall) }}</td>
+          <td><span class="ui-chip {{ tone(m.ndcg) }}">{{ pct(m.ndcg) }}</span></td>
+          <td>{% if m.hit_rate %}<span class="ui-chip green">Hit</span>{% else %}<span class="ui-chip red">Miss</span>{% endif %}</td>
+          <td style="color: {{ '#16a34a' if m.lir > 0 else ('#ef4444' if m.lir < 0 else 'inherit') }}; font-weight: 600;">{{ '+' if m.lir > 0 }}{{ m.lir }}%</td>
+          <td style="text-align:center;">{{ m.quizzes }}</td>
+          <td style="text-align:center;">{{ m.watched }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Weakest topics</h2><div class="ui-card-sub">Average quiz score, all students</div></div></div>
+      <div class="ad-chart"><canvas id="topicChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Score distribution</h2><div class="ui-card-sub">All quiz attempts</div></div></div>
+      <div class="ad-chart"><canvas id="distChart"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if user_metrics %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var C = {{ charts|tojson }};
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.color = '#64748b';
+var pctAxis = {beginAtZero: true, max: 100, ticks: {callback: function(v) { return v + '%'; }}, grid: {color: '#f1f5f9'}};
+
+new Chart(document.getElementById('studentChart'), {
+  type: 'bar',
+  data: {labels: C.names, datasets: [
+    {label: 'Precision', data: C.precision, backgroundColor: '#4f46e5', borderRadius: 4},
+    {label: 'NDCG', data: C.ndcg, backgroundColor: '#c7d2fe', borderRadius: 4}
+  ]},
+  options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'bottom', labels: {boxWidth: 10}}},
+    scales: {y: pctAxis, x: {grid: {display: false}}}}
+});
+
+new Chart(document.getElementById('topicChart'), {
+  type: 'bar',
+  data: {labels: C.topic_labels, datasets: [{label: 'Average score', data: C.topic_scores, borderRadius: 4,
+    backgroundColor: C.topic_scores.map(function(s) { return s >= 70 ? '#16a34a' : (s >= 50 ? '#f59e0b' : '#ef4444'); })}]},
+  options: {indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}},
+    scales: {x: pctAxis, y: {grid: {display: false}}}}
+});
+
+new Chart(document.getElementById('distChart'), {
+  type: 'doughnut',
+  data: {labels: ['Under 40%', '40–59%', '60–74%', '75–89%', '90% and above'],
+    datasets: [{data: C.dist, backgroundColor: ['#ef4444', '#f59e0b', '#a5b4fc', '#4f46e5', '#16a34a'], borderWidth: 0}]},
+  options: {responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: {legend: {position: 'bottom', labels: {boxWidth: 10}}}}
+});
+</script>
+{% endif %}
+{% endblock %}

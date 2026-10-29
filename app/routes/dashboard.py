@@ -67,13 +67,6 @@ def index():
             (user_id,), fetch=True
         ) or []
 
-    # ── Cognitive ──────────────────────────────────────────
-    cognitive = execute_query(
-        "SELECT * FROM cognitive_results WHERE user_id=%s",
-        (user_id,), fetch=True
-    )
-    cognitive_data = cognitive[0] if cognitive else None
-
     # ── Recent watched ─────────────────────────────────────
     recent_watched = execute_query(
         """SELECT video_id, video_title, topic
@@ -130,7 +123,6 @@ def index():
         streak_days             = streak_days,
         weak_count              = len(weak) if weak else 0,
         weak_topics             = weak[:5] if weak else [],
-        cognitive               = cognitive_data,
         recent_watched          = recent_watched,
         search_query            = search_query,
         field_of_interest       = field_of_interest,
@@ -189,6 +181,13 @@ def recommended_videos():
         (user_id,), fetch=True
     )
     has_quiz_attempts = (qa[0]['cnt'] > 0) if qa else False
+
+    avg_row = execute_query(
+        """SELECT ROUND(AVG(score/total*100)) AS avg FROM video_quizzes
+           WHERE user_id=%s AND attempted=1 AND total>0""",
+        (user_id,), fetch=True
+    )
+    avg_quiz_score = int(avg_row[0]['avg']) if avg_row and avg_row[0]['avg'] is not None else None
     is_new_user = (watched_count == 0 and not has_quiz_attempts)
 
     return render_template(
@@ -201,6 +200,7 @@ def recommended_videos():
         is_new_user=is_new_user,
         has_quiz_attempts=has_quiz_attempts,
         watched_count=watched_count,
+        avg_quiz_score=avg_quiz_score,
         search_query=search_q
     )
 
@@ -243,7 +243,7 @@ def weak_topics():
 def quiz_history():
     user_id = session['user_id']
     quizzes = execute_query(
-        """SELECT video_title, topic, score, total,
+        """SELECT id, video_id, video_title, topic, score, total,
                   attempted, created_at
            FROM video_quizzes WHERE user_id=%s
            ORDER BY created_at DESC""",
@@ -258,8 +258,20 @@ def quiz_history():
 @dashboard.route('/chatbot')
 @login_required
 def chatbot():
+    user_id = session['user_id']
+    prefs = execute_query(
+        "SELECT field_of_interest FROM users WHERE id=%s", (user_id,), fetch=True
+    )
+    field = (prefs[0]['field_of_interest'] if prefs else None) or session.get('field_of_interest') or ''
+    weak = execute_query(
+        """SELECT topic FROM weak_topics WHERE user_id=%s AND fail_count > 0
+           ORDER BY fail_count DESC LIMIT 2""",
+        (user_id,), fetch=True
+    ) or []
     return render_template('chatbot.html',
-                           user_name=session.get('user_name'))
+                           user_name=session.get('user_name') or 'Student',
+                           field_of_interest=field,
+                           weak_topics=[w['topic'] for w in weak])
 
 
 # ── API: Dashboard Stats ────────────────────────────────────
@@ -409,10 +421,6 @@ def progress():
            GROUP BY topic ORDER BY avg_score DESC""",
         (user_id,), fetch=True
     )
-    cognitive = execute_query(
-        "SELECT * FROM cognitive_results WHERE user_id=%s",
-        (user_id,), fetch=True
-    )
 
     total_quizzes = len(quizzes) if quizzes else 0
     avg_score = round(
@@ -430,7 +438,6 @@ def progress():
         quizzes       = quizzes or [],
         weak_topics   = weak or [],
         topics_perf   = topics_perf or [],
-        cognitive     = cognitive[0] if cognitive else None,
         total_quizzes = total_quizzes,
         avg_score     = avg_score,
         best_score    = best_score,

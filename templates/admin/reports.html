@@ -1,0 +1,126 @@
+{% extends 'admin/base.html' %}
+{% from 'admin/_macros.html' import person, score %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="ui-page-head">
+  <div>
+    <h1 class="ui-page-title">Reports</h1>
+    <p class="ui-page-sub">Quiz activity, student levels, and which topics students find hardest.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Quiz activity</h2><div class="ui-card-sub">Quizzes per day and average score, last 14 days</div></div></div>
+      {% if charts.daily_labels %}<div class="ad-chart"><canvas id="dailyChart"></canvas></div>
+      {% else %}<div class="ui-empty" style="padding: 40px 0;">No quizzes in the last 14 days.</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Skill levels</h2><div class="ui-card-sub">What students chose in onboarding</div></div></div>
+      {% if charts.level_data %}<div class="ad-chart"><canvas id="levelChart"></canvas></div>
+      {% else %}<div class="ui-empty" style="padding: 40px 0;">No data yet.</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="ui-card ui-card-flush">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Top students</h2><div class="ui-card-sub">Highest average quiz score</div></div></div>
+      <div class="ui-table-wrap" style="margin-top: 14px;">
+        <table class="ui-table">
+          <thead><tr><th style="width: 40px;">#</th><th>Student</th><th>Avg score</th><th style="text-align:center;">Quizzes</th></tr></thead>
+          <tbody>
+            {% for s in top_students %}
+            <tr>
+              <td class="ui-list-meta">{{ loop.index }}</td>
+              <td>{{ person(s.full_name, s.field_of_interest or s.education_category or '', '/admin/student/' ~ s.id) }}</td>
+              <td>{{ score(s.avg_score) }}</td>
+              <td style="text-align:center;">{{ s.qc }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4"><div class="ui-empty" style="padding: 22px;">No quiz results yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="ui-card ui-card-flush">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Hardest topics</h2><div class="ui-card-sub">Most missed quiz topics</div></div></div>
+      <div class="ui-table-wrap" style="margin-top: 14px;">
+        <table class="ui-table">
+          <thead><tr><th>Topic</th><th style="text-align:center;">Misses</th><th style="text-align:center;">Students</th></tr></thead>
+          <tbody>
+            {% for w in weak_agg %}
+            <tr>
+              <td style="font-weight: 600; color: var(--ui-text);">{{ w.topic }}</td>
+              <td style="text-align:center;"><span class="ui-chip red">{{ w.tf }}</span></td>
+              <td style="text-align:center;">{{ w.st }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3"><div class="ui-empty" style="padding: 22px;">No weak topics recorded.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ui-card">
+  <div class="ui-card-head"><div><h2 class="ui-card-title">Average score by topic</h2><div class="ui-card-sub">Lowest first. These topics need the most help.</div></div></div>
+  {% if charts.topic_labels %}<div class="ad-chart"><canvas id="topicChart"></canvas></div>
+  {% else %}<div class="ui-empty" style="padding: 40px 0;">No quiz results yet.</div>{% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var C = {{ charts|tojson }};
+Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+Chart.defaults.color = '#64748b';
+
+if (document.getElementById('dailyChart')) new Chart(document.getElementById('dailyChart'), {
+  data: {
+    labels: C.daily_labels,
+    datasets: [
+      {type: 'bar', label: 'Quizzes', data: C.daily_quiz, backgroundColor: '#c7d2fe', borderRadius: 4, yAxisID: 'y'},
+      {type: 'line', label: 'Average score', data: C.daily_score, borderColor: '#4f46e5', backgroundColor: '#4f46e5', tension: 0.3, pointRadius: 3, yAxisID: 'y1'}
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {legend: {position: 'bottom', labels: {boxWidth: 10}}},
+    scales: {
+      y: {beginAtZero: true, ticks: {precision: 0}, grid: {color: '#f1f5f9'}, title: {display: true, text: 'Quizzes'}},
+      y1: {beginAtZero: true, max: 100, position: 'right', grid: {display: false}, ticks: {callback: function(v) { return v + '%'; }}},
+      x: {grid: {display: false}}
+    }
+  }
+});
+
+if (document.getElementById('levelChart')) new Chart(document.getElementById('levelChart'), {
+  type: 'doughnut',
+  data: {labels: C.level_labels, datasets: [{data: C.level_data, backgroundColor: ['#16a34a', '#f59e0b', '#4f46e5'], borderWidth: 0}]},
+  options: {responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: {legend: {position: 'bottom', labels: {boxWidth: 10}}}}
+});
+
+if (document.getElementById('topicChart')) new Chart(document.getElementById('topicChart'), {
+  type: 'bar',
+  data: {labels: C.topic_labels, datasets: [{label: 'Average score', data: C.topic_scores, borderRadius: 4,
+    backgroundColor: C.topic_scores.map(function(s) { return s >= 70 ? '#16a34a' : (s >= 50 ? '#f59e0b' : '#ef4444'); })}]},
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: {legend: {display: false}},
+    scales: {x: {beginAtZero: true, max: 100, ticks: {callback: function(v) { return v + '%'; }}, grid: {color: '#f1f5f9'}}, y: {grid: {display: false}}}
+  }
+});
+</script>
+{% endblock %}

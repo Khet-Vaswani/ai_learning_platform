@@ -147,7 +147,7 @@ def google_callback():
         if session.get('onboarding_done'):
             return redirect('/dashboard')
         else:
-            return redirect('/cognitive-test')
+            return redirect('/onboarding/preferences')
 
     except Exception as e:
         print(f"❌ Google OAuth error: {e}")
@@ -224,7 +224,7 @@ def github_callback():
         if session.get('onboarding_done'):
             return redirect('/dashboard')
         else:
-            return redirect('/cognitive-test')
+            return redirect('/onboarding/preferences')
 
     except Exception as e:
         print(f"❌ GitHub OAuth error: {e}")
@@ -294,7 +294,7 @@ def linkedin_callback():
         if session.get('onboarding_done'):
             return redirect('/dashboard')
         else:
-            return redirect('/cognitive-test')
+            return redirect('/onboarding/preferences')
 
     except Exception as e:
         print(f"❌ LinkedIn OAuth error: {e}")

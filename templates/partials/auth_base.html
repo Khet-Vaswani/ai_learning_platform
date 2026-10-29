@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{# Shared split layout for login, register, forgot password and reset password. #}
+
+{% block content %}
+<div class="ui-auth">
+  <aside class="ui-auth-side">
+    <a class="ui-auth-brand" href="/login"><span class="ui-logo"><i class="fas fa-graduation-cap"></i></span> LearnAI</a>
+    <div class="ui-auth-pitch">
+      <h2>Learn smarter with videos picked for you.</h2>
+      <p>LearnAI finds the right lessons for your level, writes study notes, and quizzes you on what you watched.</p>
+      <ul class="ui-auth-points">
+        <li><i class="fas fa-wand-magic-sparkles"></i><span>Video recommendations that adapt to your quiz results</span></li>
+        <li><i class="far fa-file-lines"></i><span>AI study notes and quizzes for every video</span></li>
+        <li><i class="fas fa-chart-line"></i><span>Track weak topics and see your progress grow</span></li>
+      </ul>
+    </div>
+    <div class="ui-auth-foot">© LearnAI</div>
+  </aside>
+
+  <main class="ui-auth-main">
+    <div class="ui-auth-box">
+      <a class="ui-auth-brand" href="/login"><span class="ui-logo"><i class="fas fa-graduation-cap"></i></span> LearnAI</a>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="ui-alert {{ 'error' if category in ['danger', 'error'] else ('success' if category == 'success' else 'info') }}">
+          <i class="fas fa-circle-info"></i><div>{{ message }}</div>
+        </div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block auth_form %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show / hide password buttons
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.ui-pw-toggle');
+  if (!btn) return;
+  var input = btn.parentElement.querySelector('input');
+  var show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.innerHTML = '<i class="far fa-' + (show ? 'eye-slash' : 'eye') + '"></i>';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+});
+// Prevent double submits
+document.addEventListener('submit', function(e) {
+  var btn = e.target.querySelector('button[type=submit]');
+  if (btn) { btn.disabled = true; btn.dataset.label = btn.innerHTML; btn.innerHTML = 'Please wait...'; }
+});
+{% block auth_js %}{% endblock %}
+</script>
+{% endblock %}

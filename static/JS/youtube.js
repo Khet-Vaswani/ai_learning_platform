@@ -30,6 +30,11 @@ async function openVideo(videoId, title, topic) {
     videoWatched      = false;
     descExpanded      = false;
     currentTranscript = '';
+    // Forget any quiz from the previously opened video
+    if (typeof currentQuizId !== 'undefined') {
+        currentQuizId = null; currentQuestions = []; currentAnswers = {};
+        if (typeof currentQuizLevel !== "undefined") { currentQuizLevel = null; currentLevelBasis = ""; }
+    }
 
     if (watchCheckTimer) {
         clearInterval(watchCheckTimer);
@@ -59,12 +64,15 @@ async function openVideo(videoId, title, topic) {
     loadVideoDetails(videoId, topic);
     loadRelatedVideos(topic);
 
-    // ── Load notes automatically ──────────────────────────
-    loadOrCreateNotes(videoId, title, topic);
-
-    // ── Fetch transcript and set up watch timer ───────────
+    // ── Fetch transcript first; notes are only made from it ──
     await fetchTranscript(videoId);
     startWatchTimer();
+    if (currentVideo.id !== videoId) return;   // user opened another video meanwhile
+    if (currentTranscript) {
+        loadOrCreateNotes(videoId, title, topic);
+    } else {
+        showNoTranscriptNotice();
+    }
 
     // ── Mark as watched ───────────────────────────────────
     try {
@@ -89,9 +97,10 @@ async function fetchTranscript(videoId) {
         const data = await fetch(`/youtube/transcript?video_id=${videoId}&title=${titleParam}`)
             .then(r => r.json());
 
-        if (data.success && data.transcript && data.transcript.trim().length > 100) {
+        if (data.success && data.transcript && data.source !== 'metadata' && data.source !== 'description' && data.transcript.trim().length > 80) {
             currentTranscript = data.transcript;
-            console.log('✅ Transcript loaded:', currentTranscript.length, 'chars');
+            window.currentTranscript = data.transcript;
+            console.log('✅ Authentic transcript loaded:', currentTranscript.length, 'chars');
 
             // Show transcript indicator
             if (srcBadge) {
@@ -107,15 +116,42 @@ async function fetchTranscript(videoId) {
             return;
         }
     } catch(e) {
-        console.log('Transcript API not available, using watch timer to unlock');
+        console.log('Transcript API extraction notice:', e);
     }
 
     currentTranscript = '';
+    window.currentTranscript = '';
     if (srcBadge) {
-        srcBadge.textContent = '📝 From Video Title';
-        srcBadge.style.background = '#eff6ff';
-        srcBadge.style.color = '#2563eb';
+        srcBadge.textContent = 'No transcript';
+        srcBadge.style.background = '#fef2f2';
+        srcBadge.style.color = '#b91c1c';
     }
+}
+
+// Shown when the video has no captions and its audio couldn't be transcribed
+function showNoTranscriptNotice() {
+    const msg = "This video has no transcript we can use (no captions, and the audio couldn't be transcribed). " +
+                "AI notes and quizzes are only made from what is said in the video, so they aren't available for this one.";
+    const notesSection = document.getElementById('notesSection');
+    const notesContent = document.getElementById('notesContent');
+    const loading      = document.getElementById('aiLoadingSection');
+    if (loading) loading.style.display = 'none';
+    if (notesContent) notesContent.innerHTML = '<div style="color:#64748b;">' + escapeHtmlYT(msg) + '</div>';
+    if (notesSection) notesSection.style.display = 'block';
+    const locked = document.getElementById('quizLockedBanner');
+    if (locked) {
+        locked.style.display = 'block';
+        locked.innerHTML = '<div style="font-weight:700;color:#334155;margin-bottom:4px;">Quiz not available</div>' +
+                           '<div style="font-size:0.8rem;color:#64748b;">' + escapeHtmlYT(msg) + '</div>';
+    }
+    const ready = document.getElementById('quizReadyBanner');
+    if (ready) ready.style.display = 'none';
+}
+
+function escapeHtmlYT(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function switchAiTab(tabName) {
@@ -221,7 +257,7 @@ async function loadOrCreateNotes(videoId, title, topic) {
         if (notesRes.success) {
             if (notesContent) notesContent.innerHTML = formatNotesNotion(notesRes.notes);
             if (srcBadge) {
-                srcBadge.textContent = notesRes.from_cache ? "📄 Loaded from DB" : "📄 Generated via AI";
+                srcBadge.textContent = "From the video's transcript";
                 srcBadge.style.background = '#f0fdf4';
                 srcBadge.style.color = '#059669';
             }
@@ -229,7 +265,7 @@ async function loadOrCreateNotes(videoId, title, topic) {
         } else {
             if (notesSection) {
                 notesSection.style.display = 'block';
-                if (notesContent) notesContent.innerHTML = `<div class="text-danger">Failed to generate study notes: ${notesRes.message || 'AI error'}</div>`;
+                if (notesContent) notesContent.innerHTML = '<div style="color:#b91c1c;">' + escapeHtmlYT(notesRes.message || "We couldn't generate notes. Try again.") + '</div>';
             }
         }
     } catch (e) {
@@ -240,7 +276,7 @@ async function loadOrCreateNotes(videoId, title, topic) {
 
 function formatNotesNotion(text) {
     if (!text) return '';
-    let formatted = text;
+    let formatted = escapeHtmlYT(text);   // AI output is plain text; escape before formatting
     
     // Replace Headers
     formatted = formatted.replace(/## 📌 Topic Overview/g, '<h6 class="notion-h2">📌 Topic Overview</h6>');
@@ -757,6 +793,7 @@ function stopVideo() {
     if (watchCheckTimer) { clearInterval(watchCheckTimer); watchCheckTimer = null; }
     videoWatched = false;
     currentTranscript = '';
+    window.currentTranscript = '';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

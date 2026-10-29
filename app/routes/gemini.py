@@ -9,19 +9,40 @@ from flask import (Blueprint, request, jsonify,
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
 
-import os, json, time
+import os, json, time, re
 
 gemini_bp = Blueprint('gemini', __name__)
+
+TRANSCRIPT_UNAVAILABLE = {
+    'success': False,
+    'transcript_unavailable': True,
+    'message': ("We couldn't get a transcript for this video (it has no captions and the audio "
+                "couldn't be transcribed), so we can't make a quiz for it. "
+                "Quizzes and notes are only made from what is said in the video."),
+}
+
+
+def _server_transcript(video_id: str):
+    """
+    Get the video's real transcript server-side: verified cache -> YouTube captions
+    -> yt-dlp subtitles -> speech-to-text. Returns (text, source) or ('', None).
+    """
+    from app.ai.transcript_extractor import (
+        extract_transcript_full_pipeline, is_valid_transcript, VALID_TRANSCRIPT_SOURCES)
+    result = extract_transcript_full_pipeline(video_id=video_id, use_whisper=True)
+    text, source = result.get('transcript', ''), result.get('source')
+    if source in VALID_TRANSCRIPT_SOURCES and is_valid_transcript(text):
+        return text, source
+    return '', None
 
 # ── Groq client ───────────────────────────────────────────
 from groq import Groq
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
 GROQ_MODELS = [
-    'groq/compound-mini',
-    'groq/compound',
     'openai/gpt-oss-120b',
     'qwen/qwen3.8-27b',
+    'openai/gpt-oss-20b',
 ]
 
 # ── Gemini client ─────────────────────────────────────────
@@ -83,6 +104,94 @@ def _generate_ai(prompt: str, max_tokens: int = 1200) -> str:
 
 
 # ============================================================
+# STUDENT PROGRESS CONTEXT — for the chatbot
+# ============================================================
+def _student_context(user_id: int) -> str:
+    """
+    Plain-text summary of THIS student's own learning data (profile, quiz
+    scores, weak topics, next quiz levels, activity, study plan), so the
+    chatbot can answer questions about their progress. Never includes
+    other students' data.
+    """
+    from app.ai.quiz_generator import choose_quiz_level
+    lines = []
+
+    u = execute_query(
+        """SELECT full_name, education_category, field_of_interest, skill_level, created_at
+           FROM users WHERE id=%s""", (user_id,), fetch=True) or []
+    if u:
+        u = u[0]
+        lines.append(f"Name: {u['full_name']}")
+        lines.append(f"Education level: {u.get('education_category') or 'not set'} | "
+                     f"Field: {u.get('field_of_interest') or 'not set'} | Skill level: {u.get('skill_level') or 'not set'}")
+
+    stats = (execute_query(
+        """SELECT COUNT(*) AS n, ROUND(AVG(score/total*100),1) AS avg, ROUND(MAX(score/total*100),1) AS best
+           FROM video_quizzes WHERE user_id=%s AND attempted=1 AND total>0""",
+        (user_id,), fetch=True) or [{}])[0]
+    if stats.get('n'):
+        lines.append(f"Quizzes completed: {stats['n']} | Average score: {stats['avg']}% | Best score: {stats['best']}%")
+        recent = execute_query(
+            """SELECT topic, ROUND(score/total*100) AS pct, score, total, difficulty, created_at
+               FROM video_quizzes WHERE user_id=%s AND attempted=1 AND total>0
+               ORDER BY created_at DESC LIMIT 5""", (user_id,), fetch=True) or []
+        lines.append("Recent quizzes (newest first):")
+        for q in recent:
+            when = q['created_at'].strftime('%d %b %Y') if q.get('created_at') else ''
+            lvl = f", {q['difficulty']} level" if q.get('difficulty') else ''
+            lines.append(f"  - {q['topic'] or 'Quiz'}: {q['pct']}% ({q['score']}/{q['total']}{lvl}) on {when}")
+        topics = execute_query(
+            """SELECT topic, COUNT(*) AS n, ROUND(AVG(score/total*100)) AS avg
+               FROM video_quizzes WHERE user_id=%s AND attempted=1 AND total>0 AND topic IS NOT NULL
+               GROUP BY topic ORDER BY avg ASC LIMIT 8""", (user_id,), fetch=True) or []
+        if topics:
+            lines.append("Average score by topic (weakest first):")
+            for t in topics:
+                nxt = choose_quiz_level(user_id, t['topic'])['level']
+                lines.append(f"  - {t['topic']}: {t['avg']}% over {t['n']} quiz(zes); next quiz on it will be {nxt}")
+    else:
+        lines.append("Quizzes completed: none yet")
+
+    weak = execute_query(
+        """SELECT topic, fail_count FROM weak_topics WHERE user_id=%s AND fail_count>0
+           ORDER BY fail_count DESC LIMIT 6""", (user_id,), fetch=True) or []
+    lines.append("Weak topics (topics with at least one quiz scored under 50%; see the averages above): " +
+                 (', '.join(f"{w['topic']} (missed {w['fail_count']}x)" for w in weak) if weak else 'none'))
+
+    watched = (execute_query("SELECT COUNT(*) AS n FROM watched_videos WHERE user_id=%s", (user_id,), fetch=True) or [{'n': 0}])[0]['n']
+    week = (execute_query(
+        """SELECT COALESCE(SUM(duration_min),0) AS m FROM study_sessions
+           WHERE user_id=%s AND session_date >= CURDATE() - INTERVAL 6 DAY""", (user_id,), fetch=True) or [{'m': 0}])[0]['m']
+    lines.append(f"Videos watched: {watched} | Study time in the last 7 days: {week} minutes")
+
+    plans = execute_query(
+        """SELECT topic, study_date, duration FROM study_schedule
+           WHERE user_id=%s AND completed=0 AND study_date >= CURDATE()
+           ORDER BY study_date LIMIT 5""", (user_id,), fetch=True) or []
+    if plans:
+        lines.append("Upcoming study plan: " + '; '.join(f"{p['topic']} on {p['study_date']} ({p['duration']} min)" for p in plans))
+
+    return '\n'.join(lines)
+
+
+def _with_progress(prompt: str, progress: str) -> str:
+    """Prefix a chatbot prompt with the student's own progress data and how to use it."""
+    return f"""You are the AI learning assistant inside LearnAI. You can answer general questions on any subject,
+and you also know this student's own progress on the platform (below).
+
+=== THIS STUDENT'S PROGRESS ON LEARNAI ===
+{progress}
+=== END OF PROGRESS DATA ===
+
+How to use the progress data:
+- Use it when the student asks about their scores, progress, weak topics, what to study next, quiz levels, or a study plan.
+- Quote the numbers exactly as given. Never invent scores, topics, or dates. If something isn't in the data, say you don't have it.
+- For general questions that aren't about their progress, just answer normally; you may briefly connect the answer to a weak topic if it is clearly relevant.
+
+{prompt}"""
+
+
+# ============================================================
 # GENERATE NOTES
 # ============================================================
 @gemini_bp.route('/gemini/generate-notes', methods=['POST'])
@@ -93,52 +202,41 @@ def generate_notes_route():
     Frontend sends: video_id, video_title, topic, transcript (optional)
     """
     data        = request.get_json() or {}
-    video_id    = data.get('video_id', '')
-    video_title = data.get('video_title', '')
-    topic       = data.get('topic', '')
-    transcript  = data.get('transcript', '')
+    video_id    = str(data.get('video_id', '')).strip()
+    video_title = str(data.get('video_title', '')).strip()   # stored for display only
+    topic       = str(data.get('topic', '')).strip()
     user_id     = session['user_id']
 
-    if not transcript:
-        cached_trans = execute_query(
-            "SELECT transcript_text FROM video_transcripts WHERE video_id = %s",
-            (video_id,), fetch=True
-        )
-        if cached_trans:
-            transcript = cached_trans[0]['transcript_text']
-
-    print(f"\n📝 Notes request: '{topic}' | transcript={len(transcript)} chars")
+    if not re.fullmatch(r'[A-Za-z0-9_-]{6,20}', video_id):
+        return jsonify({'success': False, 'message': 'A valid video_id is required.'}), 400
 
     try:
         from app.ai.notes_generator import generate_notes, get_saved_notes
 
-        # Check DB cache first (avoid regenerating)
         cached = get_saved_notes(user_id, video_id)
-        if cached.get('success') and cached.get('from_cache'):
-            print(f"✅ Notes from cache")
-            return jsonify({
-                'success'   : True,
-                'notes'     : cached['notes'],
-                'notes_html': cached.get('notes_html', cached['notes']),
-                'source'    : cached['source'],
-                'word_count': cached['word_count'],
-                'from_cache': True,
-            })
+        if cached.get('success'):
+            print("✅ Notes from cache")
+            return jsonify(cached)
 
-        # Generate fresh notes
-        result = generate_notes(
+        transcript, source = _server_transcript(video_id)
+        if not transcript:
+            return jsonify({**TRANSCRIPT_UNAVAILABLE,
+                            'message': TRANSCRIPT_UNAVAILABLE['message'].replace('a quiz', 'notes')})
+
+        print(f"\n📝 Notes: video={video_id} | source={source} | {len(transcript.split())} words")
+        return jsonify(generate_notes(
             video_id    = video_id,
             video_title = video_title,
             topic       = topic,
             user_id     = user_id,
             transcript  = transcript,
-        )
-        return jsonify(result)
+            source      = source,
+        ))
 
     except Exception as e:
         print(f"❌ Notes route error: {e}")
         import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': "Something went wrong while making notes. Try again."})
 
 
 # ============================================================
@@ -148,43 +246,56 @@ def generate_notes_route():
 @login_required
 def generate_quiz_route():
     """
-    Generate MCQ quiz from transcript or video title.
-    Frontend sends: video_id, video_title, topic, transcript (optional)
+    Generate MCQ quiz strictly from authentic YouTube video transcript.
+    If transcript is unavailable, reliably extracts it via multi-layered pipeline.
+    Never generates questions from titles or external knowledge.
     """
     data        = request.get_json() or {}
-    video_id    = data.get('video_id', '')
-    video_title = data.get('video_title', '')
-    topic       = data.get('topic', '')
-    transcript  = data.get('transcript', '')
+    video_id    = str(data.get('video_id', '')).strip()
+    video_title = str(data.get('video_title', '')).strip()   # stored for display only
+    topic       = str(data.get('topic', '')).strip()         # used for progress tracking only
     user_id     = session['user_id']
 
-    if not transcript:
-        cached_trans = execute_query(
-            "SELECT transcript_text FROM video_transcripts WHERE video_id = %s",
-            (video_id,), fetch=True
-        )
-        if cached_trans:
-            transcript = cached_trans[0]['transcript_text']
-
-    print(f"\n📋 Quiz request: '{topic}' | transcript={len(transcript)} chars")
+    if not re.fullmatch(r'[A-Za-z0-9_-]{6,20}', video_id):
+        return jsonify({'success': False, 'message': 'A valid video_id is required.'}), 400
 
     try:
-        from app.ai.quiz_generator import generate_quiz
+        from app.ai.quiz_generator import generate_quiz, get_saved_quiz, choose_quiz_level
 
+        # One level for the whole quiz, from the student's past scores
+        level_info = choose_quiz_level(user_id, topic)
+        level      = level_info['level']
+
+        # Reuse an unattempted quiz for this video only if it's at the same level
+        saved = get_saved_quiz(user_id, video_id, level)
+        if saved.get('success'):
+            print(f"✅ Loaded saved {level} quiz for video {video_id}")
+            return jsonify({**saved, 'difficulty_basis': level_info['basis']})
+
+        # The transcript always comes from the server (captions or speech-to-text),
+        # never from the request body, so nothing else can be passed off as one.
+        transcript, source = _server_transcript(video_id)
+        if not transcript:
+            return jsonify(TRANSCRIPT_UNAVAILABLE)
+
+        print(f"\n📋 Quiz generation: video={video_id} | source={source} | {len(transcript.split())} words")
         result = generate_quiz(
             video_id    = video_id,
             video_title = video_title,
             topic       = topic,
             user_id     = user_id,
             transcript  = transcript,
-            # difficulty = None → auto-detected from learning curve
+            source      = source,
+            difficulty  = level,
         )
+        if result.get('success'):
+            result['difficulty_basis'] = level_info['basis']
         return jsonify(result)
 
     except Exception as e:
         print(f"❌ Quiz route error: {e}")
         import traceback; traceback.print_exc()
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': "Something went wrong while making the quiz. Try again."})
 
 
 # ============================================================
@@ -264,38 +375,11 @@ def submit_quiz_route():
 @gemini_bp.route('/gemini/get-difficulty', methods=['GET'])
 @login_required
 def get_difficulty():
-    user_id = session['user_id']
-    topic   = request.args.get('topic', 'General')
-
-    # Try learning curve first
-    curve = execute_query(
-        """SELECT difficulty_level, curve_stage, current_score
-           FROM learning_curves WHERE user_id=%s AND topic=%s""",
-        (user_id, topic), fetch=True
-    )
-    if curve:
-        return jsonify({
-            'success'    : True,
-            'difficulty' : curve[0]['difficulty_level'] or 'Medium',
-            'curve_stage': curve[0]['curve_stage'],
-            'score'      : float(curve[0]['current_score'] or 0),
-        })
-
-    # topic_difficulty table
-    td = execute_query(
-        """SELECT difficulty_level, last_score, attempts
-           FROM topic_difficulty WHERE user_id=%s AND topic=%s""",
-        (user_id, topic), fetch=True
-    )
-    if td:
-        return jsonify({
-            'success'   : True,
-            'difficulty': td[0]['difficulty_level'] or 'Medium',
-            'last_score': float(td[0]['last_score'] or 0),
-            'attempts'  : td[0]['attempts'] or 0,
-        })
-
-    return jsonify({'success': True, 'difficulty': 'Medium', 'last_score': 0, 'attempts': 0})
+    """Level the student's next quiz on a topic will have (Easy / Medium / Hard)."""
+    from app.ai.quiz_generator import choose_quiz_level
+    info = choose_quiz_level(session['user_id'], request.args.get('topic', '').strip())
+    return jsonify({'success': True, 'difficulty': info['level'],
+                    'average': info['average'], 'basis': info['basis']})
 
 
 # ============================================================
@@ -316,12 +400,9 @@ def quiz_page(quiz_id):
     q         = quiz[0]
     questions = json.loads(q['questions'])
 
-    # Get difficulty
-    td = execute_query(
-        "SELECT difficulty_level FROM topic_difficulty WHERE user_id=%s AND topic=%s",
-        (user_id, q['topic']), fetch=True
-    )
-    difficulty  = td[0]['difficulty_level'] if td else 'Medium'
+    # The level this quiz was created at (older quizzes have none recorded)
+    from app.ai.quiz_generator import DB_TO_LEVEL
+    difficulty = DB_TO_LEVEL.get(q.get('difficulty') or '', None)
 
     curve = execute_query(
         "SELECT curve_stage FROM learning_curves WHERE user_id=%s AND topic=%s",
@@ -356,12 +437,11 @@ def chatbot_ask():
     file_name = data.get('file_name', '')
     user_id   = session['user_id']
 
-    # Get learning style
-    cognitive = execute_query(
-        "SELECT learning_style FROM cognitive_results WHERE user_id=%s",
-        (user_id,), fetch=True
-    )
-    style = cognitive[0]['learning_style'] if cognitive else 'Student'
+    try:
+        progress = _student_context(user_id)
+    except Exception as e:
+        print(f"⚠️ Progress context error: {e}")
+        progress = 'Progress data is temporarily unavailable.'
 
     # ── Image / PDF / Doc analysis ──────────────────────────────
     if file_data:
@@ -378,11 +458,11 @@ def chatbot_ask():
                     mime_type = file_type
                 )
                 txt_part = types.Part.from_text(
-                    text = message or (
+                    text = _with_progress('Student request: ', progress) + (message or (
                         'Analyze this image and explain what you see. '
                         'If it contains code or a problem, solve it. '
                         'If it contains text or notes, explain the concepts.'
-                    )
+                    ))
                 )
                 resp = gemini_client.models.generate_content(
                     model    = 'gemini-3.6-flash',
@@ -427,7 +507,7 @@ Instructions:
 - Carefully extract and synthesize the information from the document to answer the student's question accurately.
 - Provide clear, educational explanations with formatting (bullet points, bold highlights, code blocks if applicable).
 - Base your answers directly on the document text."""
-                    reply = _generate_ai(prompt, max_tokens=1500)
+                    reply = _generate_ai(_with_progress(prompt, progress), max_tokens=1500)
                     return jsonify({'success': True, 'reply': reply})
 
                 # If text is empty (scanned image PDF) and Gemini Vision is available
@@ -436,7 +516,7 @@ Instructions:
                         from google.genai import types
                         pdf_part = types.Part.from_bytes(data=file_bytes, mime_type='application/pdf')
                         txt_part = types.Part.from_text(
-                            text=message or 'Analyze this PDF document and explain its key concepts in detail.'
+                            text=_with_progress('Student request: ', progress) + (message or 'Analyze this PDF document and explain its key concepts in detail.')
                         )
                         resp = gemini_client.models.generate_content(
                             model='gemini-3.6-flash',
@@ -448,7 +528,7 @@ Instructions:
                         print(f"⚠️ Gemini direct PDF error: {g_err}")
 
                 prompt = f"A student uploaded a PDF named '{file_name}'. The file does not contain extractable text (it may be a scanned image or protected). Student question: {message}. Please advise them kindly on how to proceed or ask questions on the topic."
-                reply = _generate_ai(prompt, max_tokens=400)
+                reply = _generate_ai(_with_progress(prompt, progress), max_tokens=400)
                 return jsonify({'success': True, 'reply': reply})
 
             # 3. Word (.docx) document analysis
@@ -478,7 +558,7 @@ Student Question / Request: {message or 'Summarize this document, explain the ma
 Instructions:
 - Carefully extract and synthesize the information from the document to answer the student's question accurately.
 - Provide clear, educational explanations with formatting."""
-                    reply = _generate_ai(prompt, max_tokens=1500)
+                    reply = _generate_ai(_with_progress(prompt, progress), max_tokens=1500)
                     return jsonify({'success': True, 'reply': reply})
 
             # 4. Text / Markdown / Code file analysis
@@ -503,7 +583,7 @@ Student Question / Request: {message or 'Analyze this file, explain its content,
 Instructions:
 - Thoroughly analyze the file content above to answer the student.
 - Provide clear explanations, examples, or code breakdown where appropriate."""
-                    reply = _generate_ai(prompt, max_tokens=1500)
+                    reply = _generate_ai(_with_progress(prompt, progress), max_tokens=1500)
                     return jsonify({'success': True, 'reply': reply})
 
         except Exception as e:
@@ -516,8 +596,7 @@ Instructions:
             role          = 'Student' if h['role'] == 'user' else 'AI Tutor'
             history_text += f"{role}: {h['content']}\n"
 
-    prompt = f"""You are a helpful AI learning assistant for a {style} student.
-Remember the conversation context below.
+    prompt = f"""Remember the conversation context below.
 
 Previous conversation:
 {history_text}
@@ -533,11 +612,11 @@ Instructions:
 - Keep responses concise but complete (max 400 words)"""
 
     try:
-        reply = _generate_ai(prompt, max_tokens=1200)
+        reply = _generate_ai(_with_progress(prompt, progress), max_tokens=1200)
         return jsonify({'success': True, 'reply': reply})
     except Exception as e:
         print(f"❌ Chatbot error: {e}")
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': "The assistant couldn't reply right now. Try again in a moment."})
 
 
 # ============================================================
@@ -557,7 +636,7 @@ def _get_postquiz_recommendations(
     from app.routes.recommend import (
         get_yt, is_quota_err, search_youtube,
         get_db_cache, save_db_cache, fallback_for_query,
-        _cache, FALLBACK
+        _cache
     )
 
     if percentage < 60:
@@ -636,6 +715,14 @@ def _get_postquiz_recommendations(
     for k in list(_cache.keys()):
         if str(user_id) in k:
             del _cache[k]
+
+    # Two queries can map to the same fallback video
+    seen, unique = set(), []
+    for v in videos:
+        if v['video_id'] not in seen:
+            seen.add(v['video_id'])
+            unique.append(v)
+    videos = unique
 
     return {
         'recommendations' : videos[:3],

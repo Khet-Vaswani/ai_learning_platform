@@ -134,7 +134,7 @@ def register():
 @auth.route('/logout')
 def logout():
     session.clear()
-    flash('Logged out successfully!', 'info')
+    flash("You've been logged out.", 'info')
     return redirect(url_for('auth.login'))
 
 
@@ -259,7 +259,7 @@ def reset_password(token):
             (reset_record['id'],), fetch=False
         )
 
-        flash('Your password has been successfully reset! Please sign in with your new password.', 'success')
+        flash('Password updated. Log in with your new password.', 'success')
         return redirect(url_for('auth.login'))
 
     return render_template('reset_password.html', token=token)

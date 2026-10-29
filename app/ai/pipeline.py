@@ -193,99 +193,25 @@ def generate_quiz_from_content(
     topic      : str,
     user_id    : int,
     transcript : str   = '',
-    source     : str   = 'title',
+    source     : str   = 'transcript',
     difficulty : str   = 'Medium',
-    num_questions: int = 20
+    num_questions: int = 10
 ) -> dict:
     """
-    Generate MCQ quiz from video content.
+    Generate MCQ quiz strictly from authentic video transcript.
+    Delegates to quiz_generator.generate_quiz.
     """
-
-    diff_guide = {
-        'Easy'  : 'Basic recall questions — definitions and simple facts.',
-        'Medium': 'Understanding questions — concepts and applications.',
-        'Hard'  : 'Analysis questions — comparisons, scenarios, advanced concepts.'
-    }
-
-    # Build content source
-    if transcript and len(transcript.strip()) > 100:
-        processed = preprocess_transcript(transcript, max_chars=3500)
-        if processed['is_usable']:
-            content_text  = processed['text']
-            content_block = f"""
-VIDEO TRANSCRIPT (base all questions on this content):
-{content_text}
-
-Topic: {topic}
-"""
-            print(f"✅ Quiz from transcript ({processed['word_count']} words)")
-        else:
-            content_block = f"Video Title: {video_title}\nTopic: {topic}"
-    else:
-        content_block = f"Video Title: {video_title}\nTopic: {topic}"
-
-    prompt = f"""You are an expert educational quiz generator.
-
-Generate exactly {num_questions} multiple-choice questions based on:
-{content_block}
-
-Difficulty: {difficulty} — {diff_guide.get(difficulty, diff_guide['Medium'])}
-
-STRICT RULES:
-1. ALL questions must be based on the content above
-2. Do NOT add questions about things not covered in the content
-3. Each question must test a DIFFERENT concept
-4. Wrong options must be plausible but clearly incorrect on reflection
-5. No trick questions — focus on learning
-
-Return ONLY a valid JSON array. No markdown, no extra text:
-[
-  {{
-    "question"   : "Clear question text?",
-    "options"    : {{"A": "option1", "B": "option2", "C": "option3", "D": "option4"}},
-    "correct"    : "A",
-    "explanation": "Why A is correct based on the content"
-  }}
-]"""
-
-    try:
-        raw   = generate_ai(prompt, max_tokens=3500)
-        raw   = raw.replace('```json', '').replace('```', '').strip()
-
-        # Extract JSON array
-        start = raw.find('[')
-        end   = raw.rfind(']') + 1
-        if start == -1 or end <= start:
-            raise ValueError("No JSON array found in response")
-
-        questions = json.loads(raw[start:end])[:num_questions]
-
-        if not questions:
-            raise ValueError("Empty questions list")
-
-        # Save to database
-        from app.ai.quiz_generator import _save_quiz_to_db
-        quiz_id = _save_quiz_to_db(user_id, video_id, video_title, topic, questions, source, transcript)
-
-        if not quiz_id or isinstance(quiz_id, bool):
-            return {'success': False, 'message': 'Failed to save quiz record'}
-
-        return {
-            'success'   : True,
-            'questions' : questions,
-            'quiz_id'   : quiz_id,
-            'total'     : len(questions),
-            'difficulty': difficulty,
-            'source'    : source
-        }
-
-    except json.JSONDecodeError as e:
-        print(f"❌ Quiz JSON parse error: {e}")
-        print(f"   Raw response: {raw[:300]}")
-        return {'success': False, 'message': 'Failed to parse quiz JSON'}
-    except Exception as e:
-        print(f"❌ Quiz generation error: {e}")
-        return {'success': False, 'message': str(e)}
+    from app.ai.quiz_generator import generate_quiz
+    return generate_quiz(
+        video_id      = video_id,
+        video_title   = video_title,
+        topic         = topic,
+        user_id       = user_id,
+        transcript    = transcript,
+        source        = source,
+        num_questions = num_questions,
+        difficulty    = difficulty
+    )
 
 
 # ============================================================

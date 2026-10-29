@@ -581,6 +581,7 @@ class TransformerMoE:
                 'reason'      : reason,
                 'priority'    : 'high',
                 'weight_used' : round(self.weights['weak_topic'], 3),
+                'topic_score' : avg if topic_perf else None,
             })
         return queries
 
@@ -645,6 +646,7 @@ class TransformerMoE:
                 'priority'    : 'high' if avg < 60 else 'medium',
                 'weight_used' : round(self.weights['performance'], 3),
                 'curve_stage' : stage,
+                'topic_score' : avg,
             })
         return queries
 

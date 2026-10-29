@@ -1,0 +1,108 @@
+{% extends 'admin/base.html' %}
+{% from 'admin/_macros.html' import person, score %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="ui-page-head">
+  <div>
+    <h1 class="ui-page-title">Dashboard</h1>
+    <p class="ui-page-sub">An overview of students and learning activity on LearnAI.</p>
+  </div>
+  <a href="/admin/reports" class="ui-btn"><i class="fas fa-chart-column"></i> View reports</a>
+</div>
+
+<div class="ui-stats cols-3">
+  <div class="ui-stat"><div class="ui-stat-icon"><i class="fas fa-users"></i></div>
+    <div><div class="ui-stat-num">{{ total_users }}</div><div class="ui-stat-label">Students · {{ onboard_pct }}% set up</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon green"><i class="fas fa-play"></i></div>
+    <div><div class="ui-stat-num">{{ total_videos }}</div><div class="ui-stat-label">Videos watched</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon amber"><i class="fas fa-list-check"></i></div>
+    <div><div class="ui-stat-num">{{ total_quizzes }}</div><div class="ui-stat-label">Quizzes completed</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon purple"><i class="fas fa-chart-line"></i></div>
+    <div><div class="ui-stat-num">{{ (avg_score|round|int ~ '%') if total_quizzes else '—' }}</div><div class="ui-stat-label">Average quiz score</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon red"><i class="fas fa-bullseye"></i></div>
+    <div><div class="ui-stat-num">{{ total_weak }}</div><div class="ui-stat-label">Weak topic records</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon"><i class="fas fa-user-check"></i></div>
+    <div><div class="ui-stat-num">{{ onboard_pct }}%</div><div class="ui-stat-label">Finished onboarding</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="ui-card ui-card-flush">
+      <div class="ui-card-head">
+        <div>
+          <h2 class="ui-card-title">Newest students</h2>
+          <div class="ui-card-sub">The 8 most recent sign-ups</div>
+        </div>
+        <a href="/admin/students" class="ui-link">All students</a>
+      </div>
+      <div class="ui-table-wrap" style="margin-top: 14px;">
+        <table class="ui-table">
+          <thead><tr><th>Student</th><th>Level</th><th style="text-align:center;">Videos</th><th style="text-align:center;">Quizzes</th><th>Avg score</th><th style="text-align:center;">Weak</th></tr></thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td>{{ person(s.full_name, s.email, '/admin/student/' ~ s.id) }}</td>
+              <td>{% if s.education_category %}<span class="ui-chip primary">{{ s.education_category }}</span>{% else %}<span style="color: var(--ui-subtle);">Not set</span>{% endif %}</td>
+              <td style="text-align:center;">{{ s.vw or 0 }}</td>
+              <td style="text-align:center;">{{ s.qt or 0 }}</td>
+              <td>{{ score(s.avs) }}</td>
+              <td style="text-align:center;">{% if s.wk %}<span class="ui-chip red">{{ s.wk }}</span>{% else %}0{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6"><div class="ui-empty" style="padding: 24px;">No students yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Recent quizzes</h2><div class="ui-card-sub">Latest results across all students</div></div></div>
+      {% for a in recent %}
+      <div class="ui-list-row" style="padding: 10px 0;">
+        <div class="ui-list-main">
+          <a href="/admin/student/{{ a.uid }}" class="ui-list-title" style="text-decoration: none; display: block;">{{ a.full_name }}</a>
+          <div class="ui-list-meta">{{ a.topic or 'Quiz' }}{% if a.created_at %} · {{ a.created_at.strftime('%d %b') }}{% endif %}</div>
+        </div>
+        {{ score(a.pct) }}
+      </div>
+      {% else %}
+      <div class="ui-list-meta">No quizzes taken yet.</div>
+      {% endfor %}
+    </div>
+
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Hardest topics</h2><div class="ui-card-sub">Most missed across students</div></div></div>
+      {% for w in top_weak %}
+      <div class="ui-list-row" style="padding: 10px 0;">
+        <div class="ui-list-main">
+          <div class="ui-list-title">{{ w.topic }}</div>
+          <div class="ui-list-meta">{{ w.st }} student{{ 's' if w.st != 1 }}</div>
+        </div>
+        <span class="ui-chip red">{{ w.tf }} misses</span>
+      </div>
+      {% else %}
+      <div class="ui-list-meta">No weak topics recorded.</div>
+      {% endfor %}
+    </div>
+
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Students by level</h2><div class="ui-card-sub">Education level chosen in onboarding</div></div></div>
+      {% set total = cat_dist|sum(attribute='cnt') %}
+      {% for c in cat_dist %}
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 5px;">
+          <span style="font-weight: 600;">{{ c.education_category }}</span><span style="color: var(--ui-muted);">{{ c.cnt }}</span>
+        </div>
+        <div class="ui-bar"><span style="width: {{ (c.cnt / total * 100)|round|int if total else 0 }}%;"></span></div>
+      </div>
+      {% else %}
+      <div class="ui-list-meta">No students have finished onboarding yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

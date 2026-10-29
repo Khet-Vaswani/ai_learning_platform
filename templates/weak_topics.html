@@ -1,488 +1,90 @@
 {% extends 'base.html' %}
-{% block title %}Weak Topics — AI Learning Platform{% endblock %}
+{% block title %}Weak topics — LearnAI{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ── Banner ──────────────────────────────────────────── */
-.weak-banner {
-    background   : linear-gradient(135deg, #0f172a, #1e1b4b);
-    border-radius: 16px;
-    padding      : 24px 28px;
-    margin-bottom: 20px;
-    position     : relative;
-    overflow     : hidden;
-    border       : 1px solid rgba(255,255,255,0.06);
+.wt-row { display: flex; align-items: center; gap: 16px; padding: 16px 4px; border-bottom: 1px solid var(--ui-border-soft); flex-wrap: wrap; }
+.wt-row:last-child { border-bottom: none; }
+.wt-level { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.wt-main { flex: 1; min-width: 200px; }
+.wt-topic { font-size: 0.95rem; font-weight: 700; color: var(--ui-text); }
+.wt-meta { font-size: 0.75rem; color: var(--ui-muted); margin-top: 2px; }
+.wt-actions { display: flex; gap: 8px; }
+.wt-step { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; }
+.wt-step-num {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--ui-primary-soft); color: var(--ui-primary);
+  font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-
-.weak-banner::before {
-    content      : '';
-    position     : absolute;
-    top          : -60px;
-    right        : -60px;
-    width        : 180px;
-    height       : 180px;
-    background   : rgba(220,38,38,0.15);
-    border-radius: 50%;
-    filter       : blur(40px);
-}
-
-.weak-banner h3 {
-    color      : white;
-    font-weight: 800;
-    margin     : 0 0 4px;
-    font-size  : 1.3rem;
-    position   : relative;
-    z-index    : 1;
-}
-
-.weak-banner p {
-    color    : rgba(255,255,255,0.5);
-    margin   : 0;
-    font-size: 0.85rem;
-    position : relative;
-    z-index  : 1;
-}
-
-/* ── Stat Cards ──────────────────────────────────────── */
-.stat-mini {
-    background   : white;
-    border-radius: 14px;
-    padding      : 18px 20px;
-    border       : 1px solid #e2e8f0;
-    box-shadow   : 0 1px 3px rgba(0,0,0,0.06);
-    text-align   : center;
-    transition   : all 0.25s;
-}
-
-.stat-mini:hover {
-    transform : translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-}
-
-.stat-mini-num {
-    font-size  : 2rem;
-    font-weight: 800;
-    line-height: 1;
-    display    : block;
-}
-
-.stat-mini-label {
-    font-size  : 0.75rem;
-    color      : #94a3b8;
-    font-weight: 500;
-    margin-top : 4px;
-    display    : block;
-}
-
-/* ── Topic Cards ─────────────────────────────────────── */
-.topic-card {
-    background   : white;
-    border-radius: 16px;
-    border       : 1px solid #e2e8f0;
-    box-shadow   : 0 1px 3px rgba(0,0,0,0.06);
-    overflow     : hidden;
-    transition   : all 0.25s;
-    height       : 100%;
-}
-
-.topic-card:hover {
-    transform  : translateY(-4px);
-    box-shadow : 0 10px 25px rgba(0,0,0,0.1);
-    border-color: #fde68a;
-}
-
-.topic-card-header {
-    background   : linear-gradient(135deg, #fef9c3, #fef3c7);
-    padding      : 16px 18px;
-    border-bottom: 1px solid #fef08a;
-    display      : flex;
-    align-items  : center;
-    gap          : 10px;
-}
-
-.topic-icon { font-size:1.5rem; flex-shrink:0; }
-
-.topic-name {
-    font-size  : 0.95rem;
-    font-weight: 700;
-    color      : #92400e;
-    margin     : 0;
-    flex       : 1;
-}
-
-.topic-fail-badge {
-    background   : #dc2626;
-    color        : white;
-    padding      : 3px 10px;
-    border-radius: 12px;
-    font-size    : 0.72rem;
-    font-weight  : 700;
-    flex-shrink  : 0;
-}
-
-.topic-card-body { padding:16px 18px; }
-
-.topic-difficulty-bar {
-    margin-bottom: 16px;
-}
-
-.topic-difficulty-bar .bar-label {
-    display        : flex;
-    justify-content: space-between;
-    margin-bottom  : 5px;
-}
-
-.topic-difficulty-bar .bar-label small {
-    font-size  : 0.72rem;
-    font-weight: 600;
-    color      : #64748b;
-}
-
-.topic-difficulty-bar .bar-label .bar-pct {
-    font-size  : 0.72rem;
-    font-weight: 700;
-    color      : #dc2626;
-}
-
-.diff-track {
-    height       : 6px;
-    background   : #f1f5f9;
-    border-radius: 3px;
-    overflow     : hidden;
-}
-
-.diff-fill {
-    height       : 100%;
-    border-radius: 3px;
-    transition   : width 1s ease;
-}
-
-/* ── Action Buttons ──────────────────────────────────── */
-.topic-actions {
-    display: flex;
-    gap    : 8px;
-}
-
-.topic-btn {
-    flex           : 1;
-    display        : flex;
-    align-items    : center;
-    justify-content: center;
-    gap            : 5px;
-    padding        : 9px 10px;
-    border-radius  : 8px;
-    text-decoration: none;
-    font-size      : 0.78rem;
-    font-weight    : 600;
-    transition     : all 0.2s;
-    border         : 1.5px solid transparent;
-    cursor         : pointer;
-}
-
-.topic-btn-search {
-    background  : #eff6ff;
-    color       : #2563eb;
-    border-color: #bfdbfe;
-}
-
-.topic-btn-search:hover {
-    background: #dbeafe;
-    color     : #1d4ed8;
-}
-
-.topic-btn-progress {
-    background  : #f0fdf4;
-    color       : #059669;
-    border-color: #bbf7d0;
-}
-
-.topic-btn-progress:hover {
-    background: #dcfce7;
-    color     : #047857;
-}
-
-/* ── Empty State ─────────────────────────────────────── */
-.empty-state-card {
-    background   : white;
-    border-radius: 16px;
-    padding      : 60px 30px;
-    text-align   : center;
-    border       : 1px solid #e2e8f0;
-    box-shadow   : 0 1px 3px rgba(0,0,0,0.06);
-}
-
-/* ── Priority Label ──────────────────────────────────── */
-.priority-label {
-    display      : inline-flex;
-    align-items  : center;
-    gap          : 4px;
-    padding      : 2px 8px;
-    border-radius: 8px;
-    font-size    : 0.68rem;
-    font-weight  : 700;
-    margin-top   : 6px;
-}
+.wt-step-text { font-size: 0.84rem; color: var(--ui-body); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-page">
+<div class="ui-page">
 
-    <!-- Banner -->
-    <div class="weak-banner mb-4">
-        <div class="d-flex justify-content-between
-                    align-items-center flex-wrap gap-3">
-            <div>
-                <h3>⚠️ Weak Topics</h3>
-                <p>Topics detected from your quiz performance</p>
-            </div>
-            <div style="position:relative; z-index:1;">
-                <a href="/dashboard"
-                   style="background:rgba(255,255,255,0.1);
-                          border:1px solid rgba(255,255,255,0.15);
-                          color:white; border-radius:8px;
-                          padding:7px 16px; font-size:0.8rem;
-                          font-weight:600; text-decoration:none;
-                          display:inline-flex; align-items:center;
-                          gap:6px;">
-                    <i class="fas fa-home"></i> Dashboard
-                </a>
-            </div>
-        </div>
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-page-title">Weak topics</h1>
+      <p class="ui-page-sub">Topics where you scored under 50% in a quiz. Review them to turn them into strengths.</p>
     </div>
-
     {% if weak_topics %}
+    <a href="/recommended-videos" class="ui-btn ui-btn-primary"><i class="fas fa-play"></i> Review with AI picks</a>
+    {% endif %}
+  </div>
 
-    <!-- Calculate total fail count manually -->
-    {% set total_fail_count = namespace(value=0) %}
-    {% for topic in weak_topics %}
-        {% set total_fail_count.value = total_fail_count.value + (topic.fail_count | default(0)) %}
-    {% endfor %}
-
-    <!-- Sort weak_topics by fail_count descending for better priority -->
-    {% set sorted_weak_topics = weak_topics | sort(attribute='fail_count', reverse=true) %}
-
-    <!-- Stats Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="stat-mini">
-                <span class="stat-mini-num"
-                      style="color:#dc2626;">
-                    {{ weak_topics|length }}
-                </span>
-                <span class="stat-mini-label">
-                    Weak Topics Found
-                </span>
-            </div>
+  {% if weak_topics %}
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="ui-card">
+        <div class="ui-card-head">
+          <div>
+            <h2 class="ui-card-title">{{ weak_topics|length }} topic{{ 's' if weak_topics|length != 1 }} to review</h2>
+            <div class="ui-card-sub">Most missed first</div>
+          </div>
         </div>
-        <div class="col-md-4">
-            <div class="stat-mini">
-                <span class="stat-mini-num"
-                      style="color:#d97706;">
-                    {{ total_fail_count.value }}
-                </span>
-                <span class="stat-mini-label">
-                    Total Failed Attempts
-                </span>
+
+        {% for t in weak_topics %}
+        {% set level = 'red' if t.fail_count >= 3 else ('amber' if t.fail_count == 2 else 'primary') %}
+        <div class="wt-row">
+          <span class="wt-level" style="background: {{ '#ef4444' if level == 'red' else ('#f59e0b' if level == 'amber' else '#a5b4fc') }};"></span>
+          <div class="wt-main">
+            <div class="wt-topic">{{ t.topic }}</div>
+            <div class="wt-meta">
+              {% if t.last_detected %}Last missed {{ t.last_detected.strftime('%d %b %Y') }}{% endif %}
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-mini">
-                <span class="stat-mini-num"
-                      style="color:#7c3aed;
-                             font-size:1.3rem;">
-                    {{ sorted_weak_topics[0].topic[:12] if sorted_weak_topics else 'None' }}...
-                </span>
-                <span class="stat-mini-label">
-                    Needs Most Attention
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- How It Works Info -->
-    <div style="background:#fffbeb; border:1px solid #fde68a;
-                border-radius:12px; padding:14px 18px;
-                margin-bottom:20px; display:flex;
-                align-items:center; gap:12px;">
-        <span style="font-size:1.4rem; flex-shrink:0;">💡</span>
-        <div>
-            <div style="font-size:0.82rem; font-weight:700;
-                        color:#92400e;">
-                How Weak Topics Work
-            </div>
-            <div style="font-size:0.75rem; color:#a16207;">
-                Topics are detected when you score below 60% in a quiz.
-                Click <strong>Find Videos</strong> to search related
-                content and improve your understanding.
-            </div>
-        </div>
-    </div>
-
-    <!-- Topics Grid -->
-    <div class="row g-3">
-        {% for topic in sorted_weak_topics %}
-        {% set pct = ([(topic.fail_count | default(0)) * 20, 100] | min) %}
-        {% set priority = 'High' if (topic.fail_count | default(0)) >= 3
-                     else 'Medium' if (topic.fail_count | default(0)) == 2
-                     else 'Low' %}
-        {% set p_color = '#dc2626' if priority == 'High'
-                    else '#d97706' if priority == 'Medium'
-                    else '#059669' %}
-        {% set p_bg = '#fef2f2' if priority == 'High'
-                 else '#fffbeb' if priority == 'Medium'
-                 else '#f0fdf4' %}
-
-        <div class="col-md-4 col-sm-6">
-            <div class="topic-card">
-
-                <!-- Card Header -->
-                <div class="topic-card-header">
-                    <span class="topic-icon">⚠️</span>
-                    <div style="flex:1; min-width:0;">
-                        <h6 class="topic-name">
-                            {{ topic.topic | default('Unknown Topic') }}
-                        </h6>
-                        <!-- Priority Badge -->
-                        <span class="priority-label"
-                              style="background:{{ p_bg }};
-                                     color:{{ p_color }};
-                                     border:1px solid {{ p_color }}33;">
-                            {{ '🔴' if priority == 'High'
-                               else '🟡' if priority == 'Medium'
-                               else '🟢' }}
-                            {{ priority }} Priority
-                        </span>
-                    </div>
-                    <span class="topic-fail-badge">
-                        {{ topic.fail_count | default(0) }}x failed
-                    </span>
-                </div>
-
-                <!-- Card Body -->
-                <div class="topic-card-body">
-
-                    <!-- Difficulty Bar -->
-                    <div class="topic-difficulty-bar">
-                        <div class="bar-label">
-                            <small>Difficulty Level</small>
-                            <span class="bar-pct">{{ pct }}%</span>
-                        </div>
-                        <div class="diff-track">
-                            <div class="diff-fill"
-                                 style="width:{{ pct }}%;
-                                 background:linear-gradient(
-                                     90deg,
-                                     {{ '#f59e0b' if pct < 60
-                                        else '#dc2626' }},
-                                     {{ '#dc2626' if pct < 60
-                                        else '#991b1b' }});
-                                 ">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Last Detected -->
-                    {% if topic.last_detected %}
-                    <div style="font-size:0.72rem; color:#94a3b8;
-                                margin-bottom:14px;
-                                display:flex; align-items:center;
-                                gap:5px;">
-                        <i class="fas fa-clock"
-                           style="color:#cbd5e1;"></i>
-                        Last detected:
-                        {{ topic.last_detected.strftime('%d %b %Y')
-                           if topic.last_detected else 'Recently' }}
-                    </div>
-                    {% endif %}
-
-                    <!-- Action Buttons -->
-                    <div class="topic-actions">
-                        <a href="/dashboard?search={{ topic.topic | urlencode }}"
-                           class="topic-btn topic-btn-search">
-                            <i class="fas fa-search"></i>
-                            Find Videos
-                        </a>
-                        <a href="/progress"
-                           class="topic-btn topic-btn-progress">
-                            <i class="fas fa-chart-bar"></i>
-                            Progress
-                        </a>
-                    </div>
-
-                </div>
-            </div>
+          </div>
+          <span class="ui-chip {{ level }}">Missed {{ t.fail_count }} time{{ 's' if t.fail_count != 1 }}</span>
+          <div class="wt-actions">
+            <a class="ui-btn ui-btn-sm" href="/recommended-videos?search={{ (t.topic ~ ' explained')|urlencode }}">
+              <i class="fas fa-play"></i> Find videos
+            </a>
+          </div>
         </div>
         {% endfor %}
+      </div>
     </div>
 
-    <!-- Bottom CTA -->
-    <div style="background:white; border-radius:16px;
-                padding:20px 24px; margin-top:20px;
-                border:1px solid #e2e8f0;
-                display:flex; align-items:center;
-                justify-content:space-between;
-                flex-wrap:wrap; gap:12px;">
-        <div>
-            <div style="font-size:0.9rem; font-weight:700;
-                        color:#1e293b;">
-                🤖 Let AI Help You Improve
-            </div>
-            <div style="font-size:0.78rem; color:#94a3b8;
-                        margin-top:2px;">
-                Go to dashboard and get AI-recommended videos
-                for your weak topics
-            </div>
-        </div>
-        <a href="/dashboard"
-           style="background:linear-gradient(135deg,#2563eb,#7c3aed);
-                  color:white; padding:10px 20px;
-                  border-radius:10px; text-decoration:none;
-                  font-size:0.82rem; font-weight:600;
-                  display:inline-flex; align-items:center;
-                  gap:7px; white-space:nowrap;">
-            <i class="fas fa-robot"></i>
-            Get AI Recommendations
-        </a>
+    <div class="col-lg-4">
+      <div class="ui-card">
+        <h2 class="ui-card-title" style="margin-bottom: 10px;">How to improve</h2>
+        <div class="wt-step"><span class="wt-step-num">1</span><span class="wt-step-text">Watch a short video on the topic. Start with the beginner explanations.</span></div>
+        <div class="wt-step"><span class="wt-step-num">2</span><span class="wt-step-text">Open the video's AI notes and read the key points.</span></div>
+        <div class="wt-step"><span class="wt-step-num">3</span><span class="wt-step-text">Take the quiz again. Scoring well updates your progress.</span></div>
+        <a href="/chatbot" class="ui-btn ui-btn-block" style="margin-top: 12px;"><i class="fas fa-robot"></i> Ask the AI assistant</a>
+      </div>
     </div>
+  </div>
 
-    {% else %}
-
-    <!-- Empty State -->
-    <div class="empty-state-card">
-        <div style="font-size:4rem; margin-bottom:16px;">🎉</div>
-        <h4 style="color:#1e293b; font-weight:700; margin-bottom:8px;">
-            No Weak Topics!
-        </h4>
-        <p style="color:#94a3b8; font-size:0.9rem; margin-bottom:20px;">
-            You are doing great! Keep taking quizzes<br>
-            to track your performance.
-        </p>
-        <div style="display:flex; gap:10px;
-                    justify-content:center; flex-wrap:wrap;">
-            <a href="/dashboard"
-               style="background:#2563eb; color:white;
-                      padding:10px 20px; border-radius:10px;
-                      text-decoration:none; font-size:0.85rem;
-                      font-weight:600; display:inline-flex;
-                      align-items:center; gap:6px;">
-                <i class="fas fa-search"></i>
-                Find Videos
-            </a>
-            <a href="/progress"
-               style="background:#f0fdf4; color:#059669;
-                      border:1px solid #bbf7d0;
-                      padding:10px 20px; border-radius:10px;
-                      text-decoration:none; font-size:0.85rem;
-                      font-weight:600; display:inline-flex;
-                      align-items:center; gap:6px;">
-                <i class="fas fa-chart-bar"></i>
-                View Progress
-            </a>
-        </div>
+  {% else %}
+  <div class="ui-card">
+    <div class="ui-empty">
+      <div class="ui-empty-icon"><i class="fas fa-bullseye"></i></div>
+      <div class="ui-empty-title">No weak topics right now</div>
+      <div class="ui-empty-text">When you score under 50% on a quiz, the topic shows up here so you know what to review.</div>
+      <a href="/recommended-videos" class="ui-btn ui-btn-primary"><i class="fas fa-play"></i> Watch a video and take a quiz</a>
     </div>
-
-    {% endif %}
+  </div>
+  {% endif %}
 
 </div>
 {% endblock %}

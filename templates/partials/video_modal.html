@@ -1,0 +1,200 @@
+{# Shared video player + inline quiz modals. Element IDs are used by static/JS/youtube.js and gemini.js. #}
+<style>
+#videoModal .modal-content { border: none; border-radius: 16px; overflow: hidden; }
+#videoModal .vm-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 18px; border-bottom: 1px solid #e2e8f0; background: #fff;
+}
+#videoModal .vm-head-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#videoModal .vm-head-title i { color: #ef4444; font-size: 1.1rem; }
+#videoModal #modalTitle { font-size: 0.86rem; font-weight: 600; color: #475569; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#videoModal .vm-close {
+  width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff;
+  color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+#videoModal .vm-close:hover { color: #0f172a; background: #f8fafc; }
+#videoModal .vm-player { position: relative; padding-bottom: 56.25%; height: 0; background: #000; }
+#videoModal .vm-player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+#videoModal .vm-info { padding: 18px 20px 6px; }
+#videoModal #vidTitle { font-size: 1.12rem; font-weight: 700; color: #0f172a; margin: 0 0 12px; line-height: 1.35; }
+#videoModal .vm-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#videoModal .vm-channel { display: flex; align-items: center; gap: 10px; min-width: 0; }
+#videoModal #chanAvatar {
+  width: 38px; height: 38px; border-radius: 50%; background: #eef2ff; color: #4f46e5;
+  display: flex; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
+}
+#videoModal #chanName { font-size: 0.86rem; font-weight: 700; color: #0f172a; }
+#videoModal #pubDate { font-size: 0.72rem; color: #64748b; }
+#videoModal .vm-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#videoModal .vm-stat { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; color: #64748b; padding: 0 4px; }
+#videoModal .yt-pill-btn {
+  display: inline-flex; align-items: center; gap: 7px; border-radius: 9px; padding: 8px 14px;
+  font-size: 0.8rem; font-weight: 700; font-family: inherit; cursor: pointer; border: 1px solid #e2e8f0;
+  background: #fff; color: #0f172a; transition: all 0.15s;
+}
+#videoModal .yt-pill-btn:hover { border-color: #c7d2fe; color: #4f46e5; }
+#videoModal .yt-pill-quiz { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+#videoModal .yt-pill-quiz:hover:not(:disabled) { background: #4338ca; color: #fff; }
+#videoModal .yt-pill-quiz:disabled { opacity: 0.6; cursor: not-allowed; }
+#videoModal #vidDesc {
+  margin-top: 14px; padding: 12px 14px; background: #f8fafc; border-radius: 10px; font-size: 0.78rem;
+  color: #334155; line-height: 1.6; max-height: 62px; overflow: hidden; cursor: pointer; transition: max-height 0.3s;
+}
+#videoModal .vm-loading { text-align: center; padding: 24px; }
+#videoModal .vm-loading-title { font-weight: 700; color: #0f172a; font-size: 0.88rem; margin-top: 10px; }
+#videoModal .vm-loading-sub { color: #64748b; font-size: 0.76rem; }
+#videoModal #aiContentContainer { margin: 14px 20px 20px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+#videoModal .vm-tabs {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: #f8fafc; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;
+}
+#videoModal .vm-tabs button {
+  border-radius: 8px; padding: 6px 12px; font-size: 0.78rem; font-family: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+#videoModal #notesSourceBadge { background: #eef2ff; color: #4338ca; padding: 2px 8px; border-radius: 6px; font-size: 0.66rem; font-weight: 600; }
+#videoModal #notesContent { font-size: 0.84rem; line-height: 1.75; color: #334155; max-height: 340px; overflow-y: auto; padding-right: 6px; }
+#videoModal .vm-banner { padding: 22px; border-radius: 12px; text-align: center; }
+#videoModal .vm-banner-icon { width: 44px; height: 44px; border-radius: 12px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+#videoModal .vm-banner-title { font-size: 0.92rem; font-weight: 700; margin-bottom: 4px; }
+#videoModal .vm-banner-text { font-size: 0.78rem; margin-bottom: 14px; }
+#videoModal .vm-related { background: #f8fafc; border-left: 1px solid #e2e8f0; }
+#videoModal .vm-related-inner { height: 100%; max-height: 680px; overflow-y: auto; padding: 16px; }
+#videoModal .vm-related-title { font-size: 0.84rem; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+@media (max-width: 991px) { #videoModal .vm-related { border-left: none; border-top: 1px solid #e2e8f0; } }
+
+#quizInlineModal .modal-content { border: none; border-radius: 16px; overflow: hidden; }
+#quizInlineModal .modal-header { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 16px 22px; }
+#quizInlineModal .qm-icon { width: 40px; height: 40px; border-radius: 10px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; }
+#quizInlineModal #quizModalTitle { font-size: 1.02rem; font-weight: 700; color: #0f172a; }
+#quizInlineModal #quizModalSub { color: #64748b; font-size: 0.78rem; }
+#quizInlineModal #quizModalBody { padding: 22px; max-height: 72vh; overflow-y: auto; background: #f8fafc; }
+#quizInlineModal #quizModalFooter { background: #fff; border-top: 1px solid #e2e8f0; padding: 12px 22px; display: flex; justify-content: space-between; align-items: center; }
+</style>
+
+<div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="vidTitle">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="vm-head">
+        <div class="vm-head-title">
+          <i class="fab fa-youtube"></i>
+          <h5 class="modal-title" id="modalTitle">Loading...</h5>
+        </div>
+        <button type="button" class="vm-close" data-bs-dismiss="modal" onclick="stopVideo()" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body p-0">
+        <div class="row g-0">
+
+          <!-- Player and details -->
+          <div class="col-lg-8">
+            <div class="vm-player">
+              <iframe id="ytPlayer" src="" allowfullscreen allow="accelerometer; autoplay; encrypted-media; picture-in-picture"></iframe>
+            </div>
+
+            <div class="vm-info">
+              <h5 id="vidTitle"></h5>
+              <div class="vm-meta">
+                <div class="vm-channel">
+                  <div id="chanAvatar">YT</div>
+                  <div style="min-width: 0;">
+                    <div id="chanName"></div>
+                    <div id="pubDate"></div>
+                  </div>
+                </div>
+                <div class="vm-actions">
+                  <span class="vm-stat"><i class="far fa-thumbs-up"></i><span id="likeCount">—</span></span>
+                  <span class="vm-stat"><i class="far fa-eye"></i><span id="viewCount">—</span></span>
+                  <button id="notesBtn" class="yt-pill-btn yt-pill-notes" onclick="if(window.generateNotes) generateNotes(); switchAiTab('notes');">
+                    <i class="far fa-file-lines"></i><span>AI notes</span>
+                  </button>
+                  <button id="quizBtn" class="yt-pill-btn yt-pill-quiz" onclick="if(window.generateQuiz) generateQuiz(); switchAiTab('quiz');">
+                    <i class="fas fa-bolt" id="quizLockIcon"></i><span id="quizBtnLabel">Take quiz</span>
+                  </button>
+                </div>
+              </div>
+              <div id="vidDesc" onclick="toggleDesc(this)"></div>
+            </div>
+
+            <div id="aiLoadingSection" style="display: none;">
+              <div class="vm-loading ai-loading-container">
+                <div class="spinner-border text-primary" style="width: 2rem; height: 2rem;"></div>
+                <div class="vm-loading-title" id="aiLoadingTitle">Preparing learning content...</div>
+                <div class="vm-loading-sub" id="aiLoadingSubtitle">This can take a few moments while we read the video.</div>
+              </div>
+            </div>
+
+            <div id="aiContentContainer">
+              <div class="vm-tabs">
+                <div style="display: flex; gap: 6px;">
+                  <button id="aiTabNotesBtn" onclick="switchAiTab('notes')" style="background: #fff; border: 1px solid #cbd5e1; color: #4f46e5; font-weight: 700;">
+                    <i class="far fa-file-lines"></i> Study notes
+                  </button>
+                  <button id="aiTabQuizBtn" onclick="switchAiTab('quiz')" style="background: transparent; border: 1px solid transparent; color: #64748b; font-weight: 600;">
+                    <i class="fas fa-bolt"></i> Quiz
+                  </button>
+                </div>
+                <span id="notesSourceBadge"></span>
+              </div>
+
+              <div id="notesSection" style="padding: 16px; display: block;">
+                <div id="notesContent"></div>
+              </div>
+
+              <div id="quizTabSection" style="padding: 16px; display: none;">
+                <div id="quizReadyBanner" class="vm-banner" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0;">
+                  <div class="vm-banner-icon" style="background: #dcfce7; color: #16a34a;"><i class="fas fa-check"></i></div>
+                  <div class="vm-banner-title" style="color: #166534;">Your quiz is ready</div>
+                  <div class="vm-banner-text" style="color: #15803d;">Questions are based on this video's content.</div>
+                  <button id="quizReadyBtn" class="yt-pill-btn yt-pill-quiz" onclick="if(window.generateQuiz) window.generateQuiz();" style="margin: 0 auto;">
+                    <i class="fas fa-play"></i> Start quiz
+                  </button>
+                </div>
+
+                <div id="quizLockedBanner" class="vm-banner" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
+                  <div class="vm-banner-icon" style="background: #f1f5f9; color: #64748b;"><i class="fas fa-lock"></i></div>
+                  <div class="vm-banner-title" style="color: #334155;">Quiz unlocks soon</div>
+                  <div class="vm-banner-text" style="color: #64748b; margin-bottom: 0;">Watch for 60 seconds, or wait for the transcript to load.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Related videos -->
+          <div class="col-lg-4 vm-related">
+            <div class="vm-related-inner">
+              <div class="vm-related-title">Related videos</div>
+              <div id="relatedList">
+                <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Inline quiz -->
+<div class="modal fade" id="quizInlineModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-3">
+          <div class="qm-icon"><i class="fas fa-bolt"></i></div>
+          <div>
+            <h5 class="modal-title mb-0" id="quizModalTitle">Video quiz</h5>
+            <small id="quizModalSub">Matched to your learning level</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="if(window.closeQuizModal) closeQuizModal();"></button>
+      </div>
+      <div class="modal-body" id="quizModalBody"></div>
+      <div class="modal-footer" id="quizModalFooter"></div>
+    </div>
+  </div>
+</div>

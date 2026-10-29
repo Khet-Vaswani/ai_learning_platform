@@ -5,6 +5,15 @@
     let currentQuizId    = null;
     let currentAnswers   = {};
     let currentQuestions = [];
+    let currentQuizLevel = null;   // one level for the whole quiz: Easy / Medium / Hard
+    let currentLevelBasis = '';
+
+    // AI-generated text is inserted as plain text, never as HTML
+    function escQ(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
 
     // ── Generate Notes ────────────────────────────────────────
     async function generateNotes() {
@@ -23,7 +32,7 @@
         API.hideLoading(btn);
 
         if (data.success) {
-            const html = data.notes
+            const html = escQ(data.notes)
                 .replace(/## (.*)/g,
                     '<h6 class="fw-bold mt-3 mb-1" style="color:#2563eb;">$1</h6>')
                 .replace(/- (.*)/g,
@@ -82,7 +91,9 @@
             modalTitle.textContent = `Interactive Quiz — ${currentVideo.topic || 'Video Topic'}`;
         }
         if (modalSub) {
-            modalSub.textContent = `${currentQuestions.length} Questions • Select the correct answers below`;
+            modalSub.textContent = currentQuizLevel
+                ? `${currentQuestions.length} questions · ${currentQuizLevel} level` + (currentLevelBasis ? ` (based on ${currentLevelBasis})` : '')
+                : `${currentQuestions.length} questions`;
         }
 
         modalBody.innerHTML = `
@@ -92,7 +103,7 @@
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="badge bg-primary text-white fw-bold">Question ${i + 1} of ${currentQuestions.length}</span>
                         </div>
-                        <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem; line-height:1.5;">${q.question}</h6>
+                        <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem; line-height:1.5;">${escQ(q.question)}</h6>
                         <div class="quiz-modal-options d-flex flex-column gap-2">
                             ${Object.entries(q.options).map(([key, val]) => `
                                 <div class="quiz-modal-opt-card p-3 rounded-3 border d-flex align-items-center gap-3 ${currentAnswers[i] === key ? 'border-primary bg-light' : 'border-slate-200'}"
@@ -102,7 +113,7 @@
                                         ${key}
                                     </div>
                                     <div class="opt-val-text" style="font-size: 0.88rem; color:#1e293b; font-weight: 500;">
-                                        ${val}
+                                        ${escQ(val)}
                                     </div>
                                 </div>
                             `).join('')}
@@ -180,7 +191,7 @@
                             <div style="font-size: 3rem; margin-bottom: 8px;">${isPass ? '🎉' : '📚'}</div>
                             <h3 class="fw-bold mb-1" style="color:${isPass ? '#166534' : '#991b1b'};">Scored ${percentage}%</h3>
                             <p class="mb-2 fw-semibold" style="color:${isPass ? '#15803d' : '#b91c1c'};">${data.score} out of ${data.total} Correct</p>
-                            <small class="d-block" style="color:#64748b;">Next quiz level: <strong>${data.new_level || 'Medium'}</strong></small>
+                            <small class="d-block" style="color:#64748b;">${escQ((data.difficulty_msg && data.difficulty_msg.message) || ('Next quiz level: ' + (data.new_level || 'Medium')))}</small>
                         </div>
 
                         <h6 class="fw-bold mb-3">Question Breakdown & Explanations:</h6>
@@ -188,14 +199,15 @@
                             ${(data.results || []).map((res, i) => `
                                 <div class="p-3 rounded-3 border" style="background: #ffffff; border-color: ${res.is_correct ? '#bbf7d0' : '#fecaca'} !important;">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="fw-bold" style="font-size:0.88rem; color:#1e293b;">Q${i+1}. ${res.question}</span>
+                                        <span class="fw-bold" style="font-size:0.88rem; color:#1e293b;">Q${i+1}. ${escQ(res.question)}</span>
                                         <span class="badge ${res.is_correct ? 'bg-success' : 'bg-danger'}">${res.is_correct ? 'Correct ✓' : 'Incorrect ✗'}</span>
                                     </div>
                                     <div class="small mb-2">
                                         Your Answer: <strong class="${res.is_correct ? 'text-success' : 'text-danger'}">${res.user_answer || 'None'}</strong> 
                                         ${!res.is_correct ? `| Correct: <strong class="text-success">${res.correct}</strong>` : ''}
                                     </div>
-                                    ${res.explanation ? `<div class="p-2 rounded bg-light small text-muted border-start border-3 border-info">${res.explanation}</div>` : ''}
+                                    ${res.explanation ? `<div class="p-2 rounded bg-light small text-muted border-start border-3 border-info">${escQ(res.explanation)}</div>` : ''}
+                                    ${res.evidence ? `<div class="small mt-2" style="color:#475569;"><i class="fas fa-quote-left me-1" style="color:#94a3b8;"></i>From the video: <em>"${escQ(res.evidence)}"</em></div>` : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -241,8 +253,8 @@
             modalBody.innerHTML = `
                 <div class="text-center py-5">
                     <div class="spinner-border text-primary mb-3" style="width:3rem; height:3rem;"></div>
-                    <h5 class="fw-bold text-dark mb-1">⚡ Generating AI Quiz...</h5>
-                    <p class="text-muted small">Extracting video study points and creating interactive questions</p>
+                    <h5 class="fw-bold text-dark mb-1">Making your quiz...</h5>
+                    <p class="text-muted small">Writing questions from what is said in the video. This can take up to a minute.</p>
                 </div>
             `;
         }
@@ -254,6 +266,7 @@
         API.showLoading(btn, 'Generating Quiz...');
 
         try {
+            // The server fetches the transcript itself; only identify the video here
             const data = await API.post('/gemini/generate-quiz', {
                 video_id   : currentVideo.id,
                 video_title: currentVideo.title,
@@ -266,6 +279,8 @@
                 currentQuizId    = data.quiz_id;
                 currentQuestions = data.questions;
                 currentAnswers   = {};
+                currentQuizLevel = data.difficulty || null;
+                currentLevelBasis = data.difficulty_basis || '';
 
                 if (btn) btn.innerHTML = '<i class="fas fa-check me-1"></i>Quiz Ready ✅';
 
@@ -273,10 +288,10 @@
             } else {
                 if (modalBody) {
                     modalBody.innerHTML = `
-                        <div class="alert alert-warning text-center my-4">
-                            <i class="fas fa-exclamation-triangle fa-2x mb-2 d-block"></i>
-                            <h6>${data.message || 'Quiz generation failed.'}</h6>
-                            <small class="text-muted">Please try again in a few moments.</small>
+                        <div class="alert ${data.transcript_unavailable ? 'alert-secondary' : 'alert-warning'} text-center my-4">
+                            <i class="fas ${data.transcript_unavailable ? 'fa-closed-captioning' : 'fa-exclamation-triangle'} fa-2x mb-2 d-block"></i>
+                            <h6 class="fw-bold">${data.transcript_unavailable ? 'No transcript for this video' : "We couldn't make the quiz"}</h6>
+                            <div class="small">${escQ(data.message || 'Quiz generation failed.')}</div>
                         </div>
                     `;
                 }

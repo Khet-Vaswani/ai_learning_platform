@@ -1,0 +1,23 @@
+{% macro person(name, sub='', href=None) -%}
+<div class="ad-person">
+  <span class="ad-avatar-sm">{{ (name or '?')[0]|upper }}</span>
+  <div style="min-width: 0;">
+    {% if href %}<a href="{{ href }}" class="ad-person-name" style="text-decoration: none;">{{ name }}</a>
+    {% else %}<div class="ad-person-name">{{ name }}</div>{% endif %}
+    {% if sub %}<div class="ad-person-sub">{{ sub }}</div>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro score(value) -%}
+{% if value is none %}<span style="color: var(--ui-subtle);">—</span>
+{% else %}{% set v = value|float %}
+<span class="ui-chip {{ 'green' if v >= 70 else ('amber' if v >= 50 else 'red') }}">{{ v|round|int }}%</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro delete_button(action, label, what) -%}
+<form method="POST" action="{{ action }}" style="display: inline;" onsubmit="return confirm({{ ('Delete ' ~ what ~ '? This can\'t be undone.')|tojson }});">
+  <button type="submit" class="ui-btn ui-btn-sm ui-btn-danger ad-icon-btn" title="{{ label }}" aria-label="{{ label }}"><i class="far fa-trash-can"></i></button>
+</form>
+{%- endmacro %}

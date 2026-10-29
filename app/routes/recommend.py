@@ -2,7 +2,7 @@
 # recommend.py — MoE Recommendation Routes (Robust & Resilient)
 # ============================================================
 
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify, session, request
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
 from app.ai.moe_engine import TransformerMoE, FIELD_TOPICS, get_topics_for_field
@@ -280,9 +280,10 @@ def recommend_videos():
 
     # Cache check
     cache_key = f"rec_{user_id}"
-    cached    = get_cache(cache_key)
+    cached    = None if request.args.get('refresh') == '1' else get_cache(cache_key)
     if cached and len(cached) > 0:
-        return jsonify({'success': True, 'recommendations': cached, 'cached': True})
+        return jsonify({'success': True, 'recommendations': cached, 'cached': True,
+                        'weights': get_cache(f"recw_{user_id}")})
 
     moe     = TransformerMoE(user_id)
     queries = moe.get_recommendations()
@@ -293,9 +294,19 @@ def recommend_videos():
         (execute_query("SELECT video_id FROM watched_videos WHERE user_id=%s",
                        (user_id,), fetch=True) or [])
     }
+    # Videos the student marked "Not for me" are never shown again
+    watched_ids |= {
+        r['video_id'] for r in
+        (execute_query("""SELECT video_id FROM recommendation_history
+                          WHERE user_id=%s AND feedback='not_for_me'""",
+                       (user_id,), fetch=True) or [])
+    }
 
     recommendations = []
     quota_exceeded  = False
+    # Spread the 20 slots across queries/topics so every goal row gets picks
+    PER_QUERY, PER_TOPIC = 3, 4
+    topic_count = {}
 
     try:
         yt = get_yt()
@@ -326,7 +337,7 @@ def recommend_videos():
             try:
                 yt_videos = search_youtube(yt, q['query'], 5)
                 if yt_videos and len(yt_videos) > 0:
-                    q_videos = yt_videos
+                    q_videos = yt_videos[:PER_QUERY]
                     save_db_cache(q['query'], yt_videos)
             except Exception as e:
                 if is_quota_err(e):
@@ -340,10 +351,14 @@ def recommend_videos():
             continue
 
         for v in q_videos:
+            if topic_count.get(q_topic, 0) >= PER_TOPIC:
+                break
             if v['video_id'] not in watched_ids:
+                topic_count[q_topic] = topic_count.get(q_topic, 0) + 1
                 recommendations.append({
                     **v,
                     'topic'       : q_topic,   # MoE topic, so watch/quiz history is logged under it
+                    'topic_score' : q.get('topic_score'),
                     'reason'      : q['reason'],
                     'expert'      : q['expert'],
                     'final_score' : q['final_score'],
@@ -369,6 +384,7 @@ def recommend_videos():
 
     if result:
         set_cache(cache_key, result)
+        set_cache(f"recw_{user_id}", weights)
 
     return jsonify({
         'success'        : True,
@@ -377,6 +393,38 @@ def recommend_videos():
         'weights'        : weights,
         'quota_exceeded' : quota_exceeded,
     })
+
+
+# ============================================================
+# FEEDBACK — "Helpful" / "I know this" / "Not for me" on a card
+# ============================================================
+FEEDBACK_TYPES = ('helpful', 'known', 'not_for_me')
+
+@recommend_bp.route('/recommend/feedback', methods=['POST'])
+@login_required
+def recommendation_feedback():
+    data     = request.get_json(silent=True) or {}
+    video_id = str(data.get('video_id', '')).strip()[:50]
+    feedback = data.get('feedback')
+    if not video_id or feedback not in FEEDBACK_TYPES:
+        return jsonify({'success': False, 'message': 'Invalid feedback.'}), 400
+
+    saved = execute_query(
+        """INSERT INTO recommendation_history
+           (user_id, video_id, reason, topic, expert, feedback)
+           VALUES (%s,%s,%s,%s,%s,%s)""",
+        (session['user_id'], video_id,
+         str(data.get('reason', ''))[:255],
+         str(data.get('topic', ''))[:150],
+         str(data.get('expert', ''))[:30],
+         feedback)
+    )
+    if saved is False:
+        return jsonify({'success': False, 'message': 'Could not save feedback.'}), 500
+
+    # Next load should reflect the feedback
+    _cache.pop(f"rec_{session['user_id']}", None)
+    return jsonify({'success': True})
 
 
 # ============================================================

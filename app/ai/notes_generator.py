@@ -1,6 +1,6 @@
 # ============================================================
 # notes_generator.py — AI Study Notes Generator
-# Sources: Transcript (YouTube captions / Whisper) → Title fallback
+# Source: ONLY the video transcript (captions / speech-to-text). Output: English.
 # ============================================================
 
 import os
@@ -15,10 +15,9 @@ def _generate(prompt: str, max_tokens: int = 2000) -> str:
     from groq import Groq
 
     GROQ_MODELS = [
-        'groq/compound-mini',
-        'groq/compound',
         'openai/gpt-oss-120b',
         'qwen/qwen3.8-27b',
+        'openai/gpt-oss-20b',
     ]
 
     client     = Groq(api_key=os.getenv('GROQ_API_KEY'))
@@ -162,176 +161,125 @@ def generate_notes(
     video_title: str,
     topic      : str,
     user_id    : int,
-    transcript : str = '',
+    transcript : str,
+    source     : str,
 ) -> dict:
     """
-    Generate structured study notes.
-
-    Priority:
-    1. Transcript (YouTube captions or Whisper) — most accurate
-    2. Video title + topic — fallback
-
-    Returns dict with keys:
-        success, notes, notes_html, source, word_count, message
+    Generate English study notes from the video's actual transcript only.
+    `video_title` and `topic` are never sent to the AI.
+    Returns dict with keys: success, notes, notes_html, source, word_count, message
     """
+    from app.ai.transcript_extractor import VALID_TRANSCRIPT_SOURCES, is_valid_transcript
 
-    # ── Determine content source ──────────────────────────
-    content_source = 'title'
-    content_block  = f"Video Title: {video_title}\nTopic: {topic}"
+    if source not in VALID_TRANSCRIPT_SOURCES or not is_valid_transcript(transcript):
+        return {
+            'success': False,
+            'transcript_unavailable': True,
+            'message': ("We couldn't get this video's transcript, so we can't make notes for it. "
+                        "Notes are only made from what is said in the video."),
+        }
 
-    if transcript and len(transcript.strip()) > 150:
-        processed = _preprocess(transcript, max_chars=4000)
+    processed = _preprocess(transcript, max_chars=12000)
+    if not processed['is_usable']:
+        return {
+            'success': False,
+            'transcript_unavailable': True,
+            'message': "This video's transcript is too short to make useful notes.",
+        }
 
-        if processed['is_usable']:
-            content_source = 'transcript'
-            content_block  = f"""VIDEO TRANSCRIPT (actual tutor explanation — use as primary source):
+    language = _detect_language(transcript)
+    lang_rule = ("Write the notes in English." if language == 'English' else
+                 f"The transcript is in {language}. Write the notes in English, translating faithfully "
+                 f"what the speaker said. Do not add anything they did not say.")
+
+    prompt = f"""You are writing study notes for a student, using ONLY the video transcript below.
+
+RULES
+1. Use only what the speaker says in the transcript. Do not add outside facts, even if they are true.
+2. If a section below has nothing in the transcript to support it, write "Not covered in this video."
+3. {lang_rule}
+4. Use clear, student-friendly language and the speaker's own terms.
+
+=== VIDEO TRANSCRIPT ===
 {processed['text']}
+=== END OF TRANSCRIPT ===
 
-Video Title: {video_title}
-Topic: {topic}"""
-            print(f"📝 Notes using transcript: {processed['word_count']} words")
-        else:
-            print(f"⚠️ Transcript too short ({processed['word_count']} words) — using title")
-    else:
-        print(f"⚠️ No transcript available — using title fallback")
-
-    # ── Detect language and prompt guidance ─────────────
-    language = _detect_language(transcript or video_title or topic)
-    language_note = (
-        "Use the same language as the source content. Support Sindhi, English, Urdu, and Hindi. "
-        "If the transcript is in Sindhi, Urdu, or Hindi, generate the notes in that language and preserve the same script."
-        if language != 'English' else
-        "Use English for the notes."
-    )
-
-    # ── Build prompt ──────────────────────────────────────
-    source_instruction = (
-        "Base ALL notes ONLY on the transcript content above. "
-        "Extract the exact concepts and explanations the tutor gave."
-        if content_source == 'transcript'
-        else
-        "Generate comprehensive educational notes about this topic for students."
-    )
-
-    prompt = f"""You are an expert educational note-taker helping students study.
-
-{source_instruction}
-
-Content:
-{content_block}
-
-Language: {language}
-{language_note}
-
-RULES:
-1. Write notes ONLY based on the content provided
-2. Use clear, student-friendly language
-3. Be specific — use actual terms from the content
-4. Structure must follow the EXACT format below
-
-Generate study notes using EXACTLY this format:
+Write the notes in EXACTLY this format:
 
 ## 📌 Topic Overview
-[2-3 sentences explaining what this lesson is about]
+[2-3 sentences on what this lesson covers]
 
 ## 🔑 Key Concepts
-- **[Concept Name]**: [clear explanation]
-- **[Concept Name]**: [clear explanation]
-- **[Concept Name]**: [clear explanation]
-- **[Concept Name]**: [clear explanation]
-- **[Concept Name]**: [clear explanation]
+- **[Concept]**: [explanation as given in the video]
+(3 to 6 items)
 
 ## 📖 Important Definitions
-- **[Term]**: [precise definition]
-- **[Term]**: [precise definition]
-- **[Term]**: [precise definition]
+- **[Term]**: [definition as given in the video]
 
 ## 💡 Examples & Applications
-- [Practical example from the lesson]
-- [Practical example from the lesson]
+- [Example the speaker used]
 
 ## ⚡ Key Takeaways
-- [Important point 1]
-- [Important point 2]
-- [Important point 3]
-- [Important point 4]
+- [Point from the video]
+(3 to 5 items)
 
 ## 📝 Summary
-[4-5 sentences summarizing everything covered in this lesson]
+[3-5 sentences summarizing the lesson]
 
-Notes should be 400-600 words total. Be specific and educational."""
+Keep the notes between 300 and 600 words."""
 
-    # ── Generate via AI ───────────────────────────────────
     try:
-        raw_notes = _generate(prompt, max_tokens=2000)
-
+        raw_notes = _generate(prompt, max_tokens=2500)
         if not raw_notes or len(raw_notes) < 100:
             raise ValueError("AI returned empty or too-short notes")
 
-        # Convert to HTML for display
-        notes_html = _format_notes_html(raw_notes)
-
-        # ── Save to database ──────────────────────────────
         wc = len(raw_notes.split())
-        execute_query(
-            """INSERT INTO video_notes
-               (user_id, video_id, video_title, topic, notes,
-                notes_source, transcript_used, word_count)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        saved = execute_query(
+            """INSERT INTO video_notes (user_id, video_id, notes, notes_source, word_count)
+               VALUES (%s, %s, %s, %s, %s)
                ON DUPLICATE KEY UPDATE
-               notes           = VALUES(notes),
-               notes_source    = VALUES(notes_source),
-               transcript_used = VALUES(transcript_used),
-               word_count      = VALUES(word_count),
-               updated_at      = NOW()""",
-            (
-                user_id,
-                video_id,
-                video_title,
-                topic,
-                raw_notes,
-                content_source,
-                transcript[:500] if transcript else '',
-                wc
-            )
+               notes        = VALUES(notes),
+               notes_source = VALUES(notes_source),
+               word_count   = VALUES(word_count),
+               generated_at = NOW()""",
+            (user_id, video_id, raw_notes, source, wc)
         )
+        if saved is False:
+            print("⚠️ Notes generated but could not be saved to the database")
 
-        print(f"✅ Notes saved: {wc} words from '{content_source}'")
-
+        print(f"✅ Notes: {wc} words from transcript [{source}]")
         return {
             'success'   : True,
             'notes'     : raw_notes,
-            'notes_html': notes_html,
-            'source'    : content_source,
-            'language'  : language,
+            'notes_html': _format_notes_html(raw_notes),
+            'source'    : source,
+            'language'  : 'English',
+            'transcript_language': language,
             'word_count': wc,
         }
 
     except Exception as e:
         print(f"❌ Notes generation failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return {
-            'success': False,
-            'message': str(e),
-            'source' : content_source,
-        }
+        return {'success': False, 'message': "We couldn't generate notes right now. Try again in a moment."}
 
 
 # ============================================================
 # GET SAVED NOTES — retrieve from DB
 # ============================================================
 def get_saved_notes(user_id: int, video_id: str) -> dict:
-    """Retrieve previously generated notes from database."""
+    """Return previously generated transcript-based notes, or {'success': False}."""
+    from app.ai.transcript_extractor import VALID_TRANSCRIPT_SOURCES
+    sources = sorted(VALID_TRANSCRIPT_SOURCES)
     rows = execute_query(
-        """SELECT notes, notes_source, word_count, created_at
+        f"""SELECT notes, notes_source, word_count
            FROM video_notes
            WHERE user_id=%s AND video_id=%s
-           ORDER BY created_at DESC LIMIT 1""",
-        (user_id, video_id), fetch=True
+             AND notes_source IN ({', '.join(['%s'] * len(sources))})
+           ORDER BY generated_at DESC LIMIT 1""",
+        (user_id, video_id, *sources), fetch=True
     )
     if rows:
-        raw   = rows[0]['notes']
+        raw = rows[0]['notes']
         return {
             'success'   : True,
             'notes'     : raw,
@@ -340,4 +288,4 @@ def get_saved_notes(user_id: int, video_id: str) -> dict:
             'word_count': rows[0]['word_count'],
             'from_cache': True,
         }
-    return {'success': False, 'message': 'No saved notes found'}
+    return {'success': False}

@@ -29,7 +29,9 @@ def download_audio(video_id: str) -> str | None:
     try:
         import yt_dlp
         ydl_opts = {
-            'format': 'bestaudio/best',
+            # Smallest audio stream: speech recognition doesn't need high bitrate,
+            # and Groq Whisper rejects files over 25 MB (~70 min at low bitrate)
+            'format': 'worstaudio[acodec!=none]/worstaudio/bestaudio',
             'outtmpl': out_name + '.%(ext)s',
             'quiet': True,
             'noplaylist': True,
@@ -64,7 +66,8 @@ def download_audio(video_id: str) -> str | None:
         'yt_dlp',
         '--extract-audio',
         '--audio-format', 'mp3',
-        '--audio-quality', '5',
+        '--audio-quality', '9',
+        '--format', 'worstaudio/bestaudio',
         '--socket-timeout', '10',
         '--no-playlist',
         '--quiet',

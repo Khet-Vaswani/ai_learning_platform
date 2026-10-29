@@ -434,196 +434,53 @@ def related_videos():
 @login_required
 def get_transcript():
     """
-    Extract transcript from YouTube video.
-    Priority:
-    1. DB cache (instant)
-    2. YouTube captions API
-    3. Video description fallback
+    Extract authentic transcript from YouTube video.
+    Hierarchy:
+    1. DB cache (verified authentic transcript)
+    2. YouTube captions API (manual & auto-generated, all languages)
+    3. yt-dlp direct subtitle streams
+    4. Audio download + Whisper Speech-To-Text (Groq / local)
     """
     video_id = request.args.get('video_id', '').strip()
+    title    = request.args.get('title', '').strip()
+
     if not video_id:
         return jsonify({'success': False, 'message': 'video_id required'})
 
-    # ── Step 1: Check DB cache ────────────────────────────
     try:
-        cached = execute_query(
-            """SELECT transcript_text, source, word_count
-               FROM video_transcripts
-               WHERE video_id = %s""",
-            (video_id,), fetch=True
-        )
-        if cached and cached[0]['transcript_text']:
-            language = _detect_language(cached[0]['transcript_text'])
-            print(f"✅ Transcript from DB cache: {video_id} | language={language}")
-            return jsonify({
-                'success'   : True,
-                'transcript': cached[0]['transcript_text'],
-                'source'    : cached[0]['source'],
-                'language'  : language,
-                'length'    : cached[0]['word_count'],
-                'cached'    : True,
-            })
-    except Exception as e:
-        print(f"⚠️ Cache check error: {e}")
+        from app.ai.transcript_extractor import extract_transcript_full_pipeline, is_valid_transcript
 
-    # ── Step 2: YouTube captions ──────────────────────────
-    try:
-        from youtube_transcript_api import (
-            YouTubeTranscriptApi,
-            TranscriptsDisabled,
-            NoTranscriptFound,
+        result = extract_transcript_full_pipeline(
+            video_id    = video_id,
+            video_title = title,
+            use_whisper = True
         )
 
-        transcript_text = ''
-        source          = 'youtube_captions'
+        if result.get('transcript') and is_valid_transcript(result['transcript']):
+            transcript_text = result['transcript']
+            language = _detect_language(transcript_text)
+            word_count = len(transcript_text.split())
 
-        try:
-            # Try manual captions first (more accurate)
-            segments = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=['en', 'en-US', 'en-GB', 'en-IN', 'hi', 'ur', 'sd', 'ur-PK', 'sd-PK', 'hi-IN']
-            )
-            transcript_text = ' '.join(s['text'] for s in segments)
-
-        except NoTranscriptFound:
-            # Try auto-generated captions
-            try:
-                all_t    = YouTubeTranscriptApi.list_transcripts(video_id)
-                auto     = all_t.find_generated_transcript(
-                    ['en', 'hi', 'ur', 'sd', 'ur-PK', 'sd-PK', 'hi-IN']
-                )
-                segments = auto.fetch()
-                transcript_text = ' '.join(s['text'] for s in segments)
-                source   = 'youtube_auto_captions'
-            except Exception:
-                pass
-
-        if transcript_text and len(transcript_text) > 100:
-            # Clean transcript
-            import re
-            cleaned = re.sub(r'\[.*?\]', '', transcript_text)
-            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-
-            word_count = len(cleaned.split())
-            language   = _detect_language(cleaned)
-
-            # Save to cache
-            _save_transcript_cache(video_id, cleaned, source, word_count)
-
-            print(f"✅ YouTube transcript: {word_count} words ({source}) | language={language}")
             return jsonify({
                 'success'   : True,
-                'transcript': cleaned,
-                'source'    : source,
+                'transcript': transcript_text,
+                'source'    : result.get('source', 'transcript'),
                 'language'  : language,
                 'length'    : word_count,
-                'cached'    : False,
+                'cached'    : result.get('cached', False),
             })
 
-    except ImportError:
-        print("⚠️ youtube-transcript-api not installed")
-        print("   Run: pip install youtube-transcript-api")
-    except TranscriptsDisabled:
-        print(f"⚠️ Transcripts disabled for: {video_id}")
     except Exception as e:
-        print(f"⚠️ Caption extraction failed: {e}")
+        print(f"❌ Error extracting transcript for {video_id}: {e}")
 
-    # ── Step 2.5: Whisper Speech-to-Text Fallback ──────────
-    try:
-        from app.ai.audio_extractor  import download_audio
-        from app.ai.speech_to_text   import transcribe_with_whisper
-
-        print(f"🎵 Captions unavailable. Downloading audio for Whisper: {video_id}")
-        audio_path = download_audio(video_id)
-
-        if audio_path and os.path.exists(audio_path):
-            print(f"🤖 Running Whisper STT...")
-            whisper_text = transcribe_with_whisper(audio_path)
-
-            if whisper_text and len(whisper_text) > 200:
-                cleaned = re.sub(r'\[.*?\]', '', whisper_text)
-                cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-
-                word_count = len(cleaned.split())
-                language   = _detect_language(cleaned)
-
-                # Save to cache
-                _save_transcript_cache(video_id, cleaned, 'whisper', word_count)
-
-                # Cleanup audio file
-                try:
-                    os.remove(audio_path)
-                except Exception:
-                    pass
-
-                print(f"✅ Whisper transcript: {word_count} words | language={language}")
-                return jsonify({
-                    'success'   : True,
-                    'transcript': cleaned,
-                    'source'    : 'whisper',
-                    'language'  : language,
-                    'length'    : word_count,
-                    'cached'    : False,
-                })
-    except Exception as e:
-        print(f"⚠️ Whisper STT fallback failed: {e}")
-
-    # ── Step 3: Video description & metadata fallback ────────
-    try:
-        title = request.args.get('title', '').strip()
-        desc  = ''
-        tags  = ''
-
-        try:
-            yt = build('youtube', 'v3', developerKey=os.getenv('YOUTUBE_API_KEY'))
-            resp = yt.videos().list(part='snippet', id=video_id).execute()
-            if resp.get('items'):
-                snippet = resp['items'][0]['snippet']
-                title   = snippet.get('title', '') or title
-                desc    = snippet.get('description', '')
-                tags    = ', '.join(snippet.get('tags', [])[:10])
-        except Exception as yt_err:
-            print(f"⚠️ YouTube API metadata lookup notice: {yt_err}")
-
-        # If title is still missing, check watched_videos
-        if not title:
-            w_row = execute_query(
-                "SELECT video_title, topic FROM watched_videos WHERE video_id=%s ORDER BY watched_at DESC LIMIT 1",
-                (video_id,), fetch=True
-            )
-            if w_row:
-                title = w_row[0].get('video_title') or w_row[0].get('topic') or ''
-
-        if title or desc:
-            fallback_text = (
-                f"Video Title: {title}\n\n"
-                f"Summary & Overview: {desc[:2500] if desc else 'Educational tutorial lecture on ' + (title or 'this topic') + '. Covers core conceptual foundations, step-by-step guidance, and practical examples.'}\n\n"
-                f"Key Topics: {tags if tags else (title or 'General Educational Subject')}"
-            )
-            word_count = len(fallback_text.split())
-            language   = _detect_language(fallback_text)
-            _save_transcript_cache(video_id, fallback_text, 'metadata', word_count)
-
-            print(f"✅ Metadata overview generated: {word_count} words | language={language}")
-            return jsonify({
-                'success'   : True,
-                'transcript': fallback_text,
-                'source'    : 'description',
-                'language'  : language,
-                'length'    : word_count,
-                'cached'    : False,
-            })
-    except Exception as e:
-        print(f"⚠️ Description fallback error: {e}")
-
-    # ── Nothing worked ────────────────────────────────────
-    print(f"❌ No transcript available for: {video_id}")
+    # Authentic transcript not available
+    print(f"❌ No authentic transcript available for video: {video_id}")
     return jsonify({
         'success'   : False,
         'transcript': '',
         'source'    : 'none',
         'length'    : 0,
-        'message'   : 'Transcript not available for this video',
+        'message'   : 'Authentic transcript not available for this video',
     })
 
 

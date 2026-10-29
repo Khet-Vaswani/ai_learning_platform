@@ -56,7 +56,6 @@ def create_app():
 
     # ── Blueprints ────────────────────────────────────────
     from app.routes.auth        import auth
-    from app.routes.cognitive   import cognitive_bp
     from app.routes.dashboard   import dashboard      # ← your file has "dashboard"
     from app.routes.youtube     import youtube_bp
     from app.routes.gemini      import gemini_bp
@@ -66,7 +65,6 @@ def create_app():
     from app.routes.onboarding  import onboarding_bp
 
     app.register_blueprint(auth)
-    app.register_blueprint(cognitive_bp)
     app.register_blueprint(dashboard)               # ← same name
     app.register_blueprint(youtube_bp)
     app.register_blueprint(gemini_bp)

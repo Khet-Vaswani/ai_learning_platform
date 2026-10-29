@@ -1,689 +1,196 @@
 {% extends 'base.html' %}
-{% block title %}System Evaluation — AI Learning Platform{% endblock %}
+{% block title %}Recommendation report — LearnAI{% endblock %}
 
 {% block extra_css %}
 <style>
-.eval-banner {
-    background   : linear-gradient(135deg,#0f172a,#1e1b4b);
-    border-radius: 16px;
-    padding      : 28px 32px;
-    margin-bottom: 24px;
-    color        : white;
-    position     : relative;
-    overflow     : hidden;
+.ev-score { width: 132px; height: 132px; border-radius: 50%; margin: 6px auto 14px; display: flex; align-items: center; justify-content: center; }
+.ev-score-inner { width: 104px; height: 104px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ev-score-num { font-size: 2rem; font-weight: 800; line-height: 1; }
+.ev-metric { border: 1px solid var(--ui-border); border-radius: 10px; padding: 14px; height: 100%; }
+.ev-metric-name { font-size: 0.8rem; font-weight: 700; color: var(--ui-text); }
+.ev-metric-desc { font-size: 0.72rem; color: var(--ui-muted); margin-bottom: 10px; }
+.ev-metric-val { font-size: 1.5rem; font-weight: 800; color: var(--ui-text); margin-bottom: 6px; }
+.ev-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--ui-border-soft); font-size: 0.86rem; }
+.ev-row:last-child { border-bottom: none; }
+.ev-summary { background: var(--ui-bg); border-radius: 10px; padding: 16px 18px; font-size: 0.88rem; line-height: 1.8; color: var(--ui-body); }
+.ev-radar { position: relative; height: 300px; }
+@media print {
+  #sidebar, .navbar-modern, .mobile-bottom-nav, .ev-noprint, #mobileSearchPanel { display: none !important; }
+  #content { margin-left: 0 !important; width: 100% !important; }
+  .ui-card { break-inside: avoid; }
+  body { background: #fff; }
 }
-
-.eval-banner::before {
-    content:      '';
-    position:     absolute;
-    top:-60px; right:-60px;
-    width:200px; height:200px;
-    background:   rgba(37,99,235,0.15);
-    border-radius:50%; filter:blur(40px);
-}
-
-.metric-box {
-    background   : white;
-    border-radius: 14px;
-    padding      : 20px;
-    border       : 1px solid #e2e8f0;
-    box-shadow   : 0 1px 3px rgba(0,0,0,0.06);
-    transition   : all 0.25s;
-    height       : 100%;
-}
-
-.metric-box:hover {
-    transform  : translateY(-3px);
-    box-shadow : 0 8px 20px rgba(0,0,0,0.08);
-}
-
-.metric-val {
-    font-size    : 2.2rem;
-    font-weight  : 900;
-    line-height  : 1;
-    letter-spacing: -0.02em;
-}
-
-.metric-name {
-    font-size  : 0.78rem;
-    color      : #94a3b8;
-    font-weight: 500;
-    margin-top : 4px;
-}
-
-.metric-desc {
-    font-size  : 0.68rem;
-    color      : #cbd5e1;
-    margin-top : 3px;
-}
-
-.bar-track {
-    height       : 8px;
-    background   : #f1f5f9;
-    border-radius: 4px;
-    overflow     : hidden;
-    margin-top   : 12px;
-}
-
-.bar-fill {
-    height       : 100%;
-    border-radius: 4px;
-    transition   : width 1.2s cubic-bezier(0.4,0,0.2,1);
-}
-
-.grade-badge {
-    padding      : 6px 16px;
-    border-radius: 20px;
-    font-size    : 0.85rem;
-    font-weight  : 700;
-    display      : inline-block;
-}
-
-.overall-circle {
-    width          : 120px;
-    height         : 120px;
-    border-radius  : 50%;
-    display        : flex;
-    align-items    : center;
-    justify-content: center;
-    flex-direction : column;
-    margin         : 0 auto;
-    position       : relative;
-}
-
-.chart-card {
-    background   : white;
-    border-radius: 14px;
-    border       : 1px solid #e2e8f0;
-    box-shadow   : 0 1px 3px rgba(0,0,0,0.06);
-    overflow     : hidden;
-}
-
-.chart-head {
-    padding        : 14px 18px;
-    border-bottom  : 1px solid #f1f5f9;
-    font-size      : 0.88rem;
-    font-weight    : 700;
-    color          : #1e293b;
-    display        : flex;
-    align-items    : center;
-    justify-content: space-between;
-}
-
-.topic-row {
-    display    : flex;
-    align-items: center;
-    gap        : 10px;
-    padding    : 8px 16px;
-    border-bottom: 1px solid #f8fafc;
-    font-size  : 0.8rem;
-}
-
-.topic-row:last-child { border-bottom:none; }
-
-.spinner-wrap {
-    text-align: center;
-    padding   : 60px 20px;
-    color     : #94a3b8;
-}
-
-.baseline-row {
-    display        : flex;
-    align-items    : center;
-    justify-content: space-between;
-    padding        : 12px 0;
-    border-bottom  : 1px solid #f1f5f9;
-}
-
-.baseline-row:last-child { border-bottom:none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-page">
+<div class="ui-page">
 
-    <!-- Banner -->
-    <div class="eval-banner mb-4">
-        <div style="position:relative;z-index:2;">
-            <div style="font-size:0.72rem;font-weight:600;
-                        color:rgba(255,255,255,0.45);
-                        text-transform:uppercase;
-                        letter-spacing:0.1em;margin-bottom:8px;">
-                📊 Research Evaluation
-            </div>
-            <h2 style="font-size:1.5rem;font-weight:800;margin:0 0 6px;
-                       letter-spacing:-0.02em;">
-                MoE Recommendation Engine
-            </h2>
-            <p style="color:rgba(255,255,255,0.5);margin:0;font-size:0.85rem;">
-                Quantitative evaluation using standard IR metrics
-            </p>
-        </div>
-
-        <!-- K Selector + Run Button -->
-        <div style="display:flex;align-items:center;gap:10px;
-                    margin-top:20px;position:relative;z-index:2;">
-            <div style="display:flex;align-items:center;gap:8px;
-                        background:rgba(255,255,255,0.08);
-                        border:1px solid rgba(255,255,255,0.12);
-                        border-radius:10px;padding:8px 14px;">
-                <span style="color:rgba(255,255,255,0.6);
-                             font-size:0.78rem;font-weight:600;">
-                    K =
-                </span>
-                <select id="kSelect"
-                        style="background:transparent;border:none;
-                               color:white;font-size:0.85rem;
-                               font-weight:700;outline:none;
-                               font-family:inherit;cursor:pointer;">
-                    <option value="3"  style="color:#1e293b;">3</option>
-                    <option value="5"  style="color:#1e293b;" selected>5</option>
-                    <option value="10" style="color:#1e293b;">10</option>
-                </select>
-            </div>
-
-            <button id="runBtn" onclick="runEval()"
-                    style="background:linear-gradient(135deg,#2563eb,#7c3aed);
-                           color:white;border:none;padding:10px 24px;
-                           border-radius:10px;font-size:0.85rem;
-                           font-weight:700;cursor:pointer;
-                           font-family:inherit;
-                           box-shadow:0 4px 12px rgba(37,99,235,0.3);
-                           transition:all 0.2s;">
-                <i class="fas fa-play me-2"></i>Run Evaluation
-            </button>
-
-            <a href="/progress"
-               style="color:rgba(255,255,255,0.5);font-size:0.78rem;
-                      text-decoration:none;font-weight:500;">
-                ← Back to Progress
-            </a>
-        </div>
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-page-title">Recommendation report</h1>
+      <p class="ui-page-sub">How well the AI's recommendations match the topics you actually need, using standard ranking metrics.</p>
     </div>
-
-    <!-- Results -->
-    <div id="evalResults">
-        <div class="spinner-wrap">
-            <i class="fas fa-chart-bar"
-               style="font-size:3rem;opacity:0.3;margin-bottom:16px;
-                      display:block;"></i>
-            <p style="font-size:0.88rem;margin:0;">
-                Click <strong>Run Evaluation</strong> to start
-            </p>
-            <p style="font-size:0.75rem;margin-top:6px;opacity:0.7;">
-                System will evaluate MoE recommendations
-                against ground truth data
-            </p>
-        </div>
+    <div class="ev-noprint" style="display: flex; gap: 8px; align-items: center;">
+      <label for="kSelect" class="ui-label" style="margin: 0;">Top K</label>
+      <select id="kSelect" class="ui-select" style="width: auto;">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="10">10</option>
+      </select>
+      <button id="runBtn" class="ui-btn ui-btn-primary" onclick="runEval()"><i class="fas fa-play"></i> Run report</button>
+      <button id="printBtn" class="ui-btn" onclick="window.print()" style="display: none;"><i class="fas fa-print"></i> Print</button>
     </div>
+  </div>
 
+  <div id="evalResults">
+    <div class="ui-card">
+      <div class="ui-empty">
+        <div class="ui-empty-icon"><i class="fas fa-chart-pie"></i></div>
+        <div class="ui-empty-title">Run the report to see results</div>
+        <div class="ui-empty-text">It compares the AI's top picks with your weak topics, and with random picks as a baseline.</div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+function esc(str) {
+  return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function pct(v, d) { return (Number(v || 0) * 100).toFixed(d == null ? 0 : d); }
+
 async function runEval() {
-    var k       = document.getElementById('kSelect').value;
-    var btn     = document.getElementById('runBtn');
-    var results = document.getElementById('evalResults');
-
-    btn.disabled  = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Running...';
-
-    results.innerHTML =
-        '<div class="spinner-wrap">' +
-        '<div class="spinner-border text-primary mb-3" ' +
-        'style="width:2.5rem;height:2.5rem;"></div>' +
-        '<p style="font-size:0.88rem;color:#64748b;">' +
-        'Evaluating MoE recommendations...</p>' +
-        '</div>';
-
-    try {
-        var res  = await fetch('/evaluation/run?k=' + k);
-        var data = await res.json();
-
-        if (!data.success) {
-            results.innerHTML =
-                '<div style="text-align:center;padding:40px;color:#dc2626;">' +
-                '<i class="fas fa-exclamation-circle" ' +
-                'style="font-size:2rem;margin-bottom:12px;display:block;"></i>' +
-                data.message + '</div>';
-            return;
-        }
-
-        renderResults(data.results);
-
-    } catch(e) {
-        results.innerHTML =
-            '<div style="text-align:center;padding:40px;color:#dc2626;">' +
-            'Error running evaluation. Try again.</div>';
-    }
-
-    btn.disabled  = false;
-    btn.innerHTML = '<i class="fas fa-play me-2"></i>Run Again';
+  var k = document.getElementById('kSelect').value;
+  var btn = document.getElementById('runBtn');
+  var box = document.getElementById('evalResults');
+  btn.disabled = true;
+  btn.innerHTML = 'Running...';
+  box.innerHTML = '<div class="ui-card"><div class="text-center py-5"><div class="spinner-border text-primary"></div>' +
+    '<p class="mt-3" style="color: var(--ui-muted);">Evaluating recommendations...</p></div></div>';
+  try {
+    var res = await fetch('/evaluation/run?k=' + k);
+    var data = await res.json();
+    if (!data.success) throw new Error(data.message || 'failed');
+    renderResults(data.results);
+    document.getElementById('printBtn').style.display = '';
+  } catch (e) {
+    box.innerHTML = '<div class="ui-alert error"><i class="fas fa-circle-exclamation"></i><div>We couldn\'t run the report. Try again.</div></div>';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-rotate"></i> Run again';
 }
 
+var GRADE_TONE = {'Excellent': ['green', '#16a34a'], 'Good': ['primary', '#4f46e5'], 'Fair': ['amber', '#f59e0b'], 'Needs Improvement': ['red', '#ef4444']};
+
 function renderResults(r) {
-    var container = document.getElementById('evalResults');
+  var tone = GRADE_TONE[r.grade] || GRADE_TONE['Fair'];
+  var hits = r.recommended_topics.filter(function(t) { return r.relevant_topics.indexOf(t) !== -1; });
+  var missed = r.relevant_topics.filter(function(t) { return r.recommended_topics.indexOf(t) === -1; });
+  var lir = Number(r.learning_improvement || 0);
+  var imp = Number(r.improvement_pct || 0);
+  var noData = !r.relevant_count;
 
-    // Grade config
-    var grades = {
-        'Excellent'        : {color:'#059669', bg:'#f0fdf4', border:'#bbf7d0'},
-        'Good'             : {color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
-        'Fair'             : {color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
-        'Needs Improvement': {color:'#dc2626', bg:'#fef2f2', border:'#fecaca'}
-    };
+  var metrics = [
+    ['precision_at_k', 'Precision@' + r.k, 'Share of top picks that were relevant'],
+    ['recall_at_k', 'Recall@' + r.k, 'Share of relevant topics that were picked'],
+    ['ndcg_at_k', 'NDCG@' + r.k, 'Whether relevant topics are ranked near the top'],
+    ['hit_rate', 'Hit rate', 'At least one relevant topic in the top picks'],
+    ['coverage', 'Coverage', 'Share of all topics the system recommends'],
+    ['diversity', 'Diversity', 'How varied the recommended topics are']
+  ];
 
-    var gc = grades[r.grade] || grades['Fair'];
+  var metricCards = metrics.map(function(m) {
+    var p = Math.round(Number(r[m[0]] || 0) * 100);
+    var t = p >= 70 ? 'green' : (p >= 40 ? 'amber' : 'red');
+    return '<div class="col-lg-4 col-md-6"><div class="ev-metric">' +
+      '<div class="ev-metric-name">' + m[1] + '</div><div class="ev-metric-desc">' + m[2] + '</div>' +
+      '<div class="ev-metric-val">' + p + '%</div>' +
+      '<div class="ui-bar"><span class="' + t + '" style="width:' + p + '%;"></span></div></div></div>';
+  }).join('');
 
-    // Metrics config
-    var metrics = [
-        {
-            key  : 'precision_at_k',
-            name : 'Precision@' + r.k,
-            desc : 'Relevant items in Top-' + r.k,
-            color: '#2563eb',
-            icon : 'fas fa-bullseye',
-            bg   : '#eff6ff'
-        },
-        {
-            key  : 'recall_at_k',
-            name : 'Recall@' + r.k,
-            desc : 'Relevant items found',
-            color: '#059669',
-            icon : 'fas fa-search',
-            bg   : '#f0fdf4'
-        },
-        {
-            key  : 'ndcg_at_k',
-            name : 'NDCG@' + r.k,
-            desc : 'Ranking quality score',
-            color: '#7c3aed',
-            icon : 'fas fa-sort-amount-up',
-            bg   : '#faf5ff'
-        },
-        {
-            key  : 'hit_rate',
-            name : 'Hit Rate',
-            desc : 'At least 1 relevant found',
-            color: '#d97706',
-            icon : 'fas fa-check-circle',
-            bg   : '#fffbeb'
-        },
-        {
-            key  : 'coverage',
-            name : 'Coverage',
-            desc : 'Catalog coverage',
-            color: '#0891b2',
-            icon : 'fas fa-th',
-            bg   : '#f0f9ff'
-        },
-        {
-            key  : 'diversity',
-            name : 'Diversity',
-            desc : 'Recommendation diversity',
-            color: '#ec4899',
-            icon : 'fas fa-random',
-            bg   : '#fdf2f8'
-        }
-    ];
-    var html =
-    // ── Overall Score ──────────────────────────────────
-    '<div class="row g-4 mb-4">' +
-    '<div class="col-lg-4">' +
-    '<div class="chart-card h-100">' +
-    '<div class="chart-head">Overall System Score</div>' +
-    '<div style="padding:28px 20px;text-align:center;">' +
+  var topicList = function(list, chip, label, empty) {
+    if (!list.length) return '<div class="ui-list-meta" style="padding: 10px 0;">' + empty + '</div>';
+    return list.map(function(t) {
+      return '<div class="ev-row"><span style="font-weight:600;">' + esc(t) + '</span><span class="ui-chip ' + chip + '">' + label + '</span></div>';
+    }).join('');
+  };
 
-    '<div class="overall-circle" style="' +
-    'background:conic-gradient(' + gc.color + ' ' +
-    r.overall_score + '%, #f1f5f9 0);' +
-    'box-shadow:0 0 0 8px ' + gc.bg + ';">' +
-    '<div style="width:90px;height:90px;border-radius:50%;' +
-    'background:white;display:flex;align-items:center;' +
-    'justify-content:center;flex-direction:column;' +
-    'box-shadow:inset 0 2px 8px rgba(0,0,0,0.06);">' +
-    '<span style="font-size:1.8rem;font-weight:900;color:' +
-    gc.color + ';line-height:1;">' + r.overall_score + '</span>' +
-    '<span style="font-size:0.62rem;color:#94a3b8;font-weight:600;">/ 100</span>' +
-    '</div></div>' +
+  var summary =
+    'The mixture-of-experts recommender was evaluated on this student\'s data at K = ' + r.k + '. ' +
+    'It reached Precision@' + r.k + ' of <strong>' + pct(r.precision_at_k, 1) + '%</strong>, ' +
+    'Recall@' + r.k + ' of <strong>' + pct(r.recall_at_k, 1) + '%</strong>, and ' +
+    'NDCG@' + r.k + ' of <strong>' + pct(r.ndcg_at_k, 1) + '%</strong>. ' +
+    (r.hit_rate >= 1 ? 'At least one relevant topic appeared in the top picks. '
+                     : 'No relevant topic appeared in the top picks. ') +
+    'Against a random baseline (precision ' + pct(r.random_precision, 1) + '%), the system performed ' +
+    (imp > 0 ? '<strong>' + imp + '% better</strong>. ' : (imp < 0 ? '<strong>' + Math.abs(imp) + '% worse</strong>. ' : 'the same. ')) +
+    (lir > 0 ? 'Quiz scores improved by <strong>' + lir + '%</strong> over time. '
+     : (lir < 0 ? 'Quiz scores fell by <strong>' + Math.abs(lir) + '%</strong> over time. '
+                : 'There is not yet enough quiz history to measure improvement. ')) +
+    'Overall score: <strong>' + r.overall_score + '/100 (' + esc(r.grade) + ')</strong>.' +
+    (noData ? ' <em>Note: this student has no weak topics yet, so relevance-based metrics are 0 by definition.</em>' : '');
 
-    '<div style="margin-top:20px;">' +
-    '<span class="grade-badge" style="background:' + gc.bg +
-    ';color:' + gc.color + ';border:1px solid ' + gc.border + ';">' +
-    r.grade + '</span>' +
+  document.getElementById('evalResults').innerHTML =
+    '<div class="row g-4">' +
+      '<div class="col-lg-4"><div class="ui-card" style="height: calc(100% - 20px); text-align: center;">' +
+        '<h2 class="ui-card-title" style="text-align:left;">Overall score</h2>' +
+        '<div class="ev-score" style="background: conic-gradient(' + tone[1] + ' ' + r.overall_score + '%, #f1f5f9 0);">' +
+          '<div class="ev-score-inner"><div class="ev-score-num">' + r.overall_score + '</div><div class="ui-list-meta">out of 100</div></div></div>' +
+        '<span class="ui-chip ' + tone[0] + '">' + esc(r.grade) + '</span>' +
+        '<div style="text-align:left; margin-top: 16px;">' +
+          '<div class="ev-row"><span>Relevant topics</span><strong>' + r.relevant_count + '</strong></div>' +
+          '<div class="ev-row"><span>Recommended (top ' + r.k + ')</span><strong>' + r.recommended_count + '</strong></div>' +
+        '</div></div></div>' +
+      '<div class="col-lg-4"><div class="ui-card" style="height: calc(100% - 20px);">' +
+        '<h2 class="ui-card-title">Compared with random picks</h2><div class="ui-card-sub" style="margin-bottom: 10px;">Precision of the top picks</div>' +
+        '<div class="ev-row"><span>AI recommender</span><strong style="color: var(--ui-primary);">' + pct(r.moe_precision, 1) + '%</strong></div>' +
+        '<div class="ev-row"><span>Random baseline</span><strong style="color: var(--ui-muted);">' + pct(r.random_precision, 1) + '%</strong></div>' +
+        '<div class="ui-alert ' + (imp > 0 ? 'success' : (imp < 0 ? 'error' : 'info')) + '" style="margin: 14px 0 0;">' +
+          '<div>' + (imp > 0 ? imp + '% better than random' : (imp < 0 ? Math.abs(imp) + '% worse than random' : 'Same as random')) + '</div></div>' +
+      '</div></div>' +
+      '<div class="col-lg-4"><div class="ui-card" style="height: calc(100% - 20px);">' +
+        '<h2 class="ui-card-title">Learning improvement</h2><div class="ui-card-sub">Change in quiz scores over time</div>' +
+        '<div style="font-size: 2.4rem; font-weight: 800; margin: 18px 0 6px; color:' + (lir > 0 ? '#16a34a' : (lir < 0 ? '#ef4444' : 'var(--ui-muted)')) + ';">' +
+          (lir > 0 ? '+' : '') + lir + '%</div>' +
+        '<div class="ui-list-meta">' + (lir > 0 ? 'Scores are going up.' : (lir < 0 ? 'Scores are going down.' : 'Take more quizzes to measure this.')) + '</div>' +
+      '</div></div>' +
     '</div>' +
 
-    '<div style="margin-top:16px;padding-top:16px;' +
-    'border-top:1px solid #f1f5f9;font-size:0.78rem;color:#64748b;">' +
-    '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
-    '<span>Relevant Topics</span>' +
-    '<strong style="color:#1e293b;">' + r.relevant_count + '</strong></div>' +
-    '<div style="display:flex;justify-content:space-between;">' +
-    '<span>Recommended (K=' + r.k + ')</span>' +
-    '<strong style="color:#1e293b;">' + r.recommended_count + '</strong></div>' +
-    '</div></div></div></div>' +
+    '<div class="ui-card"><h2 class="ui-card-title" style="margin-bottom: 14px;">Metrics</h2><div class="row g-3">' + metricCards + '</div></div>' +
 
-    // ── Learning Improvement ───────────────────────────
-    '<div class="col-lg-4">' +
-    '<div class="chart-card h-100">' +
-    '<div class="chart-head">Learning Improvement Rate</div>' +
-    '<div style="padding:28px 20px;text-align:center;">' +
-
-    '<div style="font-size:3rem;font-weight:900;line-height:1;' +
-    'color:' + (r.learning_improvement >= 0 ? '#059669' : '#dc2626') + ';">' +
-    (r.learning_improvement >= 0 ? '+' : '') + r.learning_improvement + '%' +
-    '</div>' +
-    '<div style="font-size:0.8rem;color:#94a3b8;margin-top:8px;">' +
-    'Score improvement over time</div>' +
-
-    '<div style="margin-top:20px;background:#f8fafc;' +
-    'border-radius:10px;padding:14px;">' +
-    '<div style="font-size:0.75rem;color:#64748b;text-align:left;' +
-    'font-weight:600;margin-bottom:8px;">Interpretation</div>' +
-    '<div style="font-size:0.72rem;color:#94a3b8;text-align:left;' +
-    'line-height:1.6;">' +
-    (r.learning_improvement > 10 ?
-        '✅ Student is improving significantly after recommendations.' :
-     r.learning_improvement > 0 ?
-        '📈 Student showing gradual improvement.' :
-     r.learning_improvement === 0 ?
-        'ℹ️ Need more quiz data to measure improvement.' :
-        '⚠️ Scores declining — recommendations need tuning.') +
-    '</div></div></div></div></div>' +
-
-    // ── Baseline Comparison ────────────────────────────
-    '<div class="col-lg-4">' +
-    '<div class="chart-card h-100">' +
-    '<div class="chart-head">MoE vs Random Baseline</div>' +
-    '<div style="padding:20px;">' +
-
-    '<div class="baseline-row">' +
-    '<div>' +
-    '<div style="font-size:0.82rem;font-weight:600;color:#1e293b;">MoE System</div>' +
-    '<div style="font-size:0.68rem;color:#94a3b8;">Your recommendation engine</div>' +
-    '</div>' +
-    '<div style="font-size:1.3rem;font-weight:800;color:#2563eb;">' +
-    (r.moe_precision * 100).toFixed(1) + '%</div>' +
+    '<div class="row g-4">' +
+      '<div class="col-lg-6"><div class="ui-card"><h2 class="ui-card-title">Relevant topics recommended</h2><div class="ui-card-sub" style="margin-bottom: 6px;">' + hits.length + ' found in the top ' + r.k + '</div>' +
+        topicList(hits, 'green', 'Recommended', 'None of the relevant topics were in the top picks.') + '</div></div>' +
+      '<div class="col-lg-6"><div class="ui-card"><h2 class="ui-card-title">Relevant topics missed</h2><div class="ui-card-sub" style="margin-bottom: 6px;">' + missed.length + ' not in the top ' + r.k + '</div>' +
+        topicList(missed, 'red', 'Missed', 'Every relevant topic was recommended.') + '</div></div>' +
     '</div>' +
 
-    '<div class="baseline-row">' +
-    '<div>' +
-    '<div style="font-size:0.82rem;font-weight:600;color:#1e293b;">Random Baseline</div>' +
-    '<div style="font-size:0.68rem;color:#94a3b8;">Random recommendations</div>' +
-    '</div>' +
-    '<div style="font-size:1.3rem;font-weight:800;color:#94a3b8;">' +
-    (r.random_precision * 100).toFixed(1) + '%</div>' +
-    '</div>' +
+    '<div class="row g-4">' +
+      '<div class="col-lg-5"><div class="ui-card"><h2 class="ui-card-title" style="margin-bottom: 10px;">Metric profile</h2><div class="ev-radar"><canvas id="radarChart"></canvas></div></div></div>' +
+      '<div class="col-lg-7"><div class="ui-card"><h2 class="ui-card-title" style="margin-bottom: 10px;">Summary</h2><div class="ev-summary">' + summary + '</div></div></div>' +
+    '</div>';
 
-    '<div style="margin-top:16px;padding:14px;border-radius:10px;' +
-    'background:' + (r.improvement_pct > 0 ? '#f0fdf4' : '#fef2f2') + ';' +
-    'border:1px solid ' + (r.improvement_pct > 0 ? '#bbf7d0' : '#fecaca') + ';">' +
-    '<div style="font-size:0.78rem;font-weight:700;' +
-    'color:' + (r.improvement_pct > 0 ? '#059669' : '#dc2626') + ';">' +
-    (r.improvement_pct > 0 ? '✅ ' : '⚠️ ') +
-    'MoE is ' + Math.abs(r.improvement_pct) + '% ' +
-    (r.improvement_pct > 0 ? 'better' : 'worse') + ' than random' +
-    '</div>' +
-    '<div style="font-size:0.68rem;color:#94a3b8;margin-top:3px;">' +
-    'Validates recommendation quality</div>' +
-    '</div>' +
-    '</div></div></div>' +
-    '</div>' +
-
-    // ── 6 Metric Cards ─────────────────────────────────
-    '<div class="row g-3 mb-4">' +
-    metrics.map(function(m) {
-        var val    = r[m.key];
-        var pct    = Math.round(val * 100);
-        var barClr = pct >= 70 ? '#059669' :
-                     pct >= 40 ? '#d97706' : '#dc2626';
-
-        return '<div class="col-md-4 col-6">' +
-               '<div class="metric-box">' +
-               '<div style="display:flex;align-items:center;gap:10px;' +
-               'margin-bottom:12px;">' +
-               '<div style="width:36px;height:36px;border-radius:9px;' +
-               'background:' + m.bg + ';color:' + m.color + ';' +
-               'display:flex;align-items:center;justify-content:center;' +
-               'font-size:0.85rem;">' +
-               '<i class="' + m.icon + '"></i></div>' +
-               '<div>' +
-               '<div style="font-size:0.75rem;font-weight:700;' +
-               'color:#1e293b;">' + m.name + '</div>' +
-               '<div style="font-size:0.65rem;color:#94a3b8;">' +
-               m.desc + '</div>' +
-               '</div></div>' +
-               '<div class="metric-val" style="color:' + m.color + ';">' +
-               pct + '<span style="font-size:1rem;">%</span></div>' +
-               '<div class="bar-track">' +
-               '<div class="bar-fill" style="width:' + pct +
-               '%;background:' + barClr + ';"></div></div>' +
-               '<div style="display:flex;justify-content:space-between;' +
-               'margin-top:6px;">' +
-               '<span style="font-size:0.65rem;color:#94a3b8;">Raw: ' +
-               val + '</span>' +
-               '<span style="font-size:0.65rem;font-weight:600;' +
-               'color:' + barClr + ';">' +
-               (pct >= 70 ? '✅ Good' : pct >= 40 ? '⚠️ Fair' : '❌ Low') +
-               '</span></div>' +
-               '</div></div>';
-    }).join('') +
-    '</div>' +
-
-    // ── Topics Analysis ────────────────────────────────
-    '<div class="row g-4 mb-4">' +
-    '<div class="col-md-6">' +
-    '<div class="chart-card">' +
-    '<div class="chart-head">' +
-    '✅ Correctly Recommended Topics' +
-    '<span style="background:#f0fdf4;color:#059669;' +
-    'padding:2px 8px;border-radius:8px;font-size:0.7rem;' +
-    'font-weight:700;">' +
-    r.recommended_topics.filter(function(t) {
-        return r.relevant_topics.includes(t);
-    }).length + ' hits' +
-    '</span></div>' +
-    (r.recommended_topics.filter(function(t) {
-        return r.relevant_topics.includes(t);
-    }).length > 0 ?
-        r.recommended_topics.filter(function(t) {
-            return r.relevant_topics.includes(t);
-        }).map(function(t) {
-            return '<div class="topic-row">' +
-                   '<span style="color:#059669;">✅</span>' +
-                   '<span style="font-weight:600;flex:1;">' + t + '</span>' +
-                   '<span style="background:#f0fdf4;color:#059669;' +
-                   'padding:2px 8px;border-radius:6px;font-size:0.68rem;' +
-                   'font-weight:700;">Relevant</span></div>';
-        }).join('') :
-        '<div style="padding:20px;text-align:center;color:#94a3b8;' +
-        'font-size:0.78rem;">No hits in top-' + r.k + '</div>'
-    ) +
-    '</div></div>' +
-
-    '<div class="col-md-6">' +
-    '<div class="chart-card">' +
-    '<div class="chart-head">' +
-    '⚠️ Missed Relevant Topics' +
-    '<span style="background:#fef2f2;color:#dc2626;' +
-    'padding:2px 8px;border-radius:8px;font-size:0.7rem;' +
-    'font-weight:700;">' +
-    r.relevant_topics.filter(function(t) {
-        return !r.recommended_topics.includes(t);
-    }).length + ' missed' +
-    '</span></div>' +
-    (r.relevant_topics.filter(function(t) {
-        return !r.recommended_topics.includes(t);
-    }).length > 0 ?
-        r.relevant_topics.filter(function(t) {
-            return !r.recommended_topics.includes(t);
-        }).map(function(t) {
-            return '<div class="topic-row">' +
-                   '<span style="color:#dc2626;">❌</span>' +
-                   '<span style="font-weight:600;flex:1;">' + t + '</span>' +
-                   '<span style="background:#fef2f2;color:#dc2626;' +
-                   'padding:2px 8px;border-radius:6px;font-size:0.68rem;' +
-                   'font-weight:700;">Not shown</span></div>';
-        }).join('') :
-        '<div style="padding:20px;text-align:center;color:#059669;' +
-        'font-size:0.78rem;">🎉 All relevant topics recommended!</div>'
-    ) +
-    '</div></div>' +
-    '</div>' +
-
-    // ── Radar Chart ────────────────────────────────────
-    '<div class="chart-card mb-4">' +
-    '<div class="chart-head">Evaluation Radar Chart</div>' +
-    '<div style="padding:20px;max-height:320px;display:flex;' +
-    'justify-content:center;">' +
-    '<canvas id="radarChart" style="max-width:320px;"></canvas>' +
-    '</div></div>' +
-
-    // ── Research Summary ───────────────────────────────
-    '<div class="chart-card">' +
-    '<div class="chart-head">📝 Research Summary (For FYP Report)</div>' +
-    '<div style="padding:20px;">' +
-
-    '<div style="background:#f8fafc;border-radius:10px;' +
-    'padding:16px 18px;font-size:0.82rem;line-height:1.8;' +
-    'color:#475569;border-left:3px solid #2563eb;">' +
-
-    '<strong style="color:#1e293b;font-size:0.85rem;">' +
-    'Evaluation Results (K=' + r.k + '):</strong><br><br>' +
-
-    'The proposed MoE-based recommendation system was evaluated using ' +
-    'standard Information Retrieval metrics. ' +
-    'The system achieved <strong>Precision@' + r.k + ' = ' +
-    (r.precision_at_k * 100).toFixed(1) + '%</strong>, ' +
-    '<strong>Recall@' + r.k + ' = ' +
-    (r.recall_at_k * 100).toFixed(1) + '%</strong>, and ' +
-    '<strong>NDCG@' + r.k + ' = ' +
-    (r.ndcg_at_k * 100).toFixed(1) + '%</strong>. ' +
-    'The Hit Rate of <strong>' +
-    (r.hit_rate * 100).toFixed(0) + '%</strong> indicates that ' +
-    (r.hit_rate === 1 ? 'the system successfully identified relevant content.' :
-     'the system needs improvement in finding relevant content.') + ' ' +
-    'Compared to a random baseline (Precision = ' +
-    (r.random_precision * 100).toFixed(1) + '%), ' +
-    'the MoE system demonstrated ' +
-    (r.improvement_pct > 0 ?
-        'a <strong>' + r.improvement_pct + '% improvement</strong>,' :
-        'performance requiring further optimization,') +
-    ' validating the effectiveness of the personalized approach. ' +
-    'The Learning Improvement Rate of <strong>' +
-    r.learning_improvement + '%</strong> further confirms that ' +
-    'the system positively impacts student performance over time. ' +
-    'Overall system score: <strong>' + r.overall_score + '/100 (' +
-    r.grade + ')</strong>.' +
-
-    '</div>' +
-
-    '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
-    [
-        ['Precision@K', (r.precision_at_k*100).toFixed(1)+'%', '#2563eb','#eff6ff'],
-        ['Recall@K',    (r.recall_at_k*100).toFixed(1)+'%',    '#059669','#f0fdf4'],
-        ['NDCG@K',      (r.ndcg_at_k*100).toFixed(1)+'%',      '#7c3aed','#faf5ff'],
-        ['Hit Rate',    (r.hit_rate*100).toFixed(0)+'%',        '#d97706','#fffbeb'],
-        ['Coverage',    (r.coverage*100).toFixed(1)+'%',        '#0891b2','#f0f9ff'],
-        ['LIR',         r.learning_improvement+'%',             '#ec4899','#fdf2f8'],
-    ].map(function(m) {
-        return '<div style="padding:8px 14px;border-radius:8px;' +
-               'background:' + m[3] + ';' +
-               'border:1px solid ' + m[2] + '33;">' +
-               '<div style="font-size:0.65rem;color:' + m[2] + ';' +
-               'font-weight:700;">' + m[0] + '</div>' +
-               '<div style="font-size:0.9rem;font-weight:800;color:' +
-               m[2] + ';">' + m[1] + '</div>' +
-               '</div>';
-    }).join('') +
-    '</div>' +
-
-    '</div></div>';
-
-    container.innerHTML = html;
-
-    // ── Radar Chart ────────────────────────────────────
-    setTimeout(function() {
-        var ctx = document.getElementById('radarChart');
-        if (!ctx) return;
-
-        new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels  : [
-                    'Precision@K','Recall@K',
-                    'NDCG@K','Hit Rate',
-                    'Coverage','Diversity'
-                ],
-                datasets: [
-                    {
-                        label          : 'MoE System',
-                        data           : [
-                            r.precision_at_k * 100,
-                            r.recall_at_k    * 100,
-                            r.ndcg_at_k      * 100,
-                            r.hit_rate       * 100,
-                            r.coverage       * 100,
-                            r.diversity      * 100
-                        ],
-                        borderColor    : '#2563eb',
-                        backgroundColor: 'rgba(37,99,235,0.15)',
-                        borderWidth    : 2,
-                        pointRadius    : 4,
-                        pointBackgroundColor: '#2563eb'
-                    },
-                    {
-                        label          : 'Random Baseline',
-                        data           : [
-                            r.random_precision * 100,
-                            r.random_precision * 100,
-                            r.random_precision * 100,
-                            r.random_precision * 100,
-                            50, 80
-                        ],
-                        borderColor    : '#94a3b8',
-                        backgroundColor: 'rgba(148,163,184,0.08)',
-                        borderWidth    : 1.5,
-                        borderDash     : [5,3],
-                        pointRadius    : 3,
-                        pointBackgroundColor: '#94a3b8'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales    : {
-                    r: {
-                        beginAtZero: true,
-                        max        : 100,
-                        grid       : { color:'rgba(0,0,0,0.06)' },
-                        ticks      : {
-                            stepSize: 25,
-                            callback: function(v) { return v+'%'; },
-                            font    : { size:10 },
-                            color   : '#94a3b8'
-                        },
-                        pointLabels: {
-                            font : { size:11, weight:'600' },
-                            color: '#475569'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels  : {
-                            font    : { size:11 },
-                            padding : 16,
-                            boxWidth: 10
-                        }
-                    }
-                }
-            }
-        });
-    }, 200);
+  if (typeof Chart === 'undefined') return;
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Precision', 'Recall', 'NDCG', 'Hit rate', 'Coverage', 'Diversity'],
+      datasets: [{
+        label: 'AI recommender',
+        data: [r.precision_at_k, r.recall_at_k, r.ndcg_at_k, r.hit_rate, r.coverage, r.diversity].map(function(v) { return Math.round(Number(v || 0) * 100); }),
+        borderColor: '#4f46e5', backgroundColor: 'rgba(79, 70, 229, 0.15)', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#4f46e5'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 25, display: false }, grid: { color: '#e2e8f0' }, pointLabels: { font: { size: 11 } } } }
+    }
+  });
 }
 </script>
 {% endblock %}

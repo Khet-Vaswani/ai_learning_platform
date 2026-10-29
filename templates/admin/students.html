@@ -1,0 +1,66 @@
+{% extends 'admin/base.html' %}
+{% from 'admin/_macros.html' import person, score, delete_button %}
+{% block title %}Students{% endblock %}
+
+{% block content %}
+<div class="ui-page-head">
+  <div>
+    <h1 class="ui-page-title">Students</h1>
+    <p class="ui-page-sub">{{ students|length }} student{{ 's' if students|length != 1 }}{{ ' match your filters' if (search or cat or level) }}.</p>
+  </div>
+</div>
+
+<div class="ui-card ui-card-flush">
+  <form method="GET" style="display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--ui-border);">
+    <input class="ui-input" type="search" name="q" value="{{ search }}" placeholder="Search by name or email" style="flex: 1; min-width: 220px;">
+    <select class="ui-select" name="cat" style="width: auto;">
+      <option value="">All education levels</option>
+      {% for c in cats %}<option value="{{ c }}" {{ 'selected' if c == cat }}>{{ c }}</option>{% endfor %}
+    </select>
+    <select class="ui-select" name="level" style="width: auto;">
+      <option value="">All skill levels</option>
+      {% for l in ['Beginner', 'Intermediate', 'Advanced'] %}<option value="{{ l }}" {{ 'selected' if l == level }}>{{ l }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="ui-btn ui-btn-primary"><i class="fas fa-magnifying-glass"></i> Filter</button>
+    {% if search or cat or level %}<a href="/admin/students" class="ui-btn">Clear</a>{% endif %}
+  </form>
+
+  <div class="ui-table-wrap">
+    <table class="ui-table">
+      <thead>
+        <tr>
+          <th>Student</th><th>Education</th><th>Field</th><th>Skill</th>
+          <th style="text-align:center;">Videos</th><th style="text-align:center;">Quizzes</th>
+          <th>Avg score</th><th style="text-align:center;">Weak</th><th>Status</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td>{{ person(s.full_name, s.email, '/admin/student/' ~ s.id) }}</td>
+          <td>{% if s.education_category %}<span class="ui-chip primary">{{ s.education_category }}</span>{% else %}<span style="color: var(--ui-subtle);">—</span>{% endif %}</td>
+          <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ s.field_of_interest or '—' }}</td>
+          <td>{{ s.skill_level or '—' }}</td>
+          <td style="text-align:center;">{{ s.vw or 0 }}</td>
+          <td style="text-align:center;">{{ s.qt or 0 }}</td>
+          <td>{{ score(s.avs) }}</td>
+          <td style="text-align:center;">{% if s.wk %}<span class="ui-chip red">{{ s.wk }}</span>{% else %}0{% endif %}</td>
+          <td>{% if s.onboarding_done %}<span class="ui-chip green">Active</span>{% else %}<span class="ui-chip">Not set up</span>{% endif %}</td>
+          <td style="white-space: nowrap; text-align: right;">
+            <a href="/admin/student/{{ s.id }}" class="ui-btn ui-btn-sm">View</a>
+            {{ delete_button('/admin/delete/' ~ s.id, 'Delete student', s.full_name) }}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10">
+          <div class="ui-empty" style="padding: 28px;">
+            <div class="ui-empty-title">No students found</div>
+            <div class="ui-empty-text" style="margin: 0;">{{ 'Try different filters.' if (search or cat or level) else 'Students appear here after they register.' }}</div>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

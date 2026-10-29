@@ -1,0 +1,97 @@
+{% extends 'admin/base.html' %}
+{% from 'admin/_macros.html' import score, delete_button %}
+{% block title %}{{ s.full_name }}{% endblock %}
+
+{% block content %}
+<a href="/admin/students" class="ui-link" style="display: inline-block; margin-bottom: 14px;"><i class="fas fa-arrow-left"></i> All students</a>
+
+<div class="ui-card" style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap;">
+  <div class="ad-avatar" style="width: 56px; height: 56px; font-size: 1.3rem;">{{ (s.full_name or '?')[0]|upper }}</div>
+  <div style="flex: 1; min-width: 220px;">
+    <h1 class="ui-page-title" style="margin-bottom: 2px;">{{ s.full_name }}</h1>
+    <div class="ui-page-sub">{{ s.email }}{% if s.created_at %} · Joined {{ s.created_at.strftime('%d %b %Y') }}{% endif %}</div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+      {% if s.education_category %}<span class="ui-chip primary">{{ s.education_category }}</span>{% endif %}
+      {% if s.field_of_interest %}<span class="ui-chip">{{ s.field_of_interest }}</span>{% endif %}
+      {% if s.skill_level %}<span class="ui-chip">{{ s.skill_level }}</span>{% endif %}
+      {% if s.onboarding_done %}<span class="ui-chip green">Active</span>{% else %}<span class="ui-chip amber">Not set up</span>{% endif %}
+    </div>
+  </div>
+  <div>{{ delete_button('/admin/delete/' ~ s.id, 'Delete student', s.full_name) }}</div>
+</div>
+
+<div class="ui-stats">
+  <div class="ui-stat"><div class="ui-stat-icon amber"><i class="fas fa-list-check"></i></div>
+    <div><div class="ui-stat-num">{{ quizzes|length }}</div><div class="ui-stat-label">Quizzes completed</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon purple"><i class="fas fa-chart-line"></i></div>
+    <div><div class="ui-stat-num">{{ (avg|round|int ~ '%') if avg is not none else '—' }}</div><div class="ui-stat-label">Average score</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon green"><i class="fas fa-trophy"></i></div>
+    <div><div class="ui-stat-num">{{ (best|round|int ~ '%') if best is not none else '—' }}</div><div class="ui-stat-label">Best score</div></div></div>
+  <div class="ui-stat"><div class="ui-stat-icon red"><i class="fas fa-bullseye"></i></div>
+    <div><div class="ui-stat-num">{{ weak|length }}</div><div class="ui-stat-label">Weak topics</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="ui-card ui-card-flush">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Quiz history</h2><div class="ui-card-sub">Newest first</div></div></div>
+      <div class="ui-table-wrap" style="margin-top: 14px;">
+        <table class="ui-table">
+          <thead><tr><th>Topic</th><th>Score</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for q in quizzes %}
+            <tr>
+              <td>
+                <div style="font-weight: 600; color: var(--ui-text);">{{ q.topic or 'Quiz' }}</div>
+                <div class="ui-list-meta" style="max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ q.video_title or '' }}</div>
+              </td>
+              <td>{{ score(q.pct) }} <span class="ui-list-meta">{{ q.score }}/{{ q.total }}</span></td>
+              <td class="ui-list-meta">{{ q.created_at.strftime('%d %b %Y') if q.created_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3"><div class="ui-empty" style="padding: 22px;">No quizzes taken yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ui-card ui-card-flush">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Recently watched</h2><div class="ui-card-sub">Last 10 videos</div></div></div>
+      <div class="ui-table-wrap" style="margin-top: 14px;">
+        <table class="ui-table">
+          <thead><tr><th>Video</th><th>Topic</th><th>Date</th></tr></thead>
+          <tbody>
+            {% for w in watched %}
+            <tr>
+              <td style="max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ w.video_title or 'Video' }}</td>
+              <td>{% if w.topic %}<span class="ui-chip">{{ w.topic }}</span>{% endif %}</td>
+              <td class="ui-list-meta">{{ w.watched_at.strftime('%d %b %Y') if w.watched_at else '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3"><div class="ui-empty" style="padding: 22px;">No videos watched yet.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="ui-card">
+      <div class="ui-card-head"><div><h2 class="ui-card-title">Weak topics</h2><div class="ui-card-sub">Scored under 50% in a quiz</div></div></div>
+      {% for w in weak %}
+      <div class="ui-list-row" style="padding: 10px 0;">
+        <div class="ui-list-main">
+          <div class="ui-list-title">{{ w.topic }}</div>
+          {% if w.last_detected %}<div class="ui-list-meta">Last missed {{ w.last_detected.strftime('%d %b') }}</div>{% endif %}
+        </div>
+        <span class="ui-chip {{ 'red' if w.fail_count >= 3 else 'amber' }}">{{ w.fail_count }}×</span>
+      </div>
+      {% else %}
+      <div class="ui-list-meta">No weak topics.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

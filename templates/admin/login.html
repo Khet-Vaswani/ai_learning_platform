@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin log in — LearnAI</title>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/ui.css') }}" rel="stylesheet">
+<style>
+body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.al-box { background: #fff; border: 1px solid var(--ui-border); border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 400px; }
+.al-logo { width: 44px; height: 44px; border-radius: 12px; background: #111827; color: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+</style>
+</head>
+<body>
+<div class="al-box">
+  <div class="al-logo"><i class="fas fa-shield-halved"></i></div>
+  <h1 class="ui-auth-title">Admin log in</h1>
+  <p class="ui-auth-sub">LearnAI administration</p>
+  {% if error %}
+  <div class="ui-alert error"><i class="fas fa-circle-exclamation"></i><div>{{ error }}</div></div>
+  {% endif %}
+  <form method="POST">
+    <div class="ui-field">
+      <label class="ui-label" for="email">Email</label>
+      <input class="ui-input" type="email" id="email" name="email" value="{{ email }}" autocomplete="username" required autofocus>
+    </div>
+    <div class="ui-field">
+      <label class="ui-label" for="password">Password</label>
+      <input class="ui-input" type="password" id="password" name="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="ui-btn ui-btn-primary ui-btn-block" style="padding: 11px;">Log in</button>
+  </form>
+  <p style="text-align: center; margin: 18px 0 0;"><a href="/login" class="ui-link" style="font-weight: 600;">Back to student log in</a></p>
+</div>
+</body>
+</html>

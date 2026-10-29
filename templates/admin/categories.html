@@ -1,0 +1,187 @@
+{% extends 'admin/base.html' %}
+{% from 'admin/_macros.html' import delete_button %}
+{% block title %}Categories{% endblock %}
+
+{% block extra_css %}
+.cg-pane { display: none; }
+.cg-pane.active { display: block; }
+.cg-form { display: grid; gap: 12px; }
+.cg-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--ui-primary-soft); color: var(--ui-primary); display: inline-flex; align-items: center; justify-content: center; }
+{% endblock %}
+
+{% block content %}
+<div class="ui-page-head">
+  <div>
+    <h1 class="ui-page-title">Categories</h1>
+    <p class="ui-page-sub">The choices students see during onboarding: education levels, university departments, and fields of study.</p>
+  </div>
+  <div class="ui-tabs" id="cgTabs">
+    <button class="ui-tab" data-tab="categories">Education levels <span class="ui-chip" style="margin-left: 4px;">{{ cats|length }}</span></button>
+    <button class="ui-tab" data-tab="departments">Departments <span class="ui-chip" style="margin-left: 4px;">{{ depts|length }}</span></button>
+    <button class="ui-tab" data-tab="fields">Fields <span class="ui-chip" style="margin-left: 4px;">{{ fields|length }}</span></button>
+  </div>
+</div>
+
+<!-- Education levels -->
+<section class="cg-pane" id="pane-categories">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="ui-card ui-card-flush">
+        <div class="ui-table-wrap">
+          <table class="ui-table">
+            <thead><tr><th style="width: 60px;">Order</th><th>Name</th><th style="text-align:center;">Students</th><th></th></tr></thead>
+            <tbody>
+              {% for c in cats %}
+              <tr>
+                <td class="ui-list-meta">{{ c.display_order }}</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="cg-icon"><i class="{{ c.icon or 'fas fa-book' }}"></i></span>
+                    <div>
+                      <div style="font-weight: 600; color: var(--ui-text);">{{ c.name }}</div>
+                      {% if c.description %}<div class="ui-list-meta">{{ c.description }}</div>{% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td style="text-align:center;">{{ cnt_map.get(c.name, 0) }}</td>
+                <td style="text-align: right;">{{ delete_button('/admin/categories/delete/' ~ c.id, 'Delete education level', c.name) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4"><div class="ui-empty" style="padding: 22px;">No education levels yet.</div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="ui-card">
+        <h2 class="ui-card-title" style="margin-bottom: 14px;">Add education level</h2>
+        <form method="POST" action="/admin/categories/add" class="cg-form">
+          <div><label class="ui-label" for="c-name">Name</label><input class="ui-input" id="c-name" name="name" maxlength="100" required></div>
+          <div><label class="ui-label" for="c-desc">Description</label><input class="ui-input" id="c-desc" name="description" maxlength="255" placeholder="Classes 1–5 (age 5–10)"></div>
+          <div class="row g-2">
+            <div class="col-7"><label class="ui-label" for="c-icon">Icon class</label><input class="ui-input" id="c-icon" name="icon" placeholder="fas fa-book"></div>
+            <div class="col-5"><label class="ui-label" for="c-order">Order</label><input class="ui-input" id="c-order" name="display_order" type="number" value="{{ cats|length + 1 }}"></div>
+          </div>
+          <button type="submit" class="ui-btn ui-btn-primary"><i class="fas fa-plus"></i> Add level</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Departments -->
+<section class="cg-pane" id="pane-departments">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="ui-card ui-card-flush">
+        <div class="ui-table-wrap">
+          <table class="ui-table">
+            <thead><tr><th style="width: 60px;">Order</th><th>Department</th><th style="text-align:center;">Fields</th><th></th></tr></thead>
+            <tbody>
+              {% for d in depts %}
+              <tr>
+                <td class="ui-list-meta">{{ d.display_order }}</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="cg-icon"><i class="{{ d.icon or 'fas fa-university' }}"></i></span>
+                    <span style="font-weight: 600; color: var(--ui-text);">{{ d.name }}</span>
+                  </div>
+                </td>
+                <td style="text-align:center;">{{ d.field_count }}</td>
+                <td style="text-align: right;">{{ delete_button('/admin/dept/delete/' ~ d.id, 'Delete department', d.name) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4"><div class="ui-empty" style="padding: 22px;">No departments yet.</div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="ui-card">
+        <h2 class="ui-card-title" style="margin-bottom: 14px;">Add department</h2>
+        <form method="POST" action="/admin/dept/add" class="cg-form">
+          <div><label class="ui-label" for="d-name">Name</label><input class="ui-input" id="d-name" name="name" maxlength="150" required></div>
+          <div class="row g-2">
+            <div class="col-7"><label class="ui-label" for="d-icon">Icon class</label><input class="ui-input" id="d-icon" name="icon" placeholder="fas fa-university"></div>
+            <div class="col-5"><label class="ui-label" for="d-order">Order</label><input class="ui-input" id="d-order" name="display_order" type="number" value="{{ depts|length + 1 }}"></div>
+          </div>
+          <button type="submit" class="ui-btn ui-btn-primary"><i class="fas fa-plus"></i> Add department</button>
+        </form>
+        <p class="ui-help" style="margin-top: 12px;">A department with fields can't be deleted until its fields are removed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Fields -->
+<section class="cg-pane" id="pane-fields">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="ui-card ui-card-flush">
+        <div style="padding: 14px 20px; border-bottom: 1px solid var(--ui-border);">
+          <select class="ui-select" id="fieldFilter" style="width: auto;">
+            <option value="">All departments</option>
+            {% for d in depts %}<option value="{{ d.name }}">{{ d.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="ui-table-wrap">
+          <table class="ui-table" id="fieldTable">
+            <thead><tr><th>Field of study</th><th>Department</th><th style="width: 70px;">Order</th><th></th></tr></thead>
+            <tbody>
+              {% for f in fields %}
+              <tr data-dept="{{ f.dept_name }}">
+                <td style="font-weight: 600; color: var(--ui-text);">{{ f.field_name }}</td>
+                <td><span class="ui-chip primary">{{ f.dept_name }}</span></td>
+                <td class="ui-list-meta">{{ f.display_order }}</td>
+                <td style="text-align: right;">{{ delete_button('/admin/field/delete/' ~ f.id, 'Delete field', f.field_name) }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4"><div class="ui-empty" style="padding: 22px;">No fields yet.</div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="ui-card">
+        <h2 class="ui-card-title" style="margin-bottom: 14px;">Add field of study</h2>
+        <form method="POST" action="/admin/field/add" class="cg-form">
+          <div>
+            <label class="ui-label" for="f-dept">Department</label>
+            <select class="ui-select" id="f-dept" name="department_id" required>
+              <option value="">Choose a department</option>
+              {% for d in depts %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div><label class="ui-label" for="f-name">Field name</label><input class="ui-input" id="f-name" name="field_name" maxlength="150" required></div>
+          <div><label class="ui-label" for="f-order">Order</label><input class="ui-input" id="f-order" name="display_order" type="number" value="1"></div>
+          <button type="submit" class="ui-btn ui-btn-primary"><i class="fas fa-plus"></i> Add field</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var CG_TABS = ['categories', 'departments', 'fields'];
+function showTab(key) {
+  if (CG_TABS.indexOf(key) === -1) key = 'categories';
+  document.querySelectorAll('#cgTabs .ui-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === key); });
+  document.querySelectorAll('.cg-pane').forEach(function(p) { p.classList.toggle('active', p.id === 'pane-' + key); });
+  history.replaceState(null, '', '?tab=' + key);
+}
+document.querySelectorAll('#cgTabs .ui-tab').forEach(function(t) { t.addEventListener('click', function() { showTab(t.dataset.tab); }); });
+document.getElementById('fieldFilter').addEventListener('change', function() {
+  var d = this.value;
+  document.querySelectorAll('#fieldTable tbody tr[data-dept]').forEach(function(r) { r.style.display = (!d || r.dataset.dept === d) ? '' : 'none'; });
+});
+showTab({{ tab|tojson }});
+</script>
+{% endblock %}

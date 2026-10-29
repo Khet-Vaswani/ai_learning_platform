@@ -1,90 +1,89 @@
 {% extends 'base.html' %}
-{% block title %}Quiz History — AI Learning Platform{% endblock %}
+{% block title %}Quizzes — LearnAI{% endblock %}
 
 {% block content %}
-<div class="dashboard-page">
-    <div class="welcome-section mb-4">
-        <div class="welcome-text">
-            <h3 class="fw-bold mb-1">📝 Quiz History</h3>
-            <p class="mb-0 opacity-90">All your quiz attempts</p>
-        </div>
-    </div>
+{% set done = quizzes|selectattr('attempted')|list %}
+{% set pcts = [] %}
+{% for q in done %}{% if q.total %}{% set _ = pcts.append((q.score or 0) / q.total * 100) %}{% endif %}{% endfor %}
 
-    <div class="dashboard-section">
-        <div class="section-header">
-            <h5>
-                <i class="fas fa-clipboard-check me-2 text-success"></i>
-                Quiz Results
-            </h5>
-            <span class="badge bg-success">{{ quizzes|length }} attempts</span>
-        </div>
+<div class="ui-page">
 
-        {% if quizzes %}
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Topic</th>
-                        <th>Video</th>
-                        <th>Score</th>
-                        <th>Percentage</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for quiz in quizzes %}
-                    {% if quiz.attempted %}
-                    {% set percentage = (quiz.score / quiz.total * 100)|int if quiz.total > 0 else 0 %}
-                    <tr>
-                        <td>
-                            <span class="fw-semibold">{{ quiz.topic }}</span>
-                        </td>
-                        <td>
-                            <small class="text-muted">
-                                {{ quiz.video_title[:40] if quiz.video_title else 'N/A' }}...
-                            </small>
-                        </td>
-                        <td>
-                            <span class="fw-bold">{{ quiz.score }}/{{ quiz.total }}</span>
-                        </td>
-                        <td>
-                            <div class="progress" style="height:6px; width:80px;">
-                                <div class="progress-bar {% if percentage >= 70 %}bg-success{% elif percentage >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
-                                     style="width: {{ percentage }}%;">
-                                </div>
-                            </div>
-                            <small>{{ percentage }}%</small>
-                        </td>
-                        <td>
-                            {% if percentage >= 70 %}
-                            <span class="badge bg-success">✅ Good</span>
-                            {% elif percentage >= 40 %}
-                            <span class="badge bg-warning text-dark">⚠️ Average</span>
-                            {% else %}
-                            <span class="badge bg-danger">❌ Weak</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <small class="text-muted">
-                                {{ quiz.created_at.strftime('%d %b %Y') if quiz.created_at else 'N/A' }}
-                            </small>
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="fas fa-clipboard fa-4x text-muted mb-3 d-block"></i>
-            <h5 class="text-muted">No quizzes attempted yet!</h5>
-            <a href="/dashboard" class="btn btn-primary mt-3">
-                <i class="fas fa-search me-1"></i>Find Videos & Take Quiz
-            </a>
-        </div>
-        {% endif %}
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-page-title">Quizzes</h1>
+      <p class="ui-page-sub">Every quiz you've generated from a video, with your results.</p>
     </div>
+    <a href="/recommended-videos" class="ui-btn ui-btn-primary"><i class="fas fa-play"></i> Find a video to quiz on</a>
+  </div>
+
+  {% if quizzes %}
+  <div class="ui-stats cols-3">
+    <div class="ui-stat">
+      <div class="ui-stat-icon"><i class="fas fa-list-check"></i></div>
+      <div><div class="ui-stat-num">{{ done|length }}</div><div class="ui-stat-label">Quizzes completed</div></div>
+    </div>
+    <div class="ui-stat">
+      <div class="ui-stat-icon purple"><i class="fas fa-chart-line"></i></div>
+      <div><div class="ui-stat-num">{{ ((pcts|sum / pcts|length)|round|int ~ '%') if pcts else '—' }}</div><div class="ui-stat-label">Average score</div></div>
+    </div>
+    <div class="ui-stat">
+      <div class="ui-stat-icon green"><i class="fas fa-trophy"></i></div>
+      <div><div class="ui-stat-num">{{ ((pcts|max)|round|int ~ '%') if pcts else '—' }}</div><div class="ui-stat-label">Best score</div></div>
+    </div>
+  </div>
+
+  <div class="ui-card ui-card-flush">
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>Quiz</th>
+            <th style="width: 220px;">Score</th>
+            <th style="width: 130px;">Date</th>
+            <th style="width: 110px;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in quizzes %}
+          {% set pct = ((q.score or 0) / q.total * 100)|round|int if (q.attempted and q.total) else none %}
+          <tr>
+            <td>
+              <div style="font-weight: 600; color: var(--ui-text);">{{ q.topic or 'Quiz' }}</div>
+              <div style="font-size: 0.75rem; color: var(--ui-muted); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ q.video_title or '' }}</div>
+            </td>
+            <td>
+              {% if pct is not none %}
+              {% set tone = 'green' if pct >= 70 else ('amber' if pct >= 50 else 'red') %}
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="ui-bar" style="flex: 1;"><span class="{{ tone }}" style="width: {{ pct }}%;"></span></div>
+                <span class="ui-chip {{ tone }}">{{ pct }}%</span>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--ui-muted); margin-top: 3px;">{{ q.score }} of {{ q.total }} correct</div>
+              {% else %}
+              <span class="ui-chip">Not finished</span>
+              {% endif %}
+            </td>
+            <td style="font-size: 0.8rem; color: var(--ui-muted);">{{ q.created_at.strftime('%d %b %Y') if q.created_at else '' }}</td>
+            <td style="text-align: right;">
+              <a href="/quiz/page/{{ q.id }}" class="ui-btn ui-btn-sm">{{ 'Review' if pct is not none else 'Continue' }}</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="ui-card">
+    <div class="ui-empty">
+      <div class="ui-empty-icon"><i class="fas fa-list-check"></i></div>
+      <div class="ui-empty-title">No quizzes yet</div>
+      <div class="ui-empty-text">Open any video and choose "Take quiz" to test what you learned.</div>
+      <a href="/recommended-videos" class="ui-btn ui-btn-primary"><i class="fas fa-play"></i> Browse videos</a>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

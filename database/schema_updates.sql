@@ -209,6 +209,15 @@ CREATE TABLE IF NOT EXISTS recommendation_history (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- AI notes: record which transcript source the notes were made from
+ALTER TABLE video_notes ADD COLUMN IF NOT EXISTS notes_source VARCHAR(50) DEFAULT NULL;
+ALTER TABLE video_notes ADD COLUMN IF NOT EXISTS word_count INT DEFAULT 0;
+
+-- Feedback on recommendation cards (helpful / known / not_for_me)
+ALTER TABLE recommendation_history ADD COLUMN IF NOT EXISTS topic VARCHAR(150) DEFAULT NULL;
+ALTER TABLE recommendation_history ADD COLUMN IF NOT EXISTS expert VARCHAR(30) DEFAULT NULL;
+ALTER TABLE recommendation_history ADD COLUMN IF NOT EXISTS feedback VARCHAR(20) DEFAULT NULL;
+
 -- ============================================================
 -- TRACKING TABLE: quiz_attempts
 -- ============================================================
@@ -247,3 +256,6 @@ ALTER TABLE video_quizzes ADD COLUMN IF NOT EXISTS transcript_length INT DEFAULT
 -- SELECT * FROM student_classes;
 -- SELECT * FROM university_departments;
 -- SELECT * FROM university_fields_of_study;
+
+-- Each quiz has exactly one level (Easy / Medium / Hard), chosen from past scores
+ALTER TABLE video_quizzes ADD COLUMN IF NOT EXISTS difficulty VARCHAR(10) DEFAULT NULL;

@@ -3,829 +3,305 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Setup Your Learning — LearnAI</title>
+<title>Set up your learning — LearnAI</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<link href="{{ url_for('static', filename='css/theme_learnai.css') }}" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/ui.css') }}" rel="stylesheet">
 <style>
-:root {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --secondary: #8b5cf6;
-  --accent: #10b981;
-  --dark-bg: #0b0f19;
-  --card-bg: rgba(17, 24, 39, 0.7);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --text-muted: #9ca3af;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
-              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-              var(--dark-bg);
-  min-height: 100vh;
-  color: #ffffff;
-  overflow-x: hidden;
-  position: relative;
-}
-
-/* Background animated elements */
-.glow-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.2;
-  pointer-events: none;
-  z-index: 1;
-}
-.orb-1 { width: 400px; height: 400px; background: var(--primary); top: -100px; left: -100px; animation: floatOrb 10s ease-in-out infinite alternate; }
-.orb-2 { width: 350px; height: 350px; background: var(--secondary); bottom: -100px; right: -100px; animation: floatOrb 12s ease-in-out infinite alternate-reverse; }
-
-@keyframes floatOrb {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(30px, 20px) scale(1.1); }
-}
-
-.particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-}
-.particle {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  animation: floatUp linear infinite;
-}
-@keyframes floatUp {
-  0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
-  10% { opacity: 0.5; }
-  90% { opacity: 0.5; }
-  100% { transform: translateY(-100px) scale(1); opacity: 0; }
-}
-
-.ob-wrap {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  position: relative;
-  z-index: 10;
-}
-
-.ob-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 28px;
-  text-decoration: none;
-}
-.ob-logo-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.2rem;
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
-}
-.ob-logo-text {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-}
-
-.ob-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: 24px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 540px;
-  padding: 44px 40px;
-  animation: cardEntry 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes cardEntry {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.ob-prog {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 99px;
-  margin-bottom: 24px;
-  overflow: hidden;
-}
-.ob-prog-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  border-radius: 99px;
-  transition: width 0.5s ease;
-}
-
-.ob-dots {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-  margin-bottom: 28px;
-}
-.ob-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.ob-dot.active {
-  background: var(--primary);
-  width: 28px;
-  border-radius: 6px;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
-}
-.ob-dot.done {
-  background: var(--accent);
-}
-
-.ob-eyebrow {
-  text-align: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #818cf8;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-bottom: 8px;
-}
-.ob-title {
-  text-align: center;
-  font-size: 1.55rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-  margin-bottom: 8px;
-}
-.ob-sub {
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-bottom: 32px;
-  line-height: 1.5;
-}
-
+body { min-height: 100vh; }
+.ob-top { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; }
+.ob-wrap { max-width: 680px; margin: 0 auto; padding: 8px 20px 48px; }
+.ob-steps { display: flex; gap: 8px; margin-bottom: 28px; }
+.ob-steps span { flex: 1; height: 4px; border-radius: 4px; background: var(--ui-border); transition: background 0.2s; }
+.ob-steps span.on { background: var(--ui-primary); }
 .ob-step { display: none; }
-.ob-step.active { display: block; animation: stepFade 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-
-@keyframes stepFade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+.ob-step.active { display: block; animation: obIn 0.2s ease; }
+@keyframes obIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ob-eyebrow { font-size: 0.78rem; font-weight: 700; color: var(--ui-primary); margin-bottom: 6px; }
+.ob-title { font-size: 1.6rem; font-weight: 800; color: var(--ui-text); margin: 0 0 6px; letter-spacing: -0.01em; }
+.ob-sub { font-size: 0.9rem; color: var(--ui-muted); margin-bottom: 24px; }
+.ob-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .ob-grid { grid-template-columns: 1fr; } }
+.ob-option {
+  display: flex; gap: 12px; align-items: center; text-align: left; width: 100%; padding: 14px 16px;
+  background: #fff; border: 1px solid var(--ui-border); border-radius: 12px; cursor: pointer; font-family: inherit; transition: all 0.12s;
 }
-
-.ob-field-label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 8px;
-}
-
-.ob-select-wrap {
-  position: relative;
-  margin-bottom: 20px;
-}
-.ob-select {
-  width: 100%;
-  padding: 13px 44px 13px 16px;
-  border: 1.5px solid var(--border-color);
-  border-radius: 12px;
-  font-size: 0.88rem;
-  font-family: inherit;
-  color: white;
-  background: rgba(255, 255, 255, 0.03);
-  appearance: none;
-  outline: none;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-weight: 500;
-}
-.ob-select option {
-  background: #111827;
-  color: white;
-}
-.ob-select:focus {
-  border-color: var(--primary);
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-}
-.ob-select:disabled {
-  background: rgba(255, 255, 255, 0.01);
-  color: var(--text-muted);
-  cursor: not-allowed;
-  border-color: rgba(255, 255, 255, 0.03);
-}
-.ob-select-arrow {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.4);
-  pointer-events: none;
-  font-size: 0.8rem;
-}
-
-.ob-level-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 28px;
-}
-.ob-level-card {
-  border: 1.5px solid var(--border-color);
-  border-radius: 16px;
-  padding: 20px 12px;
-  cursor: pointer;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.01);
-  position: relative;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.ob-level-card:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-.ob-level-card.sel {
-  background: rgba(255, 255, 255, 0.04);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-}
-.ob-level-emoji {
-  font-size: 1.8rem;
-  display: block;
-  margin-bottom: 8px;
-}
-.ob-level-name {
-  font-size: 0.85rem;
-  font-weight: 800;
-  margin-bottom: 4px;
-}
-.ob-level-desc {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-.ob-level-check {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.55rem;
-  color: white;
-  opacity: 0;
-  transform: scale(0);
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.ob-level-card.sel .ob-level-check {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.ob-btn-row {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  align-items: center;
-}
-.ob-btn-next {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
-  color: white;
-  border: none;
-  padding: 13px 28px;
-  border-radius: 12px;
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ob-btn-next:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
-}
-.ob-btn-next:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-.ob-btn-back {
-  background: none;
-  border: 1.5px solid var(--border-color);
-  color: rgba(255, 255, 255, 0.7);
-  padding: 13px 20px;
-  border-radius: 12px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.ob-btn-back:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-}
-.ob-btn-skip {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  cursor: pointer;
-  margin-right: auto;
-  text-decoration: underline;
-  padding: 0;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-.ob-btn-skip:hover {
-  color: white;
-}
-
-/* Selections summary styling */
-.ob-summary {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1.5px solid var(--border-color);
-  border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  display: none;
-}
-.ob-summary-lbl {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 10px;
-}
-.ob-summary-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 6px;
-}
-.ob-summary-item:last-child { margin-bottom: 0; }
-.ob-dot-sm {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.ob-success {
-  text-align: center;
-  padding: 24px 0;
-}
-.ob-success-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #06b6d4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  color: white;
-  margin: 0 auto 20px;
-  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
-}
-@keyframes popIn {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.ob-stags {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: 16px 0 28px;
-}
-.ob-stag {
-  padding: 6px 16px;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-color);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-@media(max-width:576px){
-  .ob-card { padding: 32px 24px; }
-  .ob-level-grid { grid-template-columns: 1fr; }
-  .ob-title { font-size: 1.35rem; }
-}
+.ob-option:hover { border-color: #c7d2fe; }
+.ob-option.sel { border-color: var(--ui-primary); background: var(--ui-primary-soft); box-shadow: 0 0 0 1px var(--ui-primary); }
+.ob-emoji { width: 40px; height: 40px; border-radius: 10px; background: var(--ui-bg); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+.ob-option.sel .ob-emoji { background: #fff; }
+.ob-opt-name { font-size: 0.92rem; font-weight: 700; color: var(--ui-text); }
+.ob-opt-desc { font-size: 0.76rem; color: var(--ui-muted); margin-top: 1px; }
+.ob-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .ob-levels { grid-template-columns: 1fr; } }
+.ob-levels .ob-option { flex-direction: column; text-align: center; padding: 20px 14px; }
+.ob-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 28px; }
+.ob-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.ob-done { text-align: center; padding: 40px 0; }
+.ob-done-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--ui-green-soft); color: var(--ui-green); font-size: 1.6rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.ob-err { margin-top: 14px; }
 </style>
 </head>
 <body>
 
-<!-- Background Details -->
-<div class="glow-orb orb-1"></div>
-<div class="glow-orb orb-2"></div>
-<div class="particles" id="particles"></div>
+<header class="ob-top">
+  <a class="ui-auth-brand" href="/dashboard" style="color: var(--ui-text);"><span class="ui-logo"><i class="fas fa-graduation-cap"></i></span> LearnAI</a>
+  <button class="ui-btn ui-btn-sm" onclick="skipOnboarding()">Skip for now</button>
+</header>
 
-<div class="ob-wrap">
+<main class="ob-wrap">
+  <div class="ob-steps" aria-hidden="true"><span id="bar0" class="on"></span><span id="bar1"></span><span id="bar2"></span></div>
 
-  <a href="/" class="ob-logo">
-    <div class="ob-logo-icon"><i class="fas fa-brain"></i></div>
-    <span class="ob-logo-text">AI Learn</span>
-  </a>
+  <!-- Step 1: education level -->
+  <section class="ob-step active" id="step0">
+    <div class="ob-eyebrow">Step 1 of 3</div>
+    <h1 class="ob-title">Welcome, {{ (user_name or 'there').split(' ')[0] }}. What are you studying?</h1>
+    <p class="ob-sub">We'll pick videos and quizzes that match your level.</p>
+    <div class="ob-grid" id="catGrid">
+      {% for c in categories %}
+      <button class="ob-option" data-id="{{ c.id }}" data-name="{{ c.name }}">
+        <span class="ob-emoji">{{ c.emoji }}</span>
+        <span><span class="ob-opt-name d-block">{{ c.name }}</span><span class="ob-opt-desc d-block">{{ c.desc }}</span></span>
+      </button>
+      {% endfor %}
+    </div>
+    <div class="ob-foot">
+      <span></span>
+      <button class="ui-btn ui-btn-primary" id="next0" disabled onclick="goStep(1)">Continue <i class="fas fa-arrow-right"></i></button>
+    </div>
+  </section>
 
-  <div class="ob-card">
-    <div class="ob-prog"><div class="ob-prog-fill" id="progFill" style="width:25%;"></div></div>
-    <div class="ob-dots">
-      <div class="ob-dot active" id="dot0"></div>
-      <div class="ob-dot"        id="dot1"></div>
-      <div class="ob-dot"        id="dot2"></div>
-      <div class="ob-dot"        id="dot3"></div>
+  <!-- Step 2: class or department + field -->
+  <section class="ob-step" id="step1">
+    <div class="ob-eyebrow">Step 2 of 3</div>
+    <h1 class="ob-title" id="s1title">Choose your class</h1>
+    <p class="ob-sub" id="s1sub">This helps us choose the right topics.</p>
+
+    <div id="classWrap">
+      <label class="ui-label" for="classSelect">Class or group</label>
+      <select class="ui-select" id="classSelect" onchange="onClassChange(this)"></select>
     </div>
 
-    <!-- STEP 0: Education Category -->
-    <div class="ob-step active" id="step0">
-      <p class="ob-eyebrow">Welcome, {{ user_name }}! 👋</p>
-      <h1 class="ob-title">What is your education level?</h1>
-      <p class="ob-sub">Select your category — we'll customize everything for you.</p>
-
-      <label class="ob-field-label">Education Category</label>
-      <div class="ob-select-wrap">
-        <select class="ob-select" id="catSelect" onchange="onCatChange(this)">
-          <option value="">— Select your education level —</option>
-          {% for c in categories %}
-          <option value="{{ c.id }}"
-                  data-name="{{ c.name }}"
-                  data-color="{{ c.color }}"
-                  data-emoji="{{ c.emoji }}">
-            {{ c.emoji }} &nbsp;{{ c.name }} — {{ c.desc }}
-          </option>
+    <div id="uniWrap" style="display: none;">
+      <div class="ui-field">
+        <label class="ui-label" for="deptSelect">Department</label>
+        <select class="ui-select" id="deptSelect" onchange="onDeptChange(this)">
+          <option value="">Choose a department</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" data-name="{{ d.name }}">{{ d.name }}</option>
           {% endfor %}
         </select>
-        <i class="fas fa-chevron-down ob-select-arrow"></i>
       </div>
-
-      <div class="ob-btn-row">
-        <button class="ob-btn-skip" onclick="skipOnboarding()">Skip setup</button>
-        <button class="ob-btn-next" id="next0" disabled onclick="goStep(1)">
-          Next <i class="fas fa-arrow-right"></i>
-        </button>
+      <div class="ui-field">
+        <label class="ui-label" for="fieldSelect">Field of study</label>
+        <select class="ui-select" id="fieldSelect" disabled onchange="onFieldChange(this)">
+          <option value="">Choose a department first</option>
+        </select>
       </div>
     </div>
 
-    <!-- STEP 1: Class / Group / Dept+Field -->
-    <div class="ob-step" id="step1">
-      <p class="ob-eyebrow" id="s1eye">Step 2 of 4</p>
-      <h1 class="ob-title" id="s1title">Select Your Class</h1>
-      <p class="ob-sub">Choose the one that matches your current study.</p>
-
-      <!-- Non-university dropdown -->
-      <div id="classWrap">
-        <label class="ob-field-label" id="classLbl">Class / Group</label>
-        <div class="ob-select-wrap">
-          <select class="ob-select" id="classSelect" onchange="onClassChange(this)">
-            <option value="">— Select —</option>
-          </select>
-          <i class="fas fa-chevron-down ob-select-arrow"></i>
-        </div>
-      </div>
-
-      <!-- University: dept + field -->
-      <div id="uniWrap" style="display:none;">
-        <label class="ob-field-label">Department</label>
-        <div class="ob-select-wrap">
-          <select class="ob-select" id="deptSelect" onchange="onDeptChange(this)">
-            <option value="">— Select Department —</option>
-            {% for d in departments %}
-            <option value="{{ d.id }}" data-name="{{ d.name }}">{{ d.name }}</option>
-            {% endfor %}
-          </select>
-          <i class="fas fa-chevron-down ob-select-arrow"></i>
-        </div>
-
-        <label class="ob-field-label">Field of Study</label>
-        <div class="ob-select-wrap">
-          <select class="ob-select" id="fieldSelect" disabled onchange="onFieldChange(this)">
-            <option value="">— Select Department first —</option>
-          </select>
-          <i class="fas fa-chevron-down ob-select-arrow"></i>
-        </div>
-      </div>
-
-      <div class="ob-btn-row">
-        <button class="ob-btn-skip" onclick="skipOnboarding()">Skip setup</button>
-        <button class="ob-btn-back" onclick="goStep(0)"><i class="fas fa-arrow-left me-1"></i>Back</button>
-        <button class="ob-btn-next" id="next1" disabled onclick="goStep(2)">
-          Next <i class="fas fa-arrow-right"></i>
-        </button>
-      </div>
+    <div class="ob-foot">
+      <button class="ui-btn" onclick="goStep(0)"><i class="fas fa-arrow-left"></i> Back</button>
+      <button class="ui-btn ui-btn-primary" id="next1" disabled onclick="goStep(2)">Continue <i class="fas fa-arrow-right"></i></button>
     </div>
+  </section>
 
-    <!-- STEP 2: Level -->
-    <div class="ob-step" id="step2">
-      <h1 class="ob-title">What is your current level?</h1>
-      <p class="ob-sub">We'll set the right difficulty for videos and quizzes.</p>
-
-      <div class="ob-level-grid">
-        {% for l in levels %}
-        <div class="ob-level-card" data-id="{{ l.id }}" onclick="selectLevel(this)">
-          <div class="ob-level-check" style="background:{{ l.color }};"><i class="fas fa-check"></i></div>
-          <span class="ob-level-emoji">{{ l.emoji }}</span>
-          <div class="ob-level-name" style="color:{{ l.color }};">{{ l.label }}</div>
-          <div class="ob-level-desc">{{ l.desc }}</div>
-        </div>
-        {% endfor %}
-      </div>
-
-      <!-- Summary of selections -->
-      <div class="ob-summary" id="selSummary">
-        <div class="ob-summary-lbl">Your Selections</div>
-        <div id="summaryContent"></div>
-      </div>
-
-      <div class="ob-btn-row">
-        <button class="ob-btn-skip" onclick="skipOnboarding()">Skip setup</button>
-        <button class="ob-btn-back" onclick="goStep(1)"><i class="fas fa-arrow-left me-1"></i>Back</button>
-        <button class="ob-btn-next" id="next2" disabled onclick="saveAndFinish()">
-          <span id="saveLabel">Finish Setup</span>
-          <i class="fas fa-check" id="saveIcon"></i>
-        </button>
-      </div>
+  <!-- Step 3: level -->
+  <section class="ob-step" id="step2">
+    <div class="ob-eyebrow">Step 3 of 3</div>
+    <h1 class="ob-title">How well do you know it?</h1>
+    <p class="ob-sub">Be honest. You can change this later in Settings.</p>
+    <div class="ob-levels" id="levelGrid">
+      {% for l in levels %}
+      <button class="ob-option" data-id="{{ l.id }}">
+        <span class="ob-emoji">{{ l.emoji }}</span>
+        <span class="ob-opt-name">{{ l.label }}</span>
+        <span class="ob-opt-desc">{{ l.desc }}</span>
+      </button>
+      {% endfor %}
     </div>
-
-    <!-- STEP 3: Success -->
-    <div class="ob-step" id="step3">
-      <div class="ob-success">
-        <div class="ob-success-icon">🎉</div>
-        <h2 style="font-size:1.4rem;font-weight:800;color:#ffffff;margin-bottom:8px;">
-          All set, {{ user_name }}!
-        </h2>
-        <p style="font-size:.85rem;color:var(--text-muted);margin:0;">
-          Your personalized learning path is ready!
-        </p>
-        <div class="ob-stags" id="successTags"></div>
-        <div style="margin-top:20px;">
-          <div class="spinner-border" style="width:1.5rem;height:1.5rem;color:var(--primary);"></div>
-          <p style="font-size:.76rem;color:var(--text-muted);margin-top:8px;">Loading dashboard...</p>
-        </div>
-      </div>
+    <div class="ob-summary" id="summary"></div>
+    <div class="ob-err" id="saveErr"></div>
+    <div class="ob-foot">
+      <button class="ui-btn" onclick="goStep(1)"><i class="fas fa-arrow-left"></i> Back</button>
+      <button class="ui-btn ui-btn-primary" id="next2" disabled onclick="saveAndFinish()">Finish setup <i class="fas fa-check"></i></button>
     </div>
-  </div>
-</div>
+  </section>
+
+  <!-- Done -->
+  <section class="ob-step" id="step3">
+    <div class="ob-done">
+      <div class="ob-done-icon"><i class="fas fa-check"></i></div>
+      <h1 class="ob-title">You're all set</h1>
+      <p class="ob-sub" style="margin-bottom: 14px;">Your recommendations are ready. Taking you to your dashboard...</p>
+      <div class="ob-summary" id="doneTags" style="justify-content: center;"></div>
+    </div>
+  </section>
+</main>
 
 <script>
-var CATEGORY_CLASSES = {{ category_classes | tojson }};
-var UNI_CAT_ID       = {{ uni_cat_id }};
+var CATEGORY_CLASSES = {{ category_classes|tojson }};
+var UNI_CAT_ID = {{ uni_cat_id|tojson }};
+var S = {catId: null, catName: '', classId: '', classLabel: '', deptId: null, deptName: '', fieldId: null, fieldName: '', level: ''};
 
-var S = {
-  catId:null, catName:'', catColor:'#2563eb', catEmoji:'',
-  classId:'', classLabel:'',
-  deptId:null, deptName:'',
-  fieldId:null, fieldName:'',
-  level:''
-};
-
-function onCatChange(sel){
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt.value){ S.catId=null; document.getElementById('next0').disabled=true; return; }
-  S.catId    = parseInt(opt.value);
-  S.catName  = opt.dataset.name  || '';
-  S.catColor = opt.dataset.color || '#2563eb';
-  S.catEmoji = opt.dataset.emoji || '';
-  document.getElementById('next0').disabled = false;
+function esc(str) {
+  return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function prepStep1(){
-  var isUni = (S.catId === UNI_CAT_ID);
+function pick(gridId, btn) {
+  document.querySelectorAll('#' + gridId + ' .ob-option').forEach(function(b) { b.classList.toggle('sel', b === btn); });
+}
+
+document.getElementById('catGrid').addEventListener('click', function(e) {
+  var btn = e.target.closest('.ob-option'); if (!btn) return;
+  pick('catGrid', btn);
+  S.catId = parseInt(btn.dataset.id, 10);
+  S.catName = btn.dataset.name;
+  document.getElementById('next0').disabled = false;
+});
+
+document.getElementById('levelGrid').addEventListener('click', function(e) {
+  var btn = e.target.closest('.ob-option'); if (!btn) return;
+  pick('levelGrid', btn);
+  S.level = btn.dataset.id;
+  document.getElementById('next2').disabled = false;
+  document.getElementById('summary').innerHTML = summaryTags();
+});
+
+function summaryTags() {
+  var tags = [S.catName];
+  if (S.catId === UNI_CAT_ID) { if (S.deptName) tags.push(S.deptName); if (S.fieldName) tags.push(S.fieldName); }
+  else if (S.classLabel) tags.push(S.classLabel);
+  if (S.level) tags.push(S.level);
+  return tags.map(function(t) { return '<span class="ui-chip primary">' + esc(t) + '</span>'; }).join('');
+}
+
+function prepStep1() {
+  var isUni = S.catId === UNI_CAT_ID;
   document.getElementById('classWrap').style.display = isUni ? 'none' : 'block';
-  document.getElementById('uniWrap').style.display   = isUni ? 'block' : 'none';
-
+  document.getElementById('uniWrap').style.display = isUni ? 'block' : 'none';
   var titles = {
-    'Primary':'Select Your Class',
-    'Secondary':'Select Your Class',
-    'Matriculation':'Select Your Class & Group',
-    'Intermediate':'Select Your Group',
-    'University':'Select Department & Field of Study',
-    'Professional':'Select Your Exam / Program'
+    'Matriculation': 'Choose your class and group', 'Intermediate': 'Choose your group',
+    'University': 'Choose your department and field', 'Professional': 'Choose your exam or program'
   };
-  document.getElementById('s1title').textContent = titles[S.catName] || 'Select';
+  document.getElementById('s1title').textContent = titles[S.catName] || 'Choose your class';
+  document.getElementById('next1').disabled = true;
 
-  if(!isUni){
-    var items = CATEGORY_CLASSES[S.catName] || [];
+  if (!isUni) {
     var sel = document.getElementById('classSelect');
-    sel.innerHTML = '<option value="">— Select —</option>';
-    items.forEach(function(c){
+    sel.innerHTML = '<option value="">Choose one</option>';
+    (CATEGORY_CLASSES[S.catName] || []).forEach(function(c) {
       var op = document.createElement('option');
-      op.value          = c.id;
-      op.dataset.label  = c.label;
-      op.dataset.topics = JSON.stringify(c.topics||[]);
-      op.textContent    = c.emoji + ' ' + c.label;
+      op.value = c.id;
+      op.dataset.label = c.label;
+      op.textContent = (c.emoji ? c.emoji + '  ' : '') + c.label;
       sel.appendChild(op);
     });
-    S.classId=''; S.classLabel='';
-    document.getElementById('next1').disabled=true;
+    S.classId = ''; S.classLabel = '';
   } else {
-    S.deptId=null; S.deptName=''; S.fieldId=null; S.fieldName='';
-    document.getElementById('deptSelect').value='';
-    var fs=document.getElementById('fieldSelect');
-    fs.innerHTML='<option value="">— Select Department first —</option>';
-    fs.disabled=true;
-    document.getElementById('next1').disabled=true;
+    S.deptId = null; S.deptName = ''; S.fieldId = null; S.fieldName = '';
+    document.getElementById('deptSelect').value = '';
+    var fs = document.getElementById('fieldSelect');
+    fs.innerHTML = '<option value="">Choose a department first</option>';
+    fs.disabled = true;
   }
 }
 
-function onClassChange(sel){
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt.value){ S.classId=''; S.classLabel=''; document.getElementById('next1').disabled=true; return; }
-  S.classId    = opt.value;
-  S.classLabel = opt.dataset.label || opt.textContent.trim();
-  document.getElementById('next1').disabled=false;
+function onClassChange(sel) {
+  var opt = sel.options[sel.selectedIndex];
+  S.classId = opt.value;
+  S.classLabel = opt.value ? (opt.dataset.label || opt.textContent.trim()) : '';
+  document.getElementById('next1').disabled = !opt.value;
 }
 
-async function onDeptChange(sel){
-  var opt=sel.options[sel.selectedIndex];
-  var fs=document.getElementById('fieldSelect');
-  if(!opt.value){
-    S.deptId=null; S.deptName='';
-    fs.innerHTML='<option value="">— Select Department first —</option>';
-    fs.disabled=true;
-    document.getElementById('next1').disabled=true;
+async function onDeptChange(sel) {
+  var opt = sel.options[sel.selectedIndex];
+  var fs = document.getElementById('fieldSelect');
+  document.getElementById('next1').disabled = true;
+  S.fieldId = null; S.fieldName = '';
+  if (!opt.value) {
+    S.deptId = null; S.deptName = '';
+    fs.innerHTML = '<option value="">Choose a department first</option>';
+    fs.disabled = true;
     return;
   }
-  S.deptId   = parseInt(opt.value);
+  S.deptId = parseInt(opt.value, 10);
   S.deptName = opt.dataset.name || opt.textContent.trim();
-  S.fieldId  = null; S.fieldName='';
-  fs.disabled=true;
-  fs.innerHTML='<option value="">Loading fields...</option>';
-  document.getElementById('next1').disabled=true;
-  try{
-    var r    = await fetch('/onboarding/get-fields/'+S.deptId);
+  fs.disabled = true;
+  fs.innerHTML = '<option value="">Loading...</option>';
+  try {
+    var r = await fetch('/onboarding/get-fields/' + S.deptId);
     var data = await r.json();
-    if(data.success && data.fields.length){
-      fs.innerHTML='<option value="">— Select Field of Study —</option>';
+    if (data.success && data.fields.length) {
+      fs.innerHTML = '<option value="">Choose a field</option>';
       var seen = new Set();
-      data.fields.forEach(function(f){
-        if(!seen.has(f.field_name)){
-          seen.add(f.field_name);
-          var op=document.createElement('option');
-          op.value        = f.id;
-          op.dataset.name = f.field_name;
-          op.textContent  = f.field_name;
-          fs.appendChild(op);
-        }
+      data.fields.forEach(function(f) {
+        if (seen.has(f.field_name)) return;
+        seen.add(f.field_name);
+        var op = document.createElement('option');
+        op.value = f.id;
+        op.dataset.name = f.field_name;
+        op.textContent = f.field_name;
+        fs.appendChild(op);
       });
-      fs.disabled=false;
+      fs.disabled = false;
     } else {
-      fs.innerHTML='<option value="">No fields found</option>';
+      fs.innerHTML = '<option value="">No fields found</option>';
     }
-  }catch(e){ fs.innerHTML='<option value="">Error loading</option>'; }
+  } catch (e) { fs.innerHTML = '<option value="">Couldn\'t load fields</option>'; }
 }
 
-function onFieldChange(sel){
-  var opt=sel.options[sel.selectedIndex];
-  if(!opt.value){ S.fieldId=null; S.fieldName=''; document.getElementById('next1').disabled=true; return; }
-  S.fieldId   = parseInt(opt.value);
-  S.fieldName = opt.dataset.name || opt.textContent.trim();
-  document.getElementById('next1').disabled=false;
+function onFieldChange(sel) {
+  var opt = sel.options[sel.selectedIndex];
+  S.fieldId = opt.value ? parseInt(opt.value, 10) : null;
+  S.fieldName = opt.value ? (opt.dataset.name || opt.textContent.trim()) : '';
+  document.getElementById('next1').disabled = !opt.value;
 }
 
-function selectLevel(el){
-  document.querySelectorAll('.ob-level-card').forEach(function(c){
-    c.classList.remove('sel'); c.style.borderColor='var(--border-color)';
-  });
-  el.classList.add('sel');
-  var colors={Beginner:'#10b981',Intermediate:'#f59e0b',Advanced:'#8b5cf6'};
-  el.style.borderColor = colors[el.dataset.id]||'#2563eb';
-  S.level = el.dataset.id;
-  document.getElementById('next2').disabled=false;
-
-  // Update summary
-  var sum = document.getElementById('selSummary');
-  var con = document.getElementById('summaryContent');
-  var html='';
-  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:'+S.catColor+';"></div>'+S.catEmoji+' '+S.catName+'</div>';
-  if(S.catId===UNI_CAT_ID){
-    if(S.deptName)  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#3b82f6;"></div>🏛️ '+S.deptName+'</div>';
-    if(S.fieldName) html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#8b5cf6;"></div>📚 '+S.fieldName+'</div>';
-  } else if(S.classLabel){
-    html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:#06b6d4;"></div>📖 '+S.classLabel+'</div>';
-  }
-  html+='<div class="ob-summary-item"><div class="ob-dot-sm" style="background:'+(colors[S.level]||'#2563eb')+';"></div>📊 '+S.level+' Level</div>';
-  con.innerHTML=html;
-  sum.style.display='block';
+function goStep(n) {
+  if (n === 1 && document.getElementById('step0').classList.contains('active')) prepStep1();
+  document.querySelectorAll('.ob-step').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('step' + n).classList.add('active');
+  for (var i = 0; i < 3; i++) document.getElementById('bar' + i).classList.toggle('on', i <= n);
+  window.scrollTo(0, 0);
 }
 
-function goStep(n){
-  if(n===1) prepStep1();
-  document.querySelectorAll('.ob-step').forEach(function(s){ s.classList.remove('active'); });
-  document.getElementById('step'+n).classList.add('active');
-  for(var i=0;i<4;i++){
-    var d=document.getElementById('dot'+i);
-    d.classList.remove('active','done');
-    if(i<n) d.classList.add('done');
-    else if(i===n) d.classList.add('active');
-  }
-  document.getElementById('progFill').style.width=((n+1)/4*100)+'%';
-}
-
-async function saveAndFinish(){
-  if(!S.catId||!S.level) return;
-  var btn=document.getElementById('next2');
-  var lbl=document.getElementById('saveLabel');
-  var ico=document.getElementById('saveIcon');
-  btn.disabled=true; lbl.textContent='Saving...'; ico.className='fas fa-spinner fa-spin';
-  try{
-    var r=await fetch('/onboarding/save',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        category_id:S.catId, category_name:S.catName,
-        class_id:S.classId,  class_label:S.classLabel,
-        dept_id:S.deptId,    dept_name:S.deptName,
-        field_id:S.fieldId,  field_name:S.fieldName,
-        level:S.level
+async function saveAndFinish() {
+  if (!S.catId || !S.level) return;
+  var btn = document.getElementById('next2');
+  var err = document.getElementById('saveErr');
+  btn.disabled = true;
+  btn.innerHTML = 'Saving...';
+  err.innerHTML = '';
+  try {
+    var r = await fetch('/onboarding/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        category_id: S.catId, category_name: S.catName,
+        class_id: S.classId, class_label: S.classLabel,
+        dept_id: S.deptId, dept_name: S.deptName,
+        field_id: S.fieldId, field_name: S.fieldName,
+        level: S.level
       })
     });
-    var data=await r.json();
-    if(data.success){
-      goStep(3);
-      var tags=document.getElementById('successTags');
-      var html='<span class="ob-stag">'+S.catEmoji+' '+S.catName+'</span>';
-      if(S.catId===UNI_CAT_ID){
-        if(S.deptName)  html+='<span class="ob-stag">🏛️ '+S.deptName+'</span>';
-        if(S.fieldName) html+='<span class="ob-stag">📚 '+S.fieldName+'</span>';
-      } else if(S.classLabel){
-        html+='<span class="ob-stag">📖 '+S.classLabel+'</span>';
-      }
-      html+='<span class="ob-stag">📊 '+S.level+'</span>';
-      tags.innerHTML=html;
-      setTimeout(function(){ window.location.href='/dashboard'; },2000);
-    } else {
-      btn.disabled=false; lbl.textContent='Finish Setup'; ico.className='fas fa-check';
-    }
-  }catch(e){
-    btn.disabled=false; lbl.textContent='Finish Setup'; ico.className='fas fa-check';
+    var data = await r.json();
+    if (!data.success) throw new Error(data.message || 'failed');
+    document.getElementById('doneTags').innerHTML = summaryTags();
+    goStep(3);
+    setTimeout(function() { window.location.href = data.redirect_url || '/dashboard'; }, 1500);
+  } catch (e) {
+    err.innerHTML = '<div class="ui-alert error"><i class="fas fa-circle-exclamation"></i><div>We couldn\'t save your choices. Try again.</div></div>';
+    btn.disabled = false;
+    btn.innerHTML = 'Finish setup <i class="fas fa-check"></i>';
   }
 }
 
-async function skipOnboarding(){
-  try{ await fetch('/onboarding/skip',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); }catch(e){}
-  window.location.href='/dashboard';
+async function skipOnboarding() {
+  try { await fetch('/onboarding/skip', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}); } catch (e) {}
+  window.location.href = '/dashboard';
 }
-
-function createParticles() {
-  const container = document.getElementById('particles');
-  if (!container) return;
-  for (let i = 0; i < 20; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const size = Math.random() * 3 + 1;
-    p.style.cssText = `
-      width: ${size}px;
-      height: ${size}px;
-      left: ${Math.random() * 100}%;
-      animation-duration: ${Math.random() * 12 + 8}s;
-      animation-delay: ${Math.random() * 8}s;
-      opacity: ${Math.random() * 0.4 + 0.1};
-    `;
-    container.appendChild(p);
-  }
-}
-
-createParticles();
 </script>
 </body>
 </html>
