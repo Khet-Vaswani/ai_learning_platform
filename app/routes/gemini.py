@@ -37,7 +37,8 @@ def _server_transcript(video_id: str):
 
 # ── Groq client ───────────────────────────────────────────
 from groq import Groq
-groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+# A missing key must not stop the whole site from starting; only AI replies fail
+groq_client = Groq(api_key=os.getenv('GROQ_API_KEY')) if os.getenv('GROQ_API_KEY') else None
 
 GROQ_MODELS = [
     'openai/gpt-oss-120b',
@@ -68,7 +69,7 @@ def _generate_ai(prompt: str, max_tokens: int = 1200) -> str:
     """Groq → Gemini fallback for chatbot."""
     last_error = None
 
-    for model in GROQ_MODELS:
+    for model in (GROQ_MODELS if groq_client else []):
         try:
             resp = groq_client.chat.completions.create(
                 model       = model,
