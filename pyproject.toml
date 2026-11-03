@@ -1,4 +1,24 @@
-# Deployment settings. Python dependencies are listed in requirements.txt.
+# Deployment settings (used by Vercel).
+# Keep the dependency list in sync with requirements.txt.
+
+[project]
+name = "ai-learning-platform"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "Flask",
+    "python-dotenv",
+    "mysql-connector-python",
+    "bcrypt",
+    "google-genai",
+    "groq",
+    "youtube-transcript-api",
+    "yt-dlp",
+    "google-api-python-client",
+    "requests",
+    "PyPDF2",
+    "gunicorn",
+]
 
 [tool.vercel]
 entrypoint = "run:app"
