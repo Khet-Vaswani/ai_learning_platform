@@ -6,8 +6,10 @@ __pycache__/
 # Virtual environment
 venv/
 ENV/
-.env/
-.env
+
+# Environment variables & secrets
+.env*
+!.env.example
 
 # VS Code
 .vscode/

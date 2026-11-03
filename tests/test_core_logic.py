@@ -136,45 +136,52 @@ class TestQuizGrounding(unittest.TestCase):
 # ════════════════════════════════════════════════════════════
 class TestQuizScoring(unittest.TestCase):
 
-    def _run(self, n_correct, n_total=10):
+    def _run(self, n_correct, n_total=10, earlier_topic_scores=(), quiz_level='Medium'):
+        """Submit a quiz. `earlier_topic_scores` are the learner's previous percentages on the topic."""
         questions = [_question(f"Question {i}?") for i in range(n_total)]   # correct answer = 'B'
         answers = {str(i): ('B' if i < n_correct else 'A') for i in range(n_total)}
+        this_pct = n_correct / n_total * 100
+        topic_history = [this_pct, *earlier_topic_scores][:3]               # newest first, last 3
         calls = []
 
         def fake_db(query, params=None, fetch=True):
-            calls.append(' '.join(query.split()))
-            if query.strip().upper().startswith('SELECT') and 'video_quizzes' in query and 'id=%s' in query:
-                return [{'id': 1, 'questions': json.dumps(questions)}]
-            if query.strip().upper().startswith('SELECT'):
+            q = ' '.join(query.split())
+            calls.append(q)
+            if q.startswith('SELECT * FROM video_quizzes'):
+                return [{'id': 1, 'topic': 'Biology', 'difficulty': quiz_level,
+                         'questions': json.dumps(questions)}]
+            if 'AS pct' in q and 'topic=%s' in q:
+                return [{'pct': v} for v in topic_history]
+            if q.startswith('SELECT'):
                 return []
             return True
 
-        with patch.object(qg, 'execute_query', side_effect=fake_db), \
-             patch.object(lcm, 'execute_query', side_effect=fake_db):
+        with patch.object(qg, 'execute_query', side_effect=fake_db),              patch.object(lcm, 'execute_query', side_effect=fake_db):
             result = qg.submit_quiz(quiz_id=1, user_id=7, answers=answers, topic='Biology')
         return result, calls
 
     def test_UT13_low_score(self):
-        """UT-13 3/10 (30%) → Beginner next and topic recorded as weak"""
+        """UT-13 First quiz 3/10 (30%) → next quiz Easy and topic recorded as weak"""
         r, calls = self._run(3)
-        self.assertEqual((r['score'], r['percentage'], r['new_level'], r['is_weak']), (3, 30.0, 'Beginner', True))
+        self.assertEqual((r['score'], r['percentage'], r['new_level'], r['is_weak']), (3, 30.0, 'Easy', True))
         self.assertTrue(any('INSERT INTO weak_topics' in c for c in calls))
 
     def test_UT14_medium_score(self):
-        """UT-14 6/10 (60%) → Intermediate next, not weak"""
+        """UT-14 First quiz 6/10 (60%) → next quiz Medium, not weak"""
         r, calls = self._run(6)
-        self.assertEqual((r['percentage'], r['new_level'], r['is_weak']), (60.0, 'Intermediate', False))
+        self.assertEqual((r['percentage'], r['new_level'], r['is_weak']), (60.0, 'Medium', False))
         self.assertFalse(any('INSERT INTO weak_topics' in c for c in calls))
 
-    def test_UT15_high_score(self):
-        """UT-15 8/10 (80%) → Advanced next"""
-        r, _ = self._run(8)
-        self.assertEqual((r['percentage'], r['new_level']), (80.0, 'Advanced'))
+    def test_UT15_level_up(self):
+        """UT-15 Medium quiz, 9/10 after earlier 80% and 85% (avg 85%) → next quiz Hard, 'Level up'"""
+        r, _ = self._run(9, earlier_topic_scores=(80, 85), quiz_level='Medium')
+        self.assertEqual((r['new_level'], r['difficulty_msg']['title']), ('Hard', 'Level up'))
 
-    def test_UT16_boundary_50(self):
-        """UT-16 5/10 (exactly 50%) → Intermediate and not weak (boundary)"""
-        r, _ = self._run(5)
-        self.assertEqual((r['new_level'], r['is_weak']), ('Intermediate', False))
+    def test_UT16_average_smooths_one_result(self):
+        """UT-16 One low score (40%) after 90% and 90% (avg 73.3%) → Medium, not Easy"""
+        r, _ = self._run(4, earlier_topic_scores=(90, 90), quiz_level='Hard')
+        self.assertEqual((r['new_level'], r['is_weak'], r['difficulty_msg']['title']),
+                         ('Medium', True, 'Next quiz will be easier'))
 
 
 # ════════════════════════════════════════════════════════════
@@ -182,31 +189,34 @@ class TestQuizScoring(unittest.TestCase):
 # ════════════════════════════════════════════════════════════
 class TestAdaptiveDifficulty(unittest.TestCase):
 
-    def _level(self, curve_stage=None, td=None):
+    def _choose(self, topic_scores=(), any_scores=(), setting=None):
         def fake_db(query, params=None, fetch=True):
-            if 'learning_curves' in query:
-                return [{'curve_stage': curve_stage}] if curve_stage else []
-            if 'topic_difficulty' in query:
-                return [td] if td else []
+            q = ' '.join(query.split())
+            if 'AS pct' in q and 'topic=%s' in q:
+                return [{'pct': v} for v in topic_scores]
+            if 'AS pct' in q:
+                return [{'pct': v} for v in any_scores]
+            if 'FROM users' in q:
+                return [{'difficulty_level': setting}] if setting else []
             return []
         with patch.object(qg, 'execute_query', side_effect=fake_db):
-            return qg._get_difficulty(1, 'Biology')
+            return qg.choose_quiz_level(1, 'Biology')
 
-    def test_UT17_no_history(self):
-        """UT-17 No history on a topic → Intermediate"""
-        self.assertEqual(self._level(), 'Intermediate')
+    def test_UT17_score_bands(self):
+        """UT-17 Level bands: <50 Easy, 50–79.9 Medium, ≥80 Hard (boundaries included)"""
+        self.assertEqual([qg.level_for_score(v) for v in (0, 49.9, 50, 79.9, 80, 100)],
+                         ['Easy', 'Easy', 'Medium', 'Medium', 'Hard', 'Hard'])
 
-    def test_UT18_curve_stage_rules(self):
-        """UT-18 Struggling → Beginner, Mastery → Advanced, Plateau → Intermediate"""
-        self.assertEqual(self._level('Struggling'), 'Beginner')
-        self.assertEqual(self._level('Mastery'), 'Advanced')
-        self.assertEqual(self._level('Plateau'), 'Intermediate')
+    def test_UT18_topic_average_first(self):
+        """UT-18 Uses the average of the last 3 quizzes on the topic (90, 85, 70 → 81.7% → Hard)"""
+        info = self._choose(topic_scores=(90, 85, 70), any_scores=(10, 10))
+        self.assertEqual((info['level'], info['average']), ('Hard', 81.7))
 
-    def test_UT19_last_score_rules(self):
-        """UT-19 Without a curve: last score 85 → Advanced, 55 → Intermediate, 30 → Beginner"""
-        self.assertEqual(self._level(td={'difficulty_level': 'Medium', 'last_score': 85, 'attempts': 1}), 'Advanced')
-        self.assertEqual(self._level(td={'difficulty_level': 'Medium', 'last_score': 55, 'attempts': 1}), 'Intermediate')
-        self.assertEqual(self._level(td={'difficulty_level': 'Medium', 'last_score': 30, 'attempts': 1}), 'Beginner')
+    def test_UT19_fallbacks(self):
+        """UT-19 No topic history → last 5 quizzes on any topic; no quizzes → Settings level; nothing → Medium"""
+        self.assertEqual(self._choose(any_scores=(40, 30))['level'], 'Easy')
+        self.assertEqual(self._choose(setting='Hard')['level'], 'Hard')
+        self.assertEqual(self._choose()['level'], 'Medium')
 
 
 # ════════════════════════════════════════════════════════════
