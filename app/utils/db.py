@@ -15,7 +15,8 @@ def _get_pool():
         try:
             _db_pool = mysql.connector.pooling.MySQLConnectionPool(
                 pool_name="ai_platform_pool",
-                pool_size=10,
+                # Keep this small on hosted databases: each server copy opens this many
+                pool_size=int(os.getenv('DB_POOL_SIZE', 10)),
                 pool_reset_session=True,
                 host=os.getenv('DB_HOST', 'localhost'),
                 port=int(os.getenv('DB_PORT', 3306)),
