@@ -373,6 +373,28 @@ body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Seg
 .send-btn { background: var(--c-primary); color: #fff; }
 .send-btn:hover { background: var(--c-primary-dark); }
 .send-btn:disabled { background: #c7d2fe; cursor: not-allowed; }
+.video-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.video-bar i { color: #ef4444; font-size: 0.85rem; flex-shrink: 0; }
+.video-bar label { font-size: 0.74rem; font-weight: 600; color: var(--c-muted); white-space: nowrap; margin: 0; }
+.video-select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.76rem;
+  font-family: inherit;
+  color: var(--c-body);
+  background: #fff;
+}
+.src-block { border: 1px solid var(--c-border); border-left-width: 3px; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+.src-block:last-child { margin-bottom: 0; }
+.src-video   { border-left-color: var(--c-primary); background: #fafaff; }
+.src-general { border-left-color: var(--c-subtle); background: var(--c-bg); }
+.src-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.src-video .src-label   { color: var(--c-primary); }
+.src-general .src-label { color: var(--c-muted); }
+.md-quote { border-left: 2px solid #c7d2fe; padding-left: 10px; margin: 6px 0; color: var(--c-muted); font-style: italic; font-size: 0.84rem; }
 .foot-note { text-align: center; font-size: 0.68rem; color: var(--c-subtle); margin-top: 8px; }
 
 /* ── Mobile ───────────────────────────────────────────── */
@@ -464,6 +486,17 @@ body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Seg
                 </button>
             </div>
 
+            <div class="video-bar">
+                <i class="fab fa-youtube"></i>
+                <label for="videoSelect">Ask about</label>
+                <select class="video-select" id="videoSelect" onchange="onVideoChange()">
+                    <option value="">Any topic (no video)</option>
+                    {% for v in watched_videos %}
+                    <option value="{{ v.video_id }}">{{ v.video_title or 'Untitled video' }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="input-box">
                 <textarea class="chat-input" id="chatInput" rows="1"
                           placeholder="Ask anything, or attach a PDF or image"
@@ -498,6 +531,15 @@ var CHAT_CTX  = {field: {{ (field_of_interest or '')|tojson }}, weak: {{ (weak_t
 // ── Init ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
     renderHist();
+
+    // Opened with "Ask AI" from the video player: start a new chat about that video
+    var openVideo = {{ (open_video or '')|tojson }};
+    if (openVideo) {
+        newChat();
+        setVideo(openVideo);
+        document.getElementById('chatInput').focus();
+        return;
+    }
 
     // Check if we have an active chat ID or existing conversations
     var activeId = localStorage.getItem('gptActiveChatId');
@@ -555,7 +597,7 @@ function showWelcome() {
         '<div class="welcome-screen">' +
         '<div class="welcome-logo"><i class="fas fa-robot"></i></div>' +
         '<div class="welcome-h">Hi ' + escHtml(uName.split(' ')[0]) + ', what do you want to learn today?</div>' +
-        '<div class="welcome-p">Ask about a lesson, get practice questions, or upload your notes.</div>' +
+        '<div class="welcome-p">Pick a video below to ask what the teacher said, get practice questions, or upload your notes.</div>' +
         '<div class="cap-row">' + html + '</div></div>';
 
     body.querySelectorAll('.cap-card').forEach(function(el) {
@@ -574,6 +616,7 @@ function newChat() {
     fileData = null;
     fileObj  = null;
     removeUpload();
+    setVideo('');
     localStorage.removeItem('gptActiveChatId');
     document.getElementById('chatInput').value = '';
     showWelcome();
@@ -581,6 +624,23 @@ function newChat() {
         i.classList.remove('active');
     });
     closeSb();
+}
+
+// ── Video the chat is about ───────────────────────────────
+function setVideo(id, title) {
+    var sel = document.getElementById('videoSelect');
+    if (id && !Array.prototype.some.call(sel.options, function(o) { return o.value === id; })) {
+        if (!title) id = '';
+        else sel.add(new Option(title, id));
+    }
+    sel.value = id || '';
+    document.getElementById('chatInput').placeholder = id ?
+        'Ask about this video, e.g. why did the teacher use this method?' :
+        'Ask anything, or attach a PDF or image';
+}
+
+function onVideoChange() {
+    setVideo(document.getElementById('videoSelect').value);
 }
 
 // ── File ──────────────────────────────────────────────────
@@ -648,7 +708,8 @@ async function sendMsg() {
     try {
         var payload = {
             message: msg || 'Analyze and explain this file.',
-            history: history_.slice(-10)
+            history: history_.slice(-10),
+            video_id: document.getElementById('videoSelect').value
         };
 
         if (fo && fd) {
@@ -668,6 +729,9 @@ async function sendMsg() {
 
         var reply = data.success ? data.reply :
                     'Sorry, something went wrong. Please try again.';
+
+        // Keep follow-up questions on the video the assistant answered from
+        if (data.video) setVideo(data.video.video_id, data.video.title);
 
         addMsg(reply, 'bot');
         history_.push({role:'assistant', content:reply});
@@ -701,7 +765,7 @@ function addMsg(text, role, fo, fd) {
             '<i class="fas ' + icon + '"></i> ' + escHtml(fo.name) + '</div></div>';
     }
 
-    var formatted = isBot ? fmtText(text) : fmtUser(text);
+    var formatted = isBot ? fmtReply(text) : fmtUser(text);
 
     var actHtml = isBot ?
         '<div class="msg-actions2">' +
@@ -765,6 +829,21 @@ function fmtUser(text) {
     return escHtml(text).replace(/\n/g, '<br>');
 }
 
+// Video answers come in labelled sections; show each as its own block
+function fmtReply(text) {
+    var VIDEO = '## From the video', GENERAL = '## General explanation (not from the video)';
+    if (!text || (text.indexOf(VIDEO) !== 0 && text.indexOf(GENERAL) !== 0)) return fmtText(text);
+    return text.split(/\n*(?=^## (?:From the video|General explanation \(not from the video\))$)/m)
+        .filter(function(s) { return s.trim(); })
+        .map(function(s) {
+            var isVideo = s.indexOf(VIDEO) === 0;
+            var head    = isVideo ? VIDEO : GENERAL;
+            return '<div class="src-block ' + (isVideo ? 'src-video' : 'src-general') + '">' +
+                '<div class="src-label">' + (isVideo ? 'From the video' : 'General explanation, not from the video') + '</div>' +
+                fmtText(s.slice(head.length).trim()) + '</div>';
+        }).join('');
+}
+
 function fmtText(text) {
     if (!text) return '';
 
@@ -788,6 +867,7 @@ function fmtText(text) {
     text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
     text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     text = text.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    text = text.replace(/^&gt; (.+)$/gm, '<div class="md-quote">$1</div>');
     text = text.replace(/^### (.+)$/gm, '<div class="md-h3">$1</div>');
     text = text.replace(/^## (.+)$/gm, '<div class="md-h2">$1</div>');
     text = text.replace(/^# (.+)$/gm, '<div class="md-h2">$1</div>');
@@ -837,13 +917,17 @@ function saveHist(firstMsg) {
     if (!chatId) chatId = Date.now();
     var title = firstMsg.substring(0,42) + (firstMsg.length > 42 ? '...' : '');
     var idx   = allChats.findIndex(function(c) { return String(c.id) === String(chatId); });
+    var sel   = document.getElementById('videoSelect');
+    var vTitle = sel.value ? sel.options[sel.selectedIndex].text : '';
 
     if (idx >= 0) {
         allChats[idx].title   = title;
         allChats[idx].history = history_;
         allChats[idx].ts      = Date.now();
+        allChats[idx].videoId = sel.value;
+        allChats[idx].videoTitle = vTitle;
     } else {
-        allChats.unshift({id:chatId, title:title, history:history_, ts:Date.now()});
+        allChats.unshift({id:chatId, title:title, history:history_, ts:Date.now(), videoId:sel.value, videoTitle:vTitle});
     }
 
     allChats = allChats.slice(0, 30);
@@ -880,6 +964,7 @@ function loadChat(id) {
     chatId   = chat.id;
     localStorage.setItem('gptActiveChatId', String(chat.id));
     history_ = chat.history || [];
+    setVideo(chat.videoId || '', chat.videoTitle);
     var body = document.getElementById('chatBody');
     body.innerHTML = '';
     history_.forEach(function(m) {

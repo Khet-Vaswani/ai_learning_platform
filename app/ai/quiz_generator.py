@@ -86,7 +86,10 @@ class QuizGenerationError(Exception):
 
 
 # ── AI generate function ──────────────────────────────────
-def _generate(prompt: str, max_tokens: int = 6000) -> str:
+QUIZ_SYSTEM = "You write quizzes using only the transcript the user provides. You never use outside knowledge."
+
+
+def _generate(prompt: str, max_tokens: int = 6000, system: str = QUIZ_SYSTEM) -> str:
     """Groq first, then Gemini. Asks for a JSON object response."""
     last_error = None
     try:
@@ -97,7 +100,7 @@ def _generate(prompt: str, max_tokens: int = 6000) -> str:
                 resp = client.chat.completions.create(
                     model           = model,
                     messages        = [
-                        {"role": "system", "content": "You write quizzes using only the transcript the user provides. You never use outside knowledge."},
+                        {"role": "system", "content": system},
                         {"role": "user", "content": prompt},
                     ],
                     max_tokens      = max_tokens,

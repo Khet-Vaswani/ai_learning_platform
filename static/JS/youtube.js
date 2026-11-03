@@ -85,6 +85,18 @@ async function openVideo(videoId, title, topic) {
 }
 
 
+// Open the AI assistant on this video. It only answers about watched videos,
+// so make sure this one is saved first.
+async function askAboutVideo() {
+    const { id, title, topic } = currentVideo;
+    if (!id) return;
+    try {
+        await (_api.post || API.post)('/youtube/watched', { video_id: id, title: title, topic: topic });
+    } catch(e) {}
+    window.location.href = '/chatbot?video=' + encodeURIComponent(id);
+}
+
+
 // ══════════════════════════════════════════════════════════
 //  FETCH TRANSCRIPT FROM YOUTUBE
 // ══════════════════════════════════════════════════════════

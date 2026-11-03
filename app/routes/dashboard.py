@@ -2,6 +2,8 @@
 # dashboard.py — Dashboard Routes
 # ============================================================
 
+import html
+
 from flask import (Blueprint, jsonify, render_template,
                    request, session, redirect, url_for)
 from app.utils.db import execute_query
@@ -268,10 +270,19 @@ def chatbot():
            ORDER BY fail_count DESC LIMIT 2""",
         (user_id,), fetch=True
     ) or []
+    watched = execute_query(
+        """SELECT video_id, video_title FROM watched_videos WHERE user_id=%s
+           ORDER BY watched_at DESC LIMIT 50""",
+        (user_id,), fetch=True
+    ) or []
+    for v in watched:
+        v['video_title'] = html.unescape(v['video_title'] or '')
     return render_template('chatbot.html',
                            user_name=session.get('user_name') or 'Student',
                            field_of_interest=field,
-                           weak_topics=[w['topic'] for w in weak])
+                           weak_topics=[w['topic'] for w in weak],
+                           watched_videos=watched,
+                           open_video=request.args.get('video', ''))
 
 
 # ── API: Dashboard Stats ────────────────────────────────────

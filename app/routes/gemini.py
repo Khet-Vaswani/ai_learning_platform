@@ -9,7 +9,7 @@ from flask import (Blueprint, request, jsonify,
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
 
-import os, json, time, re
+import os, json, time, re, html
 
 gemini_bp = Blueprint('gemini', __name__)
 
@@ -424,6 +424,50 @@ def quiz_page(quiz_id):
 
 
 # ============================================================
+# CHATBOT — questions about a video the student watched
+# ============================================================
+_no_transcript_until = {}   # video_id -> time to retry, so follow-ups don't re-run the slow extraction
+
+
+def _chat_video(user_id: int, message: str, video_id=None):
+    """
+    The watched video this message is about: the one picked in the chat, else
+    (if the student refers to "the video" or "the teacher") the best match
+    among their watched videos. Only the student's own watched videos are used.
+    """
+    from app.ai.video_qa import refers_to_video, pick_watched_video
+    if video_id:
+        rows = execute_query(
+            "SELECT video_id, video_title, topic FROM watched_videos WHERE user_id=%s AND video_id=%s",
+            (user_id, str(video_id)), fetch=True) or []
+        if rows:
+            return rows[0]
+    if not refers_to_video(message):
+        return None
+    watched = execute_query(
+        """SELECT video_id, video_title, topic FROM watched_videos
+           WHERE user_id=%s ORDER BY watched_at DESC LIMIT 50""", (user_id,), fetch=True) or []
+    return pick_watched_video(message, watched)
+
+
+def _video_reply(message: str, history: list, video: dict):
+    from app.ai.video_qa import answer_from_video, answer_without_transcript
+    title = html.unescape(video.get('video_title') or 'This video')
+    video_id = video['video_id']
+
+    transcript = ''
+    if time.time() >= _no_transcript_until.get(video_id, 0):
+        transcript, _ = _server_transcript(video_id)
+        if not transcript:
+            _no_transcript_until[video_id] = time.time() + 600
+    if not transcript:
+        return answer_without_transcript(
+            message, history, title,
+            "I couldn't get this video's transcript, so I can't tell you what the teacher said about this.")
+    return answer_from_video(message, history, title, transcript)
+
+
+# ============================================================
 # CHATBOT
 # ============================================================
 @gemini_bp.route('/chatbot/ask', methods=['POST'])
@@ -589,6 +633,19 @@ Instructions:
         except Exception as e:
             print(f"⚠️ File analysis error: {e}")
 
+    # ── Question about a watched video ────────────────────
+    video = None if file_data else _chat_video(user_id, message, data.get('video_id'))
+    if video:
+        try:
+            reply = _video_reply(message, history, video)
+            if reply:
+                return jsonify({'success': True, 'reply': reply,
+                                'video': {'video_id': video['video_id'],
+                                          'title': html.unescape(video.get('video_title') or 'This video')}})
+        except Exception as e:
+            print(f"❌ Video question error: {e}")
+            return jsonify({'success': False, 'message': "The assistant couldn't reply right now. Try again in a moment."})
+
     # ── Regular chat with history ─────────────────────────
     history_text = ''
     if history:
@@ -605,6 +662,7 @@ Student: {message}
 
 Instructions:
 - Remember context from previous messages
+- You don't have a video's content here. Only if the student asks what a video or teacher said, say you can't see it and that they can pick the video under "Ask about". Otherwise don't mention videos or "Ask about"
 - Give clear, educational responses
 - For code questions: provide working code examples with explanations
 - For study plans: give structured day-by-day plans
