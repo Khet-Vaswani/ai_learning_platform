@@ -1,4 +1,0 @@
-# Deployment settings. Python dependencies are listed in requirements.txt.
-
-[tool.vercel]
-entrypoint = "run:app"
