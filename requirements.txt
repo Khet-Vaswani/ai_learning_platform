@@ -9,3 +9,4 @@ yt-dlp
 google-api-python-client
 requests
 PyPDF2
+gunicorn
