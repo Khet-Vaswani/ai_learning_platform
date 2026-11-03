@@ -13,6 +13,15 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
     except Exception:
         pass
 
+import os
+
+# Vercel's TiDB Cloud integration sets TIDB_* variables; the app reads DB_*.
+# Settings you add yourself as DB_* always win.
+for _db, _tidb in (('DB_HOST', 'TIDB_HOST'), ('DB_PORT', 'TIDB_PORT'), ('DB_USER', 'TIDB_USER'),
+                   ('DB_PASSWORD', 'TIDB_PASSWORD'), ('DB_NAME', 'TIDB_DATABASE')):
+    if not os.getenv(_db) and os.getenv(_tidb):
+        os.environ[_db] = os.environ[_tidb]
+
 from app import create_app
 
 app = create_app()
