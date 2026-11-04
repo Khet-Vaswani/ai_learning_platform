@@ -521,7 +521,9 @@ body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Seg
 {% block extra_js %}
 <script>
 var history_  = [];
-var allChats  = JSON.parse(localStorage.getItem('gptChats') || '[]');
+// Chats come from this account only (saved on the server)
+var allChats  = {{ (chats or [])|tojson }};
+var ACTIVE_KEY = 'chatActive_' + {{ user_id|tojson }};
 var chatId    = null;
 var fileData  = null;
 var fileObj   = null;
@@ -530,6 +532,9 @@ var CHAT_CTX  = {field: {{ (field_of_interest or '')|tojson }}, weak: {{ (weak_t
 
 // ── Init ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
+    // Chats used to be kept in the browser and were shared by everyone using it
+    try { localStorage.removeItem('gptChats'); localStorage.removeItem('gptActiveChatId'); } catch (e) {}
+
     renderHist();
 
     // Opened with "Ask AI" from the video player: start a new chat about that video
@@ -542,7 +547,7 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 
     // Check if we have an active chat ID or existing conversations
-    var activeId = localStorage.getItem('gptActiveChatId');
+    var activeId = getActive();
     var found = null;
     if (activeId) {
         found = allChats.find(function(c) { return String(c.id) === String(activeId); });
@@ -617,7 +622,7 @@ function newChat() {
     fileObj  = null;
     removeUpload();
     setVideo('');
-    localStorage.removeItem('gptActiveChatId');
+    setActive(null);
     document.getElementById('chatInput').value = '';
     showWelcome();
     document.querySelectorAll('.h-item').forEach(function(i) {
@@ -931,9 +936,28 @@ function saveHist(firstMsg) {
     }
 
     allChats = allChats.slice(0, 30);
-    localStorage.setItem('gptChats', JSON.stringify(allChats));
-    localStorage.setItem('gptActiveChatId', String(chatId));
+    setActive(chatId);
     renderHist();
+
+    var chat = allChats.find(function(c) { return String(c.id) === String(chatId); });
+    fetch('/chatbot/conversations', {
+        method : 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body   : JSON.stringify(chat)
+    }).then(function(r) { if (!r.ok) toast("Couldn't save this chat"); })
+      .catch(function() { toast("Couldn't save this chat"); });
+}
+
+// Which chat was open last (per account; only the chat's id, not its messages)
+function getActive() {
+    try { return localStorage.getItem(ACTIVE_KEY); } catch (e) { return null; }
+}
+
+function setActive(id) {
+    try {
+        if (id) localStorage.setItem(ACTIVE_KEY, String(id));
+        else localStorage.removeItem(ACTIVE_KEY);
+    } catch (e) {}
 }
 
 function renderHist() {
@@ -962,7 +986,7 @@ function loadChat(id) {
     var chat = allChats.find(function(c) { return String(c.id) === String(id); });
     if (!chat) return;
     chatId   = chat.id;
-    localStorage.setItem('gptActiveChatId', String(chat.id));
+    setActive(chat.id);
     history_ = chat.history || [];
     setVideo(chat.videoId || '', chat.videoTitle);
     var body = document.getElementById('chatBody');
@@ -976,10 +1000,9 @@ function loadChat(id) {
 
 function delChat(id) {
     allChats = allChats.filter(function(c) { return String(c.id) !== String(id); });
-    localStorage.setItem('gptChats', JSON.stringify(allChats));
-    if (String(localStorage.getItem('gptActiveChatId')) === String(id)) {
-        localStorage.removeItem('gptActiveChatId');
-    }
+    fetch('/chatbot/conversations/' + encodeURIComponent(id), {method: 'DELETE'})
+        .catch(function() { toast("Couldn't delete this chat"); });
+    if (String(getActive()) === String(id)) setActive(null);
     if (String(chatId) === String(id)) newChat();
     else renderHist();
 }

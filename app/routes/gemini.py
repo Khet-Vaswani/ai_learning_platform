@@ -679,6 +679,77 @@ Instructions:
 
 
 # ============================================================
+# CHAT HISTORY — saved per account, so students never see each other's chats
+# ============================================================
+MAX_CHATS_PER_USER = 30
+MAX_MESSAGES_PER_CHAT = 60
+_CHAT_ID = re.compile(r'^[0-9]{1,20}$')
+_VIDEO_ID = re.compile(r'^[A-Za-z0-9_-]{6,20}$')
+
+
+def get_user_chats(user_id: int) -> list:
+    """This student's saved chats, newest first, in the shape the chat page uses."""
+    rows = execute_query(
+        """SELECT client_id, title, history, video_id, video_title, updated_at
+           FROM chat_conversations WHERE user_id=%s
+           ORDER BY updated_at DESC LIMIT %s""", (user_id, MAX_CHATS_PER_USER)) or []
+    chats = []
+    for r in rows:
+        try:
+            history = json.loads(r['history'] or '[]')
+        except ValueError:
+            history = []
+        chats.append({'id': r['client_id'], 'title': r['title'] or 'Chat', 'history': history,
+                      'videoId': r['video_id'] or '', 'videoTitle': r['video_title'] or ''})
+    return chats
+
+
+@gemini_bp.route('/chatbot/conversations', methods=['POST'])
+@login_required
+def save_chat():
+    data = request.get_json() or {}
+    client_id = str(data.get('id', ''))
+    if not _CHAT_ID.match(client_id):
+        return jsonify({'success': False, 'message': 'Invalid chat.'}), 400
+
+    history = []
+    for m in (data.get('history') or [])[-MAX_MESSAGES_PER_CHAT:]:
+        if isinstance(m, dict) and m.get('role') in ('user', 'assistant'):
+            history.append({'role': m['role'], 'content': str(m.get('content', ''))[:20000]})
+    video_id = str(data.get('videoId') or '')
+    video_id = video_id if _VIDEO_ID.match(video_id) else ''
+
+    user_id = session['user_id']
+    saved = execute_query(
+        """INSERT INTO chat_conversations (user_id, client_id, title, history, video_id, video_title)
+           VALUES (%s,%s,%s,%s,%s,%s)
+           ON DUPLICATE KEY UPDATE title=VALUES(title), history=VALUES(history),
+               video_id=VALUES(video_id), video_title=VALUES(video_title), updated_at=NOW()""",
+        (user_id, client_id, str(data.get('title') or 'Chat')[:120], json.dumps(history),
+         video_id or None, (str(data.get('videoTitle') or '')[:255] if video_id else None)))
+    if saved is False:
+        return jsonify({'success': False, 'message': "Couldn't save this chat."}), 500
+
+    # Keep only the newest chats
+    old = execute_query(
+        "SELECT id FROM chat_conversations WHERE user_id=%s ORDER BY updated_at DESC, id DESC",
+        (user_id,)) or []
+    for r in old[MAX_CHATS_PER_USER:]:
+        execute_query("DELETE FROM chat_conversations WHERE id=%s AND user_id=%s", (r['id'], user_id))
+    return jsonify({'success': True})
+
+
+@gemini_bp.route('/chatbot/conversations/<client_id>', methods=['DELETE'])
+@login_required
+def delete_chat(client_id):
+    if not _CHAT_ID.match(client_id):
+        return jsonify({'success': False}), 400
+    execute_query("DELETE FROM chat_conversations WHERE user_id=%s AND client_id=%s",
+                  (session['user_id'], client_id))
+    return jsonify({'success': True})
+
+
+# ============================================================
 # POST-QUIZ RECOMMENDATIONS (internal helper)
 # ============================================================
 def _get_postquiz_recommendations(

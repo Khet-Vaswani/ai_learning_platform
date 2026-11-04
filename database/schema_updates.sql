@@ -259,3 +259,18 @@ ALTER TABLE video_quizzes ADD COLUMN IF NOT EXISTS transcript_length INT DEFAULT
 
 -- Each quiz has exactly one level (Easy / Medium / Hard), chosen from past scores
 ALTER TABLE video_quizzes ADD COLUMN IF NOT EXISTS difficulty VARCHAR(10) DEFAULT NULL;
+
+-- Chatbot conversations, stored per account (previously kept in the browser,
+-- where everyone using the same browser saw each other's chats)
+CREATE TABLE IF NOT EXISTS chat_conversations (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL,
+    client_id   VARCHAR(32) NOT NULL,
+    title       VARCHAR(120),
+    history     MEDIUMTEXT,
+    video_id    VARCHAR(50),
+    video_title VARCHAR(255),
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_user_chat (user_id, client_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

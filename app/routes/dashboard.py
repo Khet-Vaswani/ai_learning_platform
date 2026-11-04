@@ -277,7 +277,10 @@ def chatbot():
     ) or []
     for v in watched:
         v['video_title'] = html.unescape(v['video_title'] or '')
+    from app.routes.gemini import get_user_chats
     return render_template('chatbot.html',
+                           chats=get_user_chats(user_id),
+                           user_id=user_id,
                            user_name=session.get('user_name') or 'Student',
                            field_of_interest=field,
                            weak_topics=[w['topic'] for w in weak],
