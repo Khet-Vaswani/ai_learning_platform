@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify, session
 from app.utils.auth_helpers import login_required
 from app.utils.db import execute_query
 from googleapiclient.discovery import build
-import os, time, re
+import html, os, time, re
 
 youtube_bp = Blueprint('youtube', __name__)
 
@@ -233,10 +233,10 @@ def search_videos():
         for i in res.get('items', []):
             videos.append({
                 'video_id'   : i['id']['videoId'],
-                'title'      : i['snippet']['title'],
+                'title'      : html.unescape(i['snippet']['title']),
                 'thumbnail'  : i['snippet']['thumbnails']['medium']['url'],
-                'channel'    : i['snippet']['channelTitle'],
-                'description': i['snippet']['description'][:120],
+                'channel'    : html.unescape(i['snippet']['channelTitle']),
+                'description': html.unescape(i['snippet']['description'])[:120],
                 'published'  : i['snippet']['publishedAt'][:10]
             })
 
@@ -297,9 +297,9 @@ def video_details():
 
         video_data = {
             'video_id'     : video_id,
-            'title'        : snippet.get('title', ''),
-            'description'  : snippet.get('description', '')[:500],
-            'channel_title': snippet.get('channelTitle', ''),
+            'title'        : html.unescape(snippet.get('title', '')),
+            'description'  : html.unescape(snippet.get('description', ''))[:500],
+            'channel_title': html.unescape(snippet.get('channelTitle', '')),
             'published_at' : snippet.get('publishedAt', ''),
             'view_count'   : stats.get('viewCount', '0'),
             'like_count'   : stats.get('likeCount', '0'),
@@ -401,9 +401,9 @@ def related_videos():
             if vid != video_id:  # Skip current video
                 videos.append({
                     'video_id' : vid,
-                    'title'    : i['snippet']['title'],
+                    'title'    : html.unescape(i['snippet']['title']),
                     'thumbnail': i['snippet']['thumbnails']['medium']['url'],
-                    'channel'  : i['snippet']['channelTitle']
+                    'channel'  : html.unescape(i['snippet']['channelTitle'])
                 })
 
         videos = filter_educational_videos(videos)

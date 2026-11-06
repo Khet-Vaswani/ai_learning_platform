@@ -4,15 +4,25 @@
 
 // Video titles and channels come from YouTube, where anyone can name a video:
 // escape everything that goes into HTML.
+// YouTube sends titles HTML-encoded (e.g. "What&#39;s"); decode before escaping.
+// A textarea decodes entities only: tags stay as text and nothing runs.
+const _decoderR = document.createElement('textarea');
+function decodeEntitiesR(str) {
+    str = String(str == null ? '' : str);
+    if (str.indexOf('&') === -1) return str;
+    _decoderR.innerHTML = str;
+    return _decoderR.value;
+}
+
 function escR(str) {
-    return String(str == null ? '' : str)
+    return decodeEntitiesR(str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // A JS argument inside a double-quoted onclick="..." attribute
 function jsArgR(value) {
-    return escR(JSON.stringify(value == null ? '' : value));
+    return escR(JSON.stringify(decodeEntitiesR(value)));
 }
 
 // ── Load MoE recommendations ──────────────────────────────

@@ -8,7 +8,7 @@ from app.utils.db import execute_query
 from app.ai.moe_engine import TransformerMoE, FIELD_TOPICS, get_topics_for_field
 from app.routes.youtube import is_entertainment_query, filter_educational_videos
 from googleapiclient.discovery import build
-import os, time, json, re
+import html, os, time, json, re
 
 recommend_bp = Blueprint('recommend', __name__)
 
@@ -208,10 +208,10 @@ def search_youtube(yt, query, limit=5):
 
         items = [{
             'video_id'   : i['id']['videoId'],
-            'title'      : i['snippet']['title'],
+            'title'      : html.unescape(i['snippet']['title']),
             'thumbnail'  : i['snippet']['thumbnails']['medium']['url'],
-            'channel'    : i['snippet']['channelTitle'],
-            'description': i['snippet'].get('description', ''),
+            'channel'    : html.unescape(i['snippet']['channelTitle']),
+            'description': html.unescape(i['snippet'].get('description', '')),
         } for i in res.get('items', []) if i.get('id', {}).get('videoId')]
 
         filtered = filter_educational_videos(items)
@@ -227,10 +227,10 @@ def search_youtube(yt, query, limit=5):
         ).execute()
         items2 = [{
             'video_id'   : i['id']['videoId'],
-            'title'      : i['snippet']['title'],
+            'title'      : html.unescape(i['snippet']['title']),
             'thumbnail': i['snippet']['thumbnails']['medium']['url'],
-            'channel'    : i['snippet']['channelTitle'],
-            'description': i['snippet'].get('description', ''),
+            'channel'    : html.unescape(i['snippet']['channelTitle']),
+            'description': html.unescape(i['snippet'].get('description', '')),
         } for i in res2.get('items', []) if i.get('id', {}).get('videoId')]
         return filter_educational_videos(items2) or items2
 

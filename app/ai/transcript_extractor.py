@@ -1,7 +1,7 @@
 # ============================================================
 # transcript_extractor.py
 # Robust, multi-layered extraction of actual YouTube transcripts
-# Hierarchy: DB Cache -> YouTube Captions API -> yt-dlp Subtitles -> Whisper STT (Groq / local)
+# Hierarchy: DB Cache -> YouTube Captions API -> yt-dlp Subtitles -> Gemini STT -> Whisper STT (Groq / local)
 # Strictly extracts real spoken words. Never returns metadata or title as transcript.
 # ============================================================
 
@@ -23,6 +23,7 @@ VALID_TRANSCRIPT_SOURCES = {
     'ytdlp_auto_captions',
     'groq_whisper',
     'whisper',
+    'gemini_transcription',   # speech-to-text by Gemini from the YouTube link
 }
 
 ENGLISH_CODES = ['en', 'en-US', 'en-GB', 'en-IN', 'en-CA', 'en-AU']
@@ -366,6 +367,60 @@ def extract_whisper_transcript(video_id: str) -> dict:
     return {'transcript': '', 'source': 'none', 'cached': False}
 
 
+GEMINI_TRANSCRIBE_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest']
+_GEMINI_REFUSAL = re.compile(r"^(i'?m sorry|i am sorry|i can(no|')t|i'?m unable|i am unable|unfortunately|as an ai)", re.I)
+
+
+def extract_gemini_transcript(video_id: str) -> dict:
+    """
+    Speech-to-text by Gemini from the public YouTube link (Google fetches the video,
+    not this server). Returns the spoken words only; refusals are rejected.
+    """
+    empty = {'transcript': '', 'source': 'none', 'cached': False}
+    if not os.getenv('GEMINI_API_KEY'):
+        return empty
+    try:
+        from google import genai
+        from google.genai import types
+        # Stay well inside the hosting limit for one request
+        client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'),
+                              http_options=types.HttpOptions(timeout=240_000))
+    except Exception as e:
+        print(f"⚠️ Gemini transcription unavailable: {e}")
+        return empty
+
+    prompt = ('Transcribe ALL of the speech in this video from start to finish, word for word, in the language spoken. '
+              'Do not summarise, skip, shorten or add anything. Output only the transcript text, with no timestamps, '
+              'headings, speaker labels or notes. If the video has no speech, output nothing.')
+    # Gemini sometimes fails or returns nothing on a first try: each model gets two tries
+    for model in GEMINI_TRANSCRIBE_MODELS:
+        for attempt in (1, 2):
+            try:
+                resp = client.models.generate_content(
+                    model=model,
+                    contents=types.Content(parts=[
+                        types.Part(file_data=types.FileData(file_uri=f'https://www.youtube.com/watch?v={video_id}')),
+                        types.Part(text=prompt)]),
+                    config=types.GenerateContentConfig(
+                        media_resolution='MEDIA_RESOLUTION_LOW', max_output_tokens=32000, temperature=0))
+                text = clean_transcript(resp.text or '')
+            except Exception as e:
+                msg = str(e)
+                print(f"⚠️ Gemini transcription failed ({model}, try {attempt}): {type(e).__name__}: {msg[:160]}")
+                if '429' in msg or 'quota' in msg.lower() or '404' in msg or 'not found' in msg.lower():
+                    break   # this model is unavailable: next model
+                continue
+            if _GEMINI_REFUSAL.match(text):
+                print(f"ℹ️ Gemini couldn't transcribe {video_id}: {text[:100]!r}")
+                return empty   # a refusal (private, too long, no access) won't change on retry
+            if is_valid_transcript(text):
+                save_transcript_cache(video_id, text, 'gemini_transcription')
+                print(f"✅ Gemini transcription ({model}): {len(text.split())} words")
+                return {'transcript': text, 'source': 'gemini_transcription', 'cached': False}
+            print(f"ℹ️ Gemini gave no usable transcript for {video_id} ({model}, try {attempt})")
+    return empty
+
+
 def extract_transcript_full_pipeline(
     video_id: str,
     video_title: str = '',
@@ -377,7 +432,8 @@ def extract_transcript_full_pipeline(
       1. Database cache (verified actual transcript)
       2. youtube-transcript-api (manual, auto, multi-language)
       3. yt-dlp direct subtitle extraction
-      4. Audio download + Whisper Speech-To-Text (Groq / local)
+      4. Gemini speech-to-text from the YouTube link
+      5. Audio download + Whisper Speech-To-Text (Groq / local)
 
     Strictly returns an authentic transcript or empty text.
     Never falls back to title, description, or metadata.
@@ -405,7 +461,14 @@ def extract_transcript_full_pipeline(
     # captions, and downloading its audio would be blocked too
     blocked = bool(captions_res.get('blocked') or ytdlp_res.get('blocked'))
 
-    # Step 4: Whisper Speech-To-Text
+    # Step 4: Gemini transcribes the video from its YouTube link. Google fetches the
+    # video itself, so this works when YouTube blocks this server, and for videos
+    # without captions.
+    gemini_res = extract_gemini_transcript(video_id)
+    if gemini_res.get('transcript') and is_valid_transcript(gemini_res['transcript']):
+        return gemini_res
+
+    # Step 5: Whisper Speech-To-Text
     if use_whisper and not blocked:
         whisper_res = extract_whisper_transcript(video_id)
         if whisper_res.get('transcript') and is_valid_transcript(whisper_res['transcript']):

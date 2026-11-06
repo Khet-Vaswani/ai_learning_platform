@@ -26,6 +26,7 @@ const _api = window.API || {
 //  OPEN VIDEO MODAL
 // ══════════════════════════════════════════════════════════
 async function openVideo(videoId, title, topic) {
+    title = decodeEntitiesYT(title);
     currentVideo      = { id: videoId, title: title, topic: topic };
     videoWatched      = false;
     descExpanded      = false;
@@ -160,15 +161,25 @@ function showNoTranscriptNotice() {
     if (ready) ready.style.display = 'none';
 }
 
+// YouTube sends titles HTML-encoded (e.g. "What&#39;s"); decode before escaping.
+// A textarea decodes entities only: tags stay as text and nothing runs.
+const _decoderYT = document.createElement('textarea');
+function decodeEntitiesYT(str) {
+    str = String(str == null ? '' : str);
+    if (str.indexOf('&') === -1) return str;
+    _decoderYT.innerHTML = str;
+    return _decoderYT.value;
+}
+
 function escapeHtmlYT(str) {
-    return String(str == null ? '' : str)
+    return decodeEntitiesYT(str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // A JS argument inside a double-quoted onclick="..." attribute
 function jsArgYT(value) {
-    return escapeHtmlYT(JSON.stringify(value == null ? '' : value));
+    return escapeHtmlYT(JSON.stringify(decodeEntitiesYT(value)));
 }
 
 function switchAiTab(tabName) {
