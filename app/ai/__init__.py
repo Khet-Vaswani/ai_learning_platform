@@ -61,6 +61,13 @@ def create_app():
         response.headers['Referrer-Policy']        = 'strict-origin'
         return response
 
+    # Password rule, shown on every form that sets a password (checked in auth_helpers)
+    @app.context_processor
+    def password_rule():
+        from app.utils.auth_helpers import PASSWORD_RULE
+        return {'password_rule': PASSWORD_RULE,
+                'password_pattern': r'(?=.*\p{L})(?=.*\p{N})(?=.*[^\p{L}\p{N}\s]).{8,100}'}
+
     # ── Blueprints ────────────────────────────────────────
     from app.routes.auth        import auth
     from app.routes.dashboard   import dashboard      # ← your file has "dashboard"

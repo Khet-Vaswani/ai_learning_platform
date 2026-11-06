@@ -21,10 +21,10 @@
   <div class="ui-field">
     <label class="ui-label" for="password">Password</label>
     <div class="ui-pw-wrap">
-      <input class="ui-input" type="password" id="password" name="password" minlength="6" autocomplete="new-password" required>
+      <input class="ui-input" type="password" id="password" name="password" minlength="8" maxlength="100" pattern="{{ password_pattern }}" title="{{ password_rule }}" autocomplete="new-password" required>
       <button type="button" class="ui-pw-toggle" aria-label="Show password"><i class="far fa-eye"></i></button>
     </div>
-    <div class="ui-help">At least 6 characters.</div>
+    <div class="ui-help">{{ password_rule }}</div>
   </div>
   <div class="ui-field">
     <label class="ui-label" for="confirmPw">Confirm password</label>

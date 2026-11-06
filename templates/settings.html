@@ -139,7 +139,7 @@
       <!-- Password -->
       <section class="ui-card st-pane" id="pane-security">
         <h2 class="st-section-title">Change password</h2>
-        <p class="st-section-sub">Use at least 6 characters.</p>
+        <p class="st-section-sub">{{ password_rule }}</p>
         <form id="passwordForm" style="max-width: 420px;">
           <div class="ui-field">
             <label class="ui-label" for="curPw">Current password</label>
@@ -147,11 +147,11 @@
           </div>
           <div class="ui-field">
             <label class="ui-label" for="newPw">New password</label>
-            <input class="ui-input" id="newPw" type="password" name="new_password" minlength="6" autocomplete="new-password" required>
+            <input class="ui-input" id="newPw" type="password" name="new_password" minlength="8" maxlength="100" pattern="{{ password_pattern }}" title="{{ password_rule }}" autocomplete="new-password" required>
           </div>
           <div class="ui-field">
             <label class="ui-label" for="confPw">Confirm new password</label>
-            <input class="ui-input" id="confPw" type="password" name="confirm_password" minlength="6" autocomplete="new-password" required>
+            <input class="ui-input" id="confPw" type="password" name="confirm_password" minlength="8" autocomplete="new-password" required>
           </div>
           <div class="st-actions" style="justify-content: flex-start;"><button type="submit" class="ui-btn ui-btn-primary">Update password</button></div>
         </form>

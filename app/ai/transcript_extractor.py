@@ -301,6 +301,9 @@ def extract_ytdlp_subtitles(video_id: str) -> dict:
                         }
                 except Exception as stream_err:
                     print(f"⚠️ Subtitle stream error ({lang}): {stream_err}")
+                    if '429' in str(stream_err):
+                        # Rate-limited: every other language would fail the same way
+                        return {'transcript': '', 'source': 'none', 'cached': False, 'blocked': True}
                     continue
 
     except Exception as e:

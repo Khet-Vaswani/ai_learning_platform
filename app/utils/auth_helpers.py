@@ -5,6 +5,24 @@ import bcrypt
 import time
 
 # ── Password Functions ────────────────────────────────────
+PASSWORD_RULE = 'Use at least 8 characters, with a letter, a number and a special character (like ! @ # $).'
+
+
+def password_problem(password):
+    """Why a new password isn't allowed, or None if it's fine."""
+    if len(password) < 8:
+        return 'Password must be at least 8 characters.'
+    if len(password) > 100:
+        return 'Password must be 100 characters or fewer.'
+    if not any(c.isalpha() for c in password):
+        return 'Password must contain at least one letter.'
+    if not any(c.isdigit() for c in password):
+        return 'Password must contain at least one number.'
+    if not any(not c.isalnum() and not c.isspace() for c in password):
+        return 'Password must contain at least one special character (like ! @ # $).'
+    return None
+
+
 def hash_password(password):
     return bcrypt.hashpw(
         password.encode('utf-8'),

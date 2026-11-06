@@ -7,7 +7,8 @@ from flask import (Blueprint, render_template, request,
 from app.utils.db import execute_query
 from app.utils.auth_helpers import (hash_password,
                                      verify_password,
-                                     check_rate_limit)
+                                     check_rate_limit,
+                                     password_problem)
 import os
 import re
 
@@ -16,10 +17,15 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
+    if request.method == 'GET' and 'user_id' in session:
         return redirect(url_for('dashboard.index'))
 
     if request.method == 'POST':
+        # Submitting the form always starts a new login. Before, anyone already
+        # logged in was sent to their own dashboard without the new email or
+        # password being checked, so any email seemed to log in.
+        session.clear()
+
         ip = request.remote_addr
         if not check_rate_limit(ip):
             return render_template('login.html',
@@ -87,9 +93,9 @@ def register():
         if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
             return render_template('register.html',
                 error='Invalid email format.')
-        if len(password) < 6:
-            return render_template('register.html',
-                error='Password must be at least 6 characters.')
+        problem = password_problem(password)
+        if problem:
+            return render_template('register.html', error=problem)
         if password != confirm:
             return render_template('register.html',
                 error='Passwords do not match.')
@@ -247,9 +253,9 @@ def reset_password(token):
             return render_template('reset_password.html',
                 token=token, error='All fields are required.')
 
-        if len(password) < 6:
-            return render_template('reset_password.html',
-                token=token, error='Password must be at least 6 characters.')
+        problem = password_problem(password)
+        if problem:
+            return render_template('reset_password.html', token=token, error=problem)
 
         if password != confirm:
             return render_template('reset_password.html',

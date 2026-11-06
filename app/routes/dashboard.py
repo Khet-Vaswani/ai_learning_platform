@@ -9,7 +9,8 @@ from flask import (Blueprint, jsonify, render_template,
 from app.utils.db import execute_query
 from app.utils.auth_helpers import (login_required,
                                      hash_password,
-                                     verify_password)
+                                     verify_password,
+                                     password_problem)
 import json
 import re
 from datetime import date, timedelta
@@ -856,8 +857,9 @@ def update_password():
     if not current_password or not new_password:
         return jsonify({'success': False, 'message': 'All password fields are required.'}), 400
 
-    if len(new_password) < 6:
-        return jsonify({'success': False, 'message': 'New password must be at least 6 characters long.'}), 400
+    problem = password_problem(new_password)
+    if problem:
+        return jsonify({'success': False, 'message': problem}), 400
 
     if new_password != confirm_password:
         return jsonify({'success': False, 'message': 'New passwords do not match.'}), 400
