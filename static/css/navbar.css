@@ -1,4 +1,4 @@
-/* ===== LearnNova Navbar CSS ===== */
+/* ===== StudyWise Navbar CSS ===== */
 
 :root {
     --primary-blue: #2563EB;
@@ -1080,7 +1080,7 @@ body.dark-mode .mobile-menu-header {
 
     .brand-name {
         font-size: 16px;
-        max-width: 100px;   /* fits "LearnNova" */
+        max-width: 100px;   /* fits "StudyWise" */
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

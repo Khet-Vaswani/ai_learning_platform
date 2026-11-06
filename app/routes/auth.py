@@ -198,7 +198,7 @@ def forgot_password():
 
         if mail_configured():
             send_email(
-                email, 'Reset your LearnNova password',
+                email, 'Reset your StudyWise password',
                 f"Hi {user['full_name']},\n\n"
                 f"Use this link to choose a new password. It works once and expires in 30 minutes:\n\n"
                 f"{reset_link}\n\n"

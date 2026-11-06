@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-create_admin.py — Create or Reset an Admin Account for LearnNova
+create_admin.py — Create or Reset an Admin Account for StudyWise
 
 Usage:
     python create_admin.py

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}AI Chatbot — LearnNova{% endblock %}
+{% block title %}AI Chatbot — StudyWise{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@ function clearChat() { newChat(); }
 
 function exportChat() {
     if (!history_.length) { toast('No messages!'); return; }
-    var txt = 'LearnNova — Chat Export\n' + '─'.repeat(40) + '\n\n';
+    var txt = 'StudyWise — Chat Export\n' + '─'.repeat(40) + '\n\n';
     history_.forEach(function(m) {
         txt += (m.role === 'user' ? 'You' : 'AI') + ':\n' + m.content + '\n\n';
     });

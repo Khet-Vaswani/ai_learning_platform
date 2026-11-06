@@ -1,4 +1,4 @@
-/* ===== LearnNova Navbar JavaScript ===== */
+/* ===== StudyWise Navbar JavaScript ===== */
 
 class NavbarManager {
     constructor() {
@@ -391,7 +391,7 @@ class NavbarManager {
 
     performSearch(query) {
         if (!this.isEducationalQuery(query)) {
-            alert('🎓 LearnNova Platform Notice:\n\nThis platform is strictly dedicated to educational & academic content.\nSearching for movies, songs, dramas, or non-educational entertainment is not permitted.\n\nPlease search for learning subjects, tutorials, or courses (e.g. Python, Machine Learning, Data Science, Math).');
+            alert('🎓 StudyWise Platform Notice:\n\nThis platform is strictly dedicated to educational & academic content.\nSearching for movies, songs, dramas, or non-educational entertainment is not permitted.\n\nPlease search for learning subjects, tutorials, or courses (e.g. Python, Machine Learning, Data Science, Math).');
             return;
         }
         this.addToRecentSearches(query);

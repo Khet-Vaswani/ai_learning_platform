@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-recreate_db.py — Automated Database Re-creation Script for LearnNova
+recreate_db.py — Automated Database Re-creation Script for StudyWise
 
 This script:
 1. Connects to MySQL server (without requiring the database to already exist).
