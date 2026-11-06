@@ -2,6 +2,19 @@
 // recommend.js — Recommendation Display + Post-Quiz Refresh
 // ============================================================
 
+// Video titles and channels come from YouTube, where anyone can name a video:
+// escape everything that goes into HTML.
+function escR(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// A JS argument inside a double-quoted onclick="..." attribute
+function jsArgR(value) {
+    return escR(JSON.stringify(value == null ? '' : value));
+}
+
 // ── Load MoE recommendations ──────────────────────────────
 async function loadRecommendations() {
     const container = document.getElementById('recommendedVideos');
@@ -92,17 +105,17 @@ function renderPreferenceCards(container, videos, field, skillLevel) {
     };
 
     container.innerHTML = videos.map(function(v) {
-        const titleJson = JSON.stringify(v.title || '');
-        const topicJson = JSON.stringify(v.topic || field || '');
+        const titleJson = jsArgR(v.title || '');
+        const topicJson = jsArgR(v.topic || field || '');
         const thumb     = v.thumbnail ||
             'https://img.youtube.com/vi/' + v.video_id + '/mqdefault.jpg';
 
         return `
         <div class="col-md-4 col-sm-6 mb-3">
             <div class="vid-card"
-                 onclick='openVideo("${v.video_id}", ${titleJson}, ${topicJson})'>
+                 onclick="openVideo(${jsArgR(v.video_id)}, ${titleJson}, ${topicJson})">
                 <div class="vid-thumb">
-                    <img src="${thumb}" alt=""
+                    <img src="${escR(thumb)}" alt=""
                          onerror="this.src='https://via.placeholder.com/320x180?text=Video'">
                     <div class="vid-overlay">
                         <div class="vid-play-btn">
@@ -115,24 +128,24 @@ function renderPreferenceCards(container, videos, field, skillLevel) {
                                 padding:2px 8px;border-radius:10px;
                                 font-size:0.62rem;font-weight:700;
                                 border:1px solid ${expertStyle.color}33;">
-                        ${expertStyle.label}
+                        ${escR(expertStyle.label)}
                     </div>
                     <div style="position:absolute;bottom:7px;right:7px;
                                 background:rgba(0,0,0,0.7);color:white;
                                 padding:2px 8px;border-radius:5px;
                                 font-size:0.62rem;font-weight:700;">
-                        ${skillLevel || 'Beginner'}
+                        ${escR(skillLevel || 'Beginner')}
                     </div>
                 </div>
                 <div class="vid-info">
                     <p class="vid-title">
-                        ${(v.title || '').substring(0, 60)}${(v.title || '').length > 60 ? '...' : ''}
+                        ${escR((v.title || '').substring(0, 60))}${(v.title || '').length > 60 ? '...' : ''}
                     </p>
                     <div style="display:flex;justify-content:space-between;
                                 align-items:center;">
-                        <span class="vid-tag">${v.topic || field || ''}</span>
+                        <span class="vid-tag">${escR(v.topic || field || '')}</span>
                         <span style="font-size:0.65rem;color:#7c3aed;font-weight:600;">
-                            ${v.channel || 'YouTube'}
+                            ${escR(v.channel || 'YouTube')}
                         </span>
                     </div>
                 </div>
@@ -151,8 +164,8 @@ function renderVideoCards(container, recommendations) {
     };
 
     container.innerHTML = recommendations.map(function(v) {
-        const titleJson  = JSON.stringify(v.title  || '');
-        const reasonJson = JSON.stringify(v.reason || '');
+        const titleJson  = jsArgR(v.title  || '');
+        const reasonJson = jsArgR(v.reason || '');
         const es         = expertStyle[v.expert] ||
                            {bg:'#f8fafc', color:'#64748b', label:'🤖 AI'};
         const matchPct   = v.final_score ? Math.round(v.final_score * 100) : 0;
@@ -162,9 +175,9 @@ function renderVideoCards(container, recommendations) {
         return `
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="vid-card"
-                 onclick='openVideo("${v.video_id}", ${titleJson}, ${reasonJson})'>
+                 onclick="openVideo(${jsArgR(v.video_id)}, ${titleJson}, ${reasonJson})">
                 <div class="vid-thumb">
-                    <img src="${thumb}" alt=""
+                    <img src="${escR(thumb)}" alt=""
                          onerror="this.src='https://via.placeholder.com/320x180?text=Video'">
                     <div class="vid-overlay">
                         <div class="vid-play-btn">
@@ -176,7 +189,7 @@ function renderVideoCards(container, recommendations) {
                                 border:1px solid ${es.color}33;
                                 padding:2px 8px;border-radius:10px;
                                 font-size:0.62rem;font-weight:700;">
-                        ${es.label}
+                        ${escR(es.label)}
                     </div>
                     ${matchPct > 0 ? `
                     <div style="position:absolute;bottom:7px;right:7px;
@@ -188,18 +201,18 @@ function renderVideoCards(container, recommendations) {
                 </div>
                 <div class="vid-info">
                     <p class="vid-title">
-                        ${(v.title || '').substring(0, 60)}${(v.title || '').length > 60 ? '...' : ''}
+                        ${escR((v.title || '').substring(0, 60))}${(v.title || '').length > 60 ? '...' : ''}
                     </p>
                     <div style="display:flex;justify-content:space-between;
                                 align-items:center;flex-wrap:wrap;gap:4px;">
-                        <span class="vid-tag">${v.channel || 'YouTube'}</span>
+                        <span class="vid-tag">${escR(v.channel || 'YouTube')}</span>
                     </div>
                     ${v.reason ? `
                     <div style="font-size:0.68rem;color:#94a3b8;
                                 margin-top:5px;line-height:1.3;
                                 display:-webkit-box;-webkit-line-clamp:2;
                                 -webkit-box-orient:vertical;overflow:hidden;">
-                        ${v.reason}
+                        ${escR(v.reason)}
                     </div>` : ''}
                 </div>
             </div>
@@ -249,24 +262,24 @@ function showPostQuizRecommendations(videos, reason, difficulty, topic) {
                 <span style="background:${dc.bg};color:${dc.color};
                              padding:4px 10px;border-radius:10px;
                              font-size:0.78rem;">
-                    ${dc.icon} ${difficulty} videos
+                    ${dc.icon} ${escR(difficulty)} videos
                 </span>
                 Recommended for you
             </h6>
-            <span style="font-size:0.75rem;color:#94a3b8;">${reason}</span>
+            <span style="font-size:0.75rem;color:#94a3b8;">${escR(reason)}</span>
         </div>
         <div class="row g-3">
             ${videos.map(function(v) {
-                const titleJson = JSON.stringify(v.title || '');
-                const topicJson = JSON.stringify(topic || '');
+                const titleJson = jsArgR(v.title || '');
+                const topicJson = jsArgR(topic || '');
                 const thumb     = v.thumbnail ||
                     'https://img.youtube.com/vi/' + v.video_id + '/mqdefault.jpg';
                 return `
                 <div class="col-md-4">
                     <div class="vid-card"
-                         onclick='openVideoNewTab("${v.video_id}", ${titleJson}, ${topicJson})'>
+                         onclick="openVideoNewTab(${jsArgR(v.video_id)}, ${titleJson}, ${topicJson})">
                         <div class="vid-thumb">
-                            <img src="${thumb}" alt=""
+                            <img src="${escR(thumb)}" alt=""
                                  onerror="this.src='https://via.placeholder.com/320x180'">
                             <div class="vid-overlay">
                                 <div class="vid-play-btn">
@@ -276,9 +289,9 @@ function showPostQuizRecommendations(videos, reason, difficulty, topic) {
                         </div>
                         <div class="vid-info">
                             <p class="vid-title">
-                                ${(v.title || '').substring(0, 55)}...
+                                ${escR((v.title || '').substring(0, 55))}...
                             </p>
-                            <span class="vid-tag">${v.channel || 'YouTube'}</span>
+                            <span class="vid-tag">${escR(v.channel || 'YouTube')}</span>
                         </div>
                     </div>
                 </div>`;
@@ -296,6 +309,6 @@ function showPostQuizRecommendations(videos, reason, difficulty, topic) {
 
 // Open video in new tab (from quiz page)
 function openVideoNewTab(videoId, title, topic) {
-    const url = 'https://www.youtube.com/watch?v=' + videoId;
+    const url = 'https://www.youtube.com/watch?v=' + encodeURIComponent(videoId);
     window.open(url, '_blank');
 }

@@ -173,7 +173,8 @@ def get_fields_ajax(dept_id):
 @onboarding_bp.route('/onboarding/save', methods=['POST'])
 @login_required
 def save_preferences():
-    data        = request.get_json()
+    data        = request.get_json(silent=True)
+    data        = data if isinstance(data, dict) else {}
     user_id     = session['user_id']
 
     cat_id      = data.get('category_id')

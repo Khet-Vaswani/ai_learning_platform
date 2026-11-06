@@ -46,15 +46,12 @@ def login():
             (email,), fetch=True
         )
 
-        if not users:
+        # Same message for both cases, so the form can't be used to find out who has an account
+        if not users or not verify_password(password, users[0]['password']):
             return render_template('login.html',
-                error='Email not found.')
+                error='Incorrect email or password.', email=email)
 
         user = users[0]
-
-        if not verify_password(password, user['password']):
-            return render_template('login.html',
-                error='Incorrect password.')
 
         session.permanent            = True
         session['user_id']           = user['id']
@@ -163,8 +160,12 @@ def forgot_password():
             (email,), fetch=True
         )
 
+        from app.utils.mailer import mail_configured, send_email
+
         # Same response whether or not the email exists (prevents account enumeration)
-        generic_msg = 'If that email is registered, password reset instructions have been generated.'
+        generic_msg = ("If that email is registered, we've sent it a link to reset your password. "
+                       "Check your inbox and spam folder." if mail_configured() else
+                       'If that email is registered, password reset instructions have been generated.')
 
         if not users:
             return render_template('forgot_password.html', success=generic_msg)
@@ -189,11 +190,20 @@ def forgot_password():
 
         reset_link = url_for('auth.reset_password', token=token, _external=True)
 
-        # No mail server is configured, so the link goes to the server console.
-        # Showing it to whoever submitted the form would let anyone reset any
-        # account; set SHOW_RESET_LINK=1 only for local demos.
-        print(f"[PASSWORD RESET] {email}: {reset_link}")
-        show_link = os.getenv('SHOW_RESET_LINK') == '1'
+        if mail_configured():
+            send_email(
+                email, 'Reset your LearnAI password',
+                f"Hi {user['full_name']},\n\n"
+                f"Use this link to choose a new password. It works once and expires in 30 minutes:\n\n"
+                f"{reset_link}\n\n"
+                f"If you didn't ask to reset your password, you can ignore this email.\n")
+            show_link = False
+        else:
+            # No mail server configured: the link goes to the server console.
+            # Showing it to whoever submitted the form would let anyone reset any
+            # account; set SHOW_RESET_LINK=1 only for local demos.
+            print(f"[PASSWORD RESET] {email}: {reset_link}")
+            show_link = os.getenv('SHOW_RESET_LINK') == '1'
 
         return render_template('forgot_password.html',
             success=generic_msg,

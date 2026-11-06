@@ -30,6 +30,12 @@ TRANSCRIPT_BLOCKED = {
 }
 
 
+def _json_body():
+    """The request's JSON object, or {} for a missing or malformed body."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
 def _server_transcript(video_id: str):
     """
     Get the video's real transcript server-side: verified cache -> YouTube captions
@@ -216,7 +222,7 @@ def generate_notes_route():
     Generate AI study notes from transcript or video title.
     Frontend sends: video_id, video_title, topic, transcript (optional)
     """
-    data        = request.get_json() or {}
+    data        = _json_body()
     video_id    = str(data.get('video_id', '')).strip()
     video_title = str(data.get('video_title', '')).strip()   # stored for display only
     topic       = str(data.get('topic', '')).strip()
@@ -264,7 +270,7 @@ def generate_quiz_route():
     If transcript is unavailable, reliably extracts it via multi-layered pipeline.
     Never generates questions from titles or external knowledge.
     """
-    data        = request.get_json() or {}
+    data        = _json_body()
     video_id    = str(data.get('video_id', '')).strip()
     video_title = str(data.get('video_title', '')).strip()   # stored for display only
     topic       = str(data.get('topic', '')).strip()         # used for progress tracking only
@@ -322,7 +328,7 @@ def submit_quiz_route():
     Submit quiz answers. Updates learning data.
     Frontend sends: quiz_id, answers {0: 'A', 1: 'C', ...}, topic
     """
-    data    = request.get_json() or {}
+    data    = _json_body()
     quiz_id = data.get('quiz_id')
     answers = data.get('answers', {})
     topic   = data.get('topic', '')
@@ -487,7 +493,7 @@ def _video_reply(message: str, history: list, video: dict):
 @gemini_bp.route('/chatbot/ask', methods=['POST'])
 @login_required
 def chatbot_ask():
-    data      = request.get_json() or {}
+    data      = _json_body()
     message   = data.get('message', '')
     history   = data.get('history', [])
     file_data = data.get('file_data')
@@ -712,7 +718,7 @@ def get_user_chats(user_id: int) -> list:
 @gemini_bp.route('/chatbot/conversations', methods=['POST'])
 @login_required
 def save_chat():
-    data = request.get_json() or {}
+    data = _json_body()
     client_id = str(data.get('id', ''))
     if not _CHAT_ID.match(client_id):
         return jsonify({'success': False, 'message': 'Invalid chat.'}), 400

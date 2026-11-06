@@ -166,6 +166,11 @@ function escapeHtmlYT(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// A JS argument inside a double-quoted onclick="..." attribute
+function jsArgYT(value) {
+    return escapeHtmlYT(JSON.stringify(value == null ? '' : value));
+}
+
 function switchAiTab(tabName) {
     const notesTabBtn = document.getElementById('aiTabNotesBtn');
     const quizTabBtn  = document.getElementById('aiTabQuizBtn');
@@ -393,14 +398,14 @@ async function loadRelatedVideos(topic) {
         ];
 
         container.innerHTML = videos.map((v, i) => {
-            const tj     = JSON.stringify(v.title);
-            const topicJ = JSON.stringify(topic);
+            const tj     = jsArgYT(v.title || '');
+            const topicJ = jsArgYT(topic || '');
             const thumb  = v.thumbnail ||
                 `https://img.youtube.com/vi/${v.video_id}/mqdefault.jpg`;
             const avBg   = avatarColors[i % avatarColors.length];
 
             return `
-            <div onclick='openVideo("${v.video_id}",${tj},${topicJ})'
+            <div onclick="openVideo(${jsArgYT(v.video_id)},${tj},${topicJ})"
                  style="display:flex;gap:9px;padding:7px 8px;
                         border-radius:10px;cursor:pointer;
                         transition:all 0.2s;margin-bottom:5px;
@@ -412,7 +417,7 @@ async function loadRelatedVideos(topic) {
                 <div style="width:92px;min-width:92px;height:55px;
                             border-radius:8px;overflow:hidden;
                             background:#f1f5f9;position:relative;flex-shrink:0;">
-                    <img src="${thumb}"
+                    <img src="${escapeHtmlYT(thumb)}"
                          style="width:100%;height:100%;object-fit:cover;"
                          onerror="this.src='https://via.placeholder.com/92x55/1e293b/475569?text=V'">
                     <div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);
@@ -437,18 +442,18 @@ async function loadRelatedVideos(topic) {
                                 display:-webkit-box;-webkit-line-clamp:2;
                                 -webkit-box-orient:vertical;overflow:hidden;
                                 margin-bottom:4px;">
-                        ${v.title || 'Video'}
+                        ${escapeHtmlYT(v.title || 'Video')}
                     </div>
                     <div style="display:flex;align-items:center;gap:5px;">
                         <div style="width:18px;height:18px;border-radius:50%;
                                     background:${avBg};flex-shrink:0;
                                     display:flex;align-items:center;justify-content:center;
                                     color:white;font-size:0.58rem;font-weight:700;">
-                            ${(v.channel || 'Y')[0].toUpperCase()}
+                            ${escapeHtmlYT((v.channel || 'Y')[0].toUpperCase())}
                         </div>
                         <span style="font-size:0.64rem;color:#94a3b8;
                                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            ${v.channel || 'YouTube'}
+                            ${escapeHtmlYT(v.channel || 'YouTube')}
                         </span>
                     </div>
                 </div>
@@ -505,7 +510,7 @@ async function searchYouTube(query) {
                             Educational Content Only
                         </h4>
                         <p style="font-size: 0.9rem; color: #64748b; line-height: 1.6; margin-bottom: 20px;">
-                            ${data.message || 'This system is strictly for education. Searching for movies, dramas, or entertainment videos is not allowed.'}
+                            ${escapeHtmlYT(data.message || 'This system is strictly for education. Searching for movies, dramas, or entertainment videos is not allowed.')}
                         </p>
                         <div style="border-top: 1px dashed #cbd5e1; padding-top: 20px; margin-top: 10px;">
                             <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px;">
@@ -537,7 +542,7 @@ async function searchYouTube(query) {
                 <div style="text-align:center;padding:56px 20px;">
                     <div style="font-size:3rem;margin-bottom:14px;">🔍</div>
                     <div style="font-size:1rem;font-weight:600;color:#1e293b;margin-bottom:6px;">
-                        No educational results for "${query}"
+                        No educational results for "${escapeHtmlYT(query)}"
                     </div>
                     <div style="font-size:0.82rem;color:#94a3b8;">
                         Try different educational keywords or check spelling
@@ -553,7 +558,7 @@ async function searchYouTube(query) {
                 <div>
                     <div style="font-size:0.82rem;color:#94a3b8;margin-bottom:3px;">Search results</div>
                     <div style="font-size:1rem;font-weight:700;color:#1e293b;">
-                        "${query}"
+                        "${escapeHtmlYT(query)}"
                         <span style="font-size:0.75rem;font-weight:400;
                                      color:#94a3b8;margin-left:8px;">
                             ${data.videos.length} videos found
@@ -578,8 +583,8 @@ async function searchYouTube(query) {
         ];
 
         const cards = data.videos.map((v, i) => {
-            const tj    = JSON.stringify(v.title || '');
-            const qj    = JSON.stringify(data.query || query);
+            const tj    = jsArgYT(v.title || '');
+            const qj    = jsArgYT(data.query || query);
             const thumb = v.thumbnail ||
                 `https://img.youtube.com/vi/${v.video_id}/mqdefault.jpg`;
             const views = v.view_count ? formatNum(v.view_count) + ' views' : '';
@@ -596,13 +601,13 @@ async function searchYouTube(query) {
                         border:1px solid transparent;transition:all 0.2s;"
                  onmouseover="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';"
                  onmouseout="this.style.background='transparent';this.style.borderColor='transparent';"
-                 onclick='openVideo("${v.video_id}",${tj},${qj})'>
+                 onclick="openVideo(${jsArgYT(v.video_id)},${tj},${qj})">
 
                 <!-- Thumbnail -->
                 <div style="position:relative;width:246px;min-width:246px;
                             height:138px;border-radius:10px;overflow:hidden;
                             background:#0f172a;flex-shrink:0;">
-                    <img src="${thumb}" alt=""
+                    <img src="${escapeHtmlYT(thumb)}" alt=""
                          style="width:100%;height:100%;object-fit:cover;
                                 display:block;transition:transform 0.35s;"
                          onerror="this.src='https://via.placeholder.com/246x138'"
@@ -625,7 +630,7 @@ async function searchYouTube(query) {
                                 background:rgba(0,0,0,.82);color:white;
                                 padding:2px 6px;border-radius:4px;
                                 font-size:11px;font-weight:700;">
-                        ${v.duration}
+                        ${escapeHtmlYT(v.duration)}
                     </div>` : ''}
                 </div>
 
@@ -636,7 +641,7 @@ async function searchYouTube(query) {
                               margin:0;line-height:1.45;
                               display:-webkit-box;-webkit-line-clamp:2;
                               -webkit-box-orient:vertical;overflow:hidden;">
-                        ${v.title || 'Untitled'}
+                        ${escapeHtmlYT(v.title || 'Untitled')}
                     </p>
                     <div style="display:flex;align-items:center;gap:5px;
                                 font-size:0.72rem;color:#94a3b8;">
@@ -649,17 +654,17 @@ async function searchYouTube(query) {
                                     background:${avBg};display:flex;align-items:center;
                                     justify-content:center;color:white;
                                     font-size:10px;font-weight:700;flex-shrink:0;">
-                            ${(v.channel || 'Y')[0].toUpperCase()}
+                            ${escapeHtmlYT((v.channel || 'Y')[0].toUpperCase())}
                         </div>
                         <span style="font-size:0.75rem;font-weight:600;color:#475569;">
-                            ${v.channel || 'YouTube'}
+                            ${escapeHtmlYT(v.channel || 'YouTube')}
                         </span>
                     </div>
                     ${desc ? `
                     <p style="font-size:0.74rem;color:#94a3b8;margin:0;
                               line-height:1.55;display:-webkit-box;
                               -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-                        ${desc}
+                        ${escapeHtmlYT(desc)}
                     </p>` : ''}
                     <div style="display:flex;align-items:center;
                                 gap:7px;flex-wrap:wrap;margin-top:auto;">

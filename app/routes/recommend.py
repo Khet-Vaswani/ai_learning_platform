@@ -410,7 +410,8 @@ FEEDBACK_TYPES = ('helpful', 'known', 'not_for_me')
 @recommend_bp.route('/recommend/feedback', methods=['POST'])
 @login_required
 def recommendation_feedback():
-    data     = request.get_json(silent=True) or {}
+    data     = request.get_json(silent=True)
+    data     = data if isinstance(data, dict) else {}
     video_id = str(data.get('video_id', '')).strip()[:50]
     feedback = data.get('feedback')
     if not video_id or feedback not in FEEDBACK_TYPES:

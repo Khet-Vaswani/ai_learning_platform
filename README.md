@@ -258,7 +258,7 @@ The repository is ready for Vercel (`pyproject.toml` sets the entrypoint `run:ap
 3. **Environment variables** (Settings → Environment Variables), using the values from `.env.example`:
    - Required: `SECRET_KEY`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `GROQ_API_KEY`, `YOUTUBE_API_KEY`
    - Recommended: `GEMINI_API_KEY`, `DB_POOL_SIZE=2`
-   - Optional: OAuth client IDs and secrets, `YT_PROXY_URL`
+   - Optional: OAuth client IDs and secrets, `YT_PROXY_URL`, and `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` so password-reset links are emailed (otherwise they only appear in the server log)
    - Do not set `OAUTHLIB_INSECURE_TRANSPORT` on the live site.
 4. **Deploy.** The first request creates the tables (later starts skip this unless the SQL files change).
 5. **Admin account:** run `python create_admin.py <email> <password> "<name>"` with the hosted database's `DB_*` values set in your terminal.

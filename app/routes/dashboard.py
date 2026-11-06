@@ -515,17 +515,44 @@ def get_plans():
     return jsonify({'success': True, 'plans': result})
 
 
+def _json_body():
+    """The request's JSON object, or {} for a missing or malformed body."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
+def _int_in(value, low, high):
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return None
+    return n if low <= n <= high else None
+
+
+def _bad_request(message):
+    return jsonify({'success': False, 'message': message}), 400
+
+
 @dashboard.route('/study/plan/add', methods=['POST'])
 @login_required
 def add_plan():
-    data    = request.get_json()
-    user_id = session['user_id']
+    data     = _json_body()
+    user_id  = session['user_id']
+    topic    = str(data.get('topic') or '').strip()[:100]
+    duration = _int_in(data.get('duration', 60), 5, 600)
+    priority = data.get('priority') if data.get('priority') in ('low', 'medium', 'high') else 'medium'
+    try:
+        study_date = date.fromisoformat(str(data.get('date', '')))
+    except ValueError:
+        study_date = None
+    if not topic or not study_date or duration is None:
+        return _bad_request('Add a topic, a date and a duration between 5 and 600 minutes.')
+    data = {'topic': topic, 'date': study_date.isoformat(), 'duration': duration}
     execute_query(
         """INSERT INTO study_schedule
            (user_id, topic, study_date, duration, priority)
            VALUES (%s,%s,%s,%s,%s)""",
-        (user_id, data['topic'], data['date'],
-         data['duration'], data.get('priority', 'medium'))
+        (user_id, topic, study_date, duration, priority)
     )
     try:
         from app.utils.notifications import create_notification
@@ -544,11 +571,14 @@ def add_plan():
 @dashboard.route('/study/plan/toggle', methods=['POST'])
 @login_required
 def toggle_plan():
-    data    = request.get_json()
+    data    = _json_body()
     user_id = session['user_id']
+    plan_id = _int_in(data.get('id'), 1, 2**31 - 1)
+    if plan_id is None:
+        return _bad_request('Invalid plan.')
     execute_query(
         "UPDATE study_schedule SET completed=%s WHERE id=%s AND user_id=%s",
-        (data['completed'], data['id'], user_id)
+        (1 if data.get('completed') else 0, plan_id, user_id)
     )
     return jsonify({'success': True})
 
@@ -556,11 +586,14 @@ def toggle_plan():
 @dashboard.route('/study/plan/delete', methods=['POST'])
 @login_required
 def delete_plan():
-    data    = request.get_json()
+    data    = _json_body()
     user_id = session['user_id']
+    plan_id = _int_in(data.get('id'), 1, 2**31 - 1)
+    if plan_id is None:
+        return _bad_request('Invalid plan.')
     execute_query(
         "DELETE FROM study_schedule WHERE id=%s AND user_id=%s",
-        (data['id'], user_id)
+        (plan_id, user_id)
     )
     return jsonify({'success': True})
 
@@ -568,13 +601,18 @@ def delete_plan():
 @dashboard.route('/study/session/save', methods=['POST'])
 @login_required
 def save_session():
-    data    = request.get_json()
-    user_id = session['user_id']
+    data     = _json_body()
+    user_id  = session['user_id']
+    topic    = str(data.get('topic') or '').strip()[:100]
+    duration = _int_in(data.get('duration'), 1, 600)
+    if not topic or duration is None:
+        return _bad_request('Add a topic and a duration between 1 and 600 minutes.')
+    data = {'topic': topic, 'duration': duration}
     execute_query(
         """INSERT INTO study_sessions
            (user_id, topic, duration_min, session_date)
            VALUES (%s,%s,%s,CURDATE())""",
-        (user_id, data['topic'], data['duration'])
+        (user_id, topic, duration)
     )
     try:
         from app.utils.notifications import create_notification
@@ -609,7 +647,7 @@ def api_get_notifications():
 def api_mark_notifications_read():
     from app.utils.notifications import mark_notifications_as_read
     user_id = session['user_id']
-    data = request.get_json() or {}
+    data = _json_body()
     notif_id = data.get('notif_id')
     mark_notifications_as_read(user_id, notif_id)
     return jsonify({'success': True})

@@ -335,14 +335,15 @@ def video_details():
 @youtube_bp.route('/youtube/watched', methods=['POST'])
 @login_required
 def save_watched():
-    data    = request.get_json()
+    data    = request.get_json(silent=True)
+    data    = data if isinstance(data, dict) else {}
     user_id = session['user_id']
 
-    video_id    = data.get('video_id', '')
-    video_title = data.get('title', '')
-    topic       = data.get('topic', 'General')
+    video_id    = str(data.get('video_id') or '')
+    video_title = str(data.get('title') or '')[:255]
+    topic       = str(data.get('topic') or 'General')[:100]
 
-    if not video_id:
+    if not re.fullmatch(r'[A-Za-z0-9_-]{6,20}', video_id):
         return jsonify({'success': False})
 
     execute_query(

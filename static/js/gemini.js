@@ -336,7 +336,7 @@
                         style="font-size:0.85rem;">
                         <i class="fas fa-brain me-1"
                         style="color:#2563eb;"></i>
-                        ${currentVideo.topic || 'Quiz'}
+                        ${escQ(currentVideo.topic || 'Quiz')}
                     </h6>
                     <span style="background:${style.bg};
                                 color:${style.color};
@@ -439,7 +439,7 @@
         const msg       = data.difficulty_msg  || {};
 
         // Escape topic for safe HTML use
-        const safeTopic = (data.topic || '').replace(/'/g, "\\'");
+        const safeTopic = escQ(JSON.stringify(data.topic || ''));   // a JS string inside onclick="..."
 
         result.innerHTML = `
             <!-- Score Section -->
@@ -465,11 +465,11 @@
                     </div>
                     <div style="font-size:0.82rem; font-weight:700;
                                 color:#1e293b;">
-                        ${msg.title}
+                        ${escQ(msg.title)}
                     </div>
                     <div style="font-size:0.75rem; color:#64748b;
                                 margin-top:2px;">
-                        ${msg.message}
+                        ${escQ(msg.message)}
                     </div>
                     <div class="mt-2 pt-2"
                         style="border-top:1px solid ${color}22;">
@@ -491,7 +491,7 @@
                             font-size:0.75rem; color:#92400e;
                             text-align:left;">
                     <i class="fas fa-exclamation-triangle me-1"></i>
-                    <strong>${data.topic}</strong>
+                    <strong>${escQ(data.topic)}</strong>
                     added to weak topics!
                 </div>` : `
                 <div class="mt-2 p-2 rounded"
@@ -500,7 +500,7 @@
                             font-size:0.75rem; color:#166534;
                             text-align:left;">
                     <i class="fas fa-check-circle me-1"></i>
-                    Great job on <strong>${data.topic}</strong>! 🌟
+                    Great job on <strong>${escQ(data.topic)}</strong>! 🌟
                 </div>`}
             </div>
 
@@ -537,7 +537,7 @@
 
                 ${data.is_weak && data.related_search ? `
                 <!-- Find Related Videos -->
-                <button onclick="searchRelatedVideos('${safeTopic}')"
+                <button onclick="searchRelatedVideos(${safeTopic})"
                         style="width:100%; padding:10px;
                             background:linear-gradient(
                                 135deg,#fef9c3,#fef08a);
@@ -549,7 +549,7 @@
                             align-items:center;
                             justify-content:center; gap:6px;">
                     <i class="fas fa-search"></i>
-                    Find Videos for "${data.topic}"
+                    Find Videos for "${escQ(data.topic)}"
                 </button>
 
                 <!-- View in Weak Topics Page -->
@@ -564,7 +564,7 @@
                         align-items:center;
                         justify-content:center; gap:6px;">
                     <i class="fas fa-exclamation-triangle"></i>
-                    View "${data.topic}" in Weak Topics
+                    View "${escQ(data.topic)}" in Weak Topics
                 </a>` : ''}
 
                 <!-- AI Recommendations -->

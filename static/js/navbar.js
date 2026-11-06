@@ -197,7 +197,7 @@ class NavbarManager {
         this.trendingTopics.forEach(topic => {
             const item = document.createElement('div');
             item.className = 'trending-item';
-            item.innerHTML = `<i class="fas fa-book-reader text-primary"></i><span>${topic}</span>`;
+            item.innerHTML = `<i class="fas fa-book-reader text-primary"></i><span>${this.escapeHtml(topic)}</span>`;
             item.addEventListener('click', () => this.selectSuggestion(topic));
             this.trendingList.appendChild(item);
         });
@@ -260,8 +260,12 @@ class NavbarManager {
     }
 
     highlightMatch(text, query) {
-        const regex = new RegExp(`(${query})`, 'gi');
-        return text.replace(regex, '<strong>$1</strong>');
+        // Suggestions include other students' video titles: escape them, and escape
+        // the query for the regex (searches like "c++" used to throw an error)
+        const safe = this.escapeHtml(text);
+        const q = this.escapeHtml(query || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (!q) return safe;
+        return safe.replace(new RegExp(`(${q})`, 'gi'), '<strong>$1</strong>');
     }
 
     selectSuggestion(suggestion) {
@@ -451,7 +455,7 @@ class NavbarManager {
                 item.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <i class="${suggestion.icon}" style="font-size: 14px; opacity: 0.6;"></i>
-                        <span>${suggestion.text}</span>
+                        <span>${this.escapeHtml(suggestion.text)}</span>
                     </div>
                     <span style="font-size: 10px; background: rgba(37,99,235,0.06); color: var(--primary-blue); padding: 2px 6px; border-radius: 10px; font-weight: 600; text-transform: uppercase;">${suggestion.type}</span>
                 `;
@@ -809,13 +813,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-
-// ===== Service Worker for PWA Support =====
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/JS/navbar-sw.js').catch(() => {
-        // Service worker registration not required
-    });
-}
 
 // ===== API Integration Helpers =====
 const NavbarAPI = {
