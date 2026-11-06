@@ -515,25 +515,17 @@ def chatbot_ask():
                 )
                 return jsonify({'success': True, 'reply': resp.text.strip()})
 
-            # 2. PDF analysis via pypdf / PyPDF2
+            # 2. PDF analysis via PyPDF2
             elif file_type == 'application/pdf' or fname_lower.endswith('.pdf'):
                 pdf_text = ''
                 try:
                     import io
-                    try:
-                        import pypdf
-                        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-                        for page in reader.pages[:15]:
-                            txt = page.extract_text()
-                            if txt:
-                                pdf_text += txt + '\n'
-                    except ImportError:
-                        import PyPDF2
-                        reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
-                        for page in reader.pages[:15]:
-                            txt = page.extract_text()
-                            if txt:
-                                pdf_text += txt + '\n'
+                    import PyPDF2
+                    reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+                    for page in reader.pages[:15]:
+                        txt = page.extract_text()
+                        if txt:
+                            pdf_text += txt + '\n'
                 except Exception as ex:
                     print(f"⚠️ PDF parse error: {ex}")
 
