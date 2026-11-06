@@ -280,8 +280,13 @@ def save_db_cache(query, videos):
 def recommend_videos():
     user_id = session['user_id']
 
-    # Cache check
-    cache_key = f"rec_{user_id}"
+    # Cache check. The key includes the student's preferences, so changing them in
+    # Settings gives fresh recommendations at once (on every server copy).
+    prefs = (execute_query(
+        "SELECT education_category, field_of_interest, skill_level FROM users WHERE id=%s",
+        (user_id,), fetch=True) or [{}])[0]
+    pref_key  = '|'.join(str(prefs.get(k) or '') for k in ('education_category', 'field_of_interest', 'skill_level'))
+    cache_key = f"rec_{user_id}_{pref_key}"
     cached    = None if request.args.get('refresh') == '1' else get_cache(cache_key)
     if cached and len(cached) > 0:
         return jsonify({'success': True, 'recommendations': cached, 'cached': True,
@@ -430,8 +435,10 @@ def recommendation_feedback():
     if saved is False:
         return jsonify({'success': False, 'message': 'Could not save feedback.'}), 500
 
-    # Next load should reflect the feedback
-    _cache.pop(f"rec_{session['user_id']}", None)
+    # Next load should reflect the feedback (cache keys are rec_<user>_<preferences>)
+    prefix = f"rec_{session['user_id']}_"
+    for key in [k for k in _cache if k.startswith(prefix)]:
+        _cache.pop(key, None)
     return jsonify({'success': True})
 
 
