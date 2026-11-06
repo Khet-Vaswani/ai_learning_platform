@@ -159,6 +159,9 @@ def extract_youtube_captions(video_id: str) -> dict:
         print("⚠️ youtube-transcript-api not installed")
         return {'transcript': '', 'source': 'none', 'cached': False}
     except Exception as e:
+        if type(e).__name__ in ('RequestBlocked', 'IpBlocked'):
+            print(f"[Transcript] YouTube blocked this server's caption request for {video_id}")
+            return {'transcript': '', 'source': 'none', 'cached': False, 'blocked': True}
         print(f"ℹ️ No caption tracks for {video_id}: {type(e).__name__}: {str(e)[:160]}")
         return {'transcript': '', 'source': 'none', 'cached': False}
 
@@ -301,6 +304,8 @@ def extract_ytdlp_subtitles(video_id: str) -> dict:
 
     except Exception as e:
         print(f"⚠️ yt-dlp subtitle extraction notice for {video_id}: {e}")
+        if 'not a bot' in str(e).lower() or 'sign in to confirm' in str(e).lower():
+            return {'transcript': '', 'source': 'none', 'cached': False, 'blocked': True}
 
     return {'transcript': '', 'source': 'none', 'cached': False}
 
@@ -396,15 +401,21 @@ def extract_transcript_full_pipeline(
     if ytdlp_res.get('transcript') and is_valid_transcript(ytdlp_res['transcript']):
         return ytdlp_res
 
+    # YouTube refused this server (common on cloud hosts): the video may well have
+    # captions, and downloading its audio would be blocked too
+    blocked = bool(captions_res.get('blocked') or ytdlp_res.get('blocked'))
+
     # Step 4: Whisper Speech-To-Text
-    if use_whisper:
+    if use_whisper and not blocked:
         whisper_res = extract_whisper_transcript(video_id)
         if whisper_res.get('transcript') and is_valid_transcript(whisper_res['transcript']):
             return whisper_res
 
-    print(f"❌ No authentic transcript could be retrieved for video: {video_id}")
+    print(f"❌ No authentic transcript could be retrieved for video: {video_id}"
+          + (" (YouTube blocked this server)" if blocked else ""))
     return {
         'transcript': '',
         'source'    : 'none',
-        'cached'    : False
+        'cached'    : False,
+        'blocked'   : blocked,
     }

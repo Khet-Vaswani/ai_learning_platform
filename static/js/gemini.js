@@ -290,7 +290,7 @@
                     modalBody.innerHTML = `
                         <div class="alert ${data.transcript_unavailable ? 'alert-secondary' : 'alert-warning'} text-center my-4">
                             <i class="fas ${data.transcript_unavailable ? 'fa-closed-captioning' : 'fa-exclamation-triangle'} fa-2x mb-2 d-block"></i>
-                            <h6 class="fw-bold">${data.transcript_unavailable ? 'No transcript for this video' : "We couldn't make the quiz"}</h6>
+                            <h6 class="fw-bold">${data.blocked ? "Couldn't reach this video's captions" : data.transcript_unavailable ? 'No transcript for this video' : "We couldn't make the quiz"}</h6>
                             <div class="small">${escQ(data.message || 'Quiz generation failed.')}</div>
                         </div>
                     `;

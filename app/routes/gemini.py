@@ -22,10 +22,19 @@ TRANSCRIPT_UNAVAILABLE = {
 }
 
 
+TRANSCRIPT_BLOCKED = {
+    **TRANSCRIPT_UNAVAILABLE,
+    'blocked': True,
+    'message': ("YouTube didn't let our server read this video's captions right now, so we can't "
+                "make a quiz for it yet. Try another video, or try this one again later."),
+}
+
+
 def _server_transcript(video_id: str):
     """
     Get the video's real transcript server-side: verified cache -> YouTube captions
-    -> yt-dlp subtitles -> speech-to-text. Returns (text, source) or ('', None).
+    -> yt-dlp subtitles -> speech-to-text. Returns (text, source), ('', 'blocked')
+    when YouTube refused this server, or ('', None).
     """
     from app.ai.transcript_extractor import (
         extract_transcript_full_pipeline, is_valid_transcript, VALID_TRANSCRIPT_SOURCES)
@@ -33,7 +42,12 @@ def _server_transcript(video_id: str):
     text, source = result.get('transcript', ''), result.get('source')
     if source in VALID_TRANSCRIPT_SOURCES and is_valid_transcript(text):
         return text, source
-    return '', None
+    return '', ('blocked' if result.get('blocked') else None)
+
+
+def _no_transcript_response(source, what='a quiz'):
+    body = TRANSCRIPT_BLOCKED if source == 'blocked' else TRANSCRIPT_UNAVAILABLE
+    return jsonify({**body, 'message': body['message'].replace('a quiz', what)})
 
 # ── Groq client ───────────────────────────────────────────
 from groq import Groq
@@ -221,8 +235,7 @@ def generate_notes_route():
 
         transcript, source = _server_transcript(video_id)
         if not transcript:
-            return jsonify({**TRANSCRIPT_UNAVAILABLE,
-                            'message': TRANSCRIPT_UNAVAILABLE['message'].replace('a quiz', 'notes')})
+            return _no_transcript_response(source, 'notes')
 
         print(f"\n📝 Notes: video={video_id} | source={source} | {len(transcript.split())} words")
         return jsonify(generate_notes(
@@ -277,7 +290,7 @@ def generate_quiz_route():
         # never from the request body, so nothing else can be passed off as one.
         transcript, source = _server_transcript(video_id)
         if not transcript:
-            return jsonify(TRANSCRIPT_UNAVAILABLE)
+            return _no_transcript_response(source)
 
         print(f"\n📋 Quiz generation: video={video_id} | source={source} | {len(transcript.split())} words")
         result = generate_quiz(

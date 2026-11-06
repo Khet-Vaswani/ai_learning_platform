@@ -266,7 +266,11 @@ The repository is ready for Vercel (`pyproject.toml` sets the entrypoint `run:ap
 
 **YouTube API key:** set *Application restrictions* to **None** (the app calls YouTube from the server, so a *Websites* restriction blocks it) and *API restrictions* to **YouTube Data API v3**.
 
-**Limits on Vercel:** YouTube often blocks caption requests from cloud servers, so set `YT_PROXY_URL` if many videos show "couldn't get a transcript". Speech-to-text for videos without captions is not available (no FFmpeg). Chat uploads are limited to 3 MB.
+**Transcripts on Vercel:** YouTube often blocks caption requests from cloud servers. Two fixes:
+- Free: run `python sync_transcripts.py` on your own computer with the hosted database's `DB_*` values set in the terminal. It fetches transcripts for the videos the site shows and saves them in the database, which the live site uses first.
+- Automatic: set `YT_PROXY_URL` to a residential proxy.
+
+**Other limits on Vercel:** Speech-to-text for videos without captions is not available (no FFmpeg). Chat uploads are limited to 3 MB.
 
 ---
 
