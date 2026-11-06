@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Quiz: {{ quiz_topic }} — LearnAI{% endblock %}
+{% block title %}Quiz: {{ quiz_topic }} — LearnNova{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -9,6 +9,17 @@
 .qz-wrap { max-width: 760px; margin: 0 auto; }
 .qz-head { background: #fff; border: 1px solid var(--ui-border); border-radius: var(--ui-radius); padding: 20px 22px; margin-bottom: 16px; }
 .qz-head-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.qz-levels { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; margin-top: 14px; background: #fff; }
+.qz-levels-label { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.qz-levels-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.qz-level { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 700; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; }
+.qz-level-easy.on   { background: #16a34a; border-color: #16a34a; color: #fff; }
+.qz-level-medium.on { background: #d97706; border-color: #d97706; color: #fff; }
+.qz-level-hard.on   { background: #dc2626; border-color: #dc2626; color: #fff; }
+.qz-level-check { font-size: 0.7rem; }
+.qz-levels-note { flex-basis: 100%; font-size: 0.74rem; color: #64748b; }
 .qz-topic { font-size: 1.25rem; font-weight: 800; color: var(--ui-text); margin: 0 0 2px; }
 .qz-source { font-size: 0.8rem; color: var(--ui-muted); max-width: 520px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qz-progress { margin-top: 16px; }
@@ -67,10 +78,20 @@
         <h1 class="qz-topic">{{ quiz_topic or 'Quiz' }}</h1>
         <div class="qz-source">{{ quiz_title }}</div>
       </div>
-      {% if difficulty %}
-      <span class="ui-chip {{ 'green' if difficulty == 'Easy' else ('red' if difficulty == 'Hard' else 'amber') }}" title="Every question in this quiz is {{ difficulty }}">{{ difficulty }} quiz</span>
-      {% endif %}
     </div>
+    {% if difficulty %}
+    <div class="qz-levels" aria-label="Quiz level: {{ difficulty }}">
+      <span class="qz-levels-label">Quiz level</span>
+      <div class="qz-levels-pills">
+        {% for name, icon in [('Easy', 'fa-seedling'), ('Medium', 'fa-fire'), ('Hard', 'fa-bolt')] %}
+        <span class="qz-level qz-level-{{ name|lower }} {{ 'on' if name == difficulty }}">
+          <i class="fas {{ icon }}"></i>{{ name }}{% if name == difficulty %} <i class="fas fa-check qz-level-check"></i>{% endif %}
+        </span>
+        {% endfor %}
+      </div>
+      <div class="qz-levels-note">Every question in this quiz is {{ difficulty }}, chosen from your recent quiz scores.</div>
+    </div>
+    {% endif %}
     <div class="qz-progress">
       <div class="ui-bar"><span id="progressFill" style="width: 0%;"></span></div>
       <div class="qz-progress-meta">

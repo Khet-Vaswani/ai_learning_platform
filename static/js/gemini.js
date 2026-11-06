@@ -78,6 +78,39 @@
     }
     window.closeQuizModal = closeQuizModal;
 
+    // ── Quiz level label: all three levels, this quiz's level highlighted ──
+    const LEVEL_STYLE = {
+        Easy  : {color: '#16a34a', soft: '#dcfce7', icon: 'fa-seedling'},
+        Medium: {color: '#d97706', soft: '#fef3c7', icon: 'fa-fire'},
+        Hard  : {color: '#dc2626', soft: '#fee2e2', icon: 'fa-bolt'},
+    };
+
+    function levelBar(level, basis) {
+        if (!LEVEL_STYLE[level]) return '';
+        const pills = Object.keys(LEVEL_STYLE).map(name => {
+            const s = LEVEL_STYLE[name], on = name === level;
+            return `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;
+                        font-size:0.8rem;font-weight:700;border:1px solid ${on ? s.color : '#e2e8f0'};
+                        background:${on ? s.color : '#ffffff'};color:${on ? '#ffffff' : '#94a3b8'};">
+                        <i class="fas ${s.icon}"></i>${name}${on ? ' <i class="fas fa-check" style="font-size:0.7rem;"></i>' : ''}
+                    </span>`;
+        }).join('');
+        return `
+            <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                    <span style="font-size:0.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Quiz level</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;" role="img" aria-label="Quiz level: ${escQ(level)}">${pills}</div>
+                </div>
+                ${basis ? `<div style="font-size:0.74rem;color:#64748b;margin-top:8px;">Every question is ${escQ(level)}, chosen from ${escQ(basis)}.</div>` : ''}
+            </div>`;
+    }
+
+    function levelTag(level) {
+        const s = LEVEL_STYLE[level];
+        return s ? `<span style="font-size:0.7rem;font-weight:700;color:${s.color};background:${s.soft};padding:3px 9px;border-radius:999px;">
+                        <i class="fas ${s.icon} me-1"></i>${level}</span>` : '';
+    }
+
     // ── Render Inline Quiz Modal Content ───────────────────────
     function renderQuizModalQuestions() {
         const modalBody = document.getElementById('quizModalBody');
@@ -91,17 +124,18 @@
             modalTitle.textContent = `Interactive Quiz — ${currentVideo.topic || 'Video Topic'}`;
         }
         if (modalSub) {
-            modalSub.textContent = currentQuizLevel
-                ? `${currentQuestions.length} questions · ${currentQuizLevel} level` + (currentLevelBasis ? ` (based on ${currentLevelBasis})` : '')
-                : `${currentQuestions.length} questions`;
+            // The level itself is shown in the label at the top of the quiz
+            modalSub.textContent = `${currentQuestions.length} questions`;
         }
 
         modalBody.innerHTML = `
+            ${levelBar(currentQuizLevel, currentLevelBasis)}
             <div id="modalQuizContainer">
                 ${currentQuestions.map((q, i) => `
                     <div class="quiz-modal-qitem mb-4 p-3" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="badge bg-primary text-white fw-bold">Question ${i + 1} of ${currentQuestions.length}</span>
+                            ${levelTag(currentQuizLevel)}
                         </div>
                         <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem; line-height:1.5;">${escQ(q.question)}</h6>
                         <div class="quiz-modal-options d-flex flex-column gap-2">

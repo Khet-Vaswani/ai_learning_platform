@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-create_admin.py — Create or Reset an Admin Account for the AI Learning Platform
+create_admin.py — Create or Reset an Admin Account for LearnNova
 
 Usage:
     python create_admin.py

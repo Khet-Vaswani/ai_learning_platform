@@ -1,5 +1,5 @@
 {% extends 'partials/auth_base.html' %}
-{% block title %}Log in — LearnAI{% endblock %}
+{% block title %}Log in — LearnNova{% endblock %}
 
 {% block auth_form %}
 {% set social_errors = {
@@ -49,7 +49,7 @@
 </div>
 
 <p style="text-align: center; font-size: 0.86rem; color: var(--ui-muted); margin: 24px 0 0;">
-  New to LearnAI? <a href="{{ url_for('auth.register') }}" class="ui-link" style="font-size: 0.86rem;">Create an account</a>
+  New to LearnNova? <a href="{{ url_for('auth.register') }}" class="ui-link" style="font-size: 0.86rem;">Create an account</a>
 </p>
 <p style="text-align: center; margin: 10px 0 0;"><a href="/admin/login" style="font-size: 0.74rem; color: var(--ui-subtle); text-decoration: none;">Admin login</a></p>
 {% endblock %}

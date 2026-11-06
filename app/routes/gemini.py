@@ -197,7 +197,7 @@ def _student_context(user_id: int) -> str:
 
 def _with_progress(prompt: str, progress: str) -> str:
     """Prefix a chatbot prompt with the student's own progress data and how to use it."""
-    return f"""You are the AI learning assistant inside LearnAI. You can answer general questions on any subject,
+    return f"""You are the AI learning assistant inside LearnNova. You can answer general questions on any subject,
 and you also know this student's own progress on the platform (below).
 
 === THIS STUDENT'S PROGRESS ON LEARNAI ===

@@ -1,6 +1,6 @@
-# LearnAI — AI-Powered Personalized Learning Platform
+# LearnNova — AI-Powered Personalized Learning Platform
 
-LearnAI is an adaptive e-learning web application. It recommends educational YouTube videos to each student, builds notes and quizzes **strictly from what is said in each video**, adjusts quiz difficulty to the student's own scores, tracks weak topics, and includes an AI assistant that knows the student's progress and can answer questions about the videos they watched.
+LearnNova is an adaptive e-learning web application. It recommends educational YouTube videos to each student, builds notes and quizzes **strictly from what is said in each video**, adjusts quiz difficulty to the student's own scores, tracks weak topics, and includes an AI assistant that knows the student's progress and can answer questions about the videos they watched.
 
 Built with **Flask**, **MySQL/MariaDB**, **Groq** and **Google Gemini**, with a **Mixture-of-Experts (MoE)** recommendation engine.
 
