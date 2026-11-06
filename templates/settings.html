@@ -108,7 +108,11 @@
             </div>
             <div class="ui-field">
               <label class="ui-label" for="field">Field or subject</label>
-              <input class="ui-input" id="field" name="field_of_interest" value="{{ user.field_of_interest or '' }}" maxlength="100" placeholder="Computer Science">
+              <input class="ui-input" id="field" name="field_of_interest" value="{{ user.field_of_interest or '' }}" maxlength="100" placeholder="Computer Science" list="fieldOptions" autocomplete="off">
+              <datalist id="fieldOptions">
+                {% for f in field_options or [] %}<option value="{{ f }}">{% endfor %}
+              </datalist>
+              <div class="ui-help">Pick from the list, or type your own field. Recommendations follow it.</div>
             </div>
           </div>
           <div class="ui-field">

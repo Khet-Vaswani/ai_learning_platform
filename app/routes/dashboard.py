@@ -723,11 +723,18 @@ def settings_page():
     )
     user_stats = stats[0] if stats else {'total_watched': 0, 'total_quizzes': 0, 'avg_score': 0}
 
+    # Suggestions for the field box: names the recommendation engine knows exactly
+    from app.ai.moe_engine import FIELD_TOPICS, DEPARTMENT_TOPICS
+    from app.routes.onboarding import CATEGORY_CLASSES
+    field_options = sorted({k for k in list(FIELD_TOPICS) + list(DEPARTMENT_TOPICS) if '_' not in k}
+                           | {c['label'] for items in CATEGORY_CLASSES.values() for c in items})
+
     return render_template(
         'settings.html',
         user=user_data,
         categories=categories,
         stats=user_stats,
+        field_options=field_options,
         active_tab=request.args.get('tab', 'profile')
     )
 

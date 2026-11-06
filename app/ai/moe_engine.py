@@ -2,7 +2,9 @@
 # Now handles: Primary/Secondary/Matric/Intermediate/University
 # ============================================================
 
+import json
 import math
+import re
 from app.utils.db import execute_query
 
 
@@ -107,7 +109,7 @@ FIELD_TOPICS = {
 # ══════════════════════════════════════════════════════════
 CLASS_TOPICS = {
     # Primary
-    'class_1' : ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge'],
+    'class_1' : ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge for Kids'],
     'class_2' : ['English Class 2', 'Urdu Class 2', 'Maths Class 2', 'Science Class 2'],
     'class_3' : ['English Class 3', 'Urdu Class 3', 'Maths Class 3', 'Science Class 3'],
     'class_4' : ['English Class 4', 'Urdu Class 4', 'Maths Class 4', 'Social Studies'],
@@ -144,6 +146,25 @@ CLASS_TOPICS = {
 
 
 # ══════════════════════════════════════════════════════════
+# DEPARTMENT → TOPICS (university students who chose only a department)
+# ══════════════════════════════════════════════════════════
+DEPARTMENT_TOPICS = {
+    'Computer Science'              : ['Python Programming', 'Data Structures', 'Algorithms', 'Database Design', 'Web Development'],
+    'Engineering'                   : ['Engineering Mathematics', 'Engineering Mechanics', 'Thermodynamics', 'Circuit Analysis', 'Engineering Drawing'],
+    'Business & Economics'          : ['Principles of Management', 'Financial Accounting', 'Marketing Management', 'Microeconomics', 'Business Statistics'],
+    'Law'                           : ['Constitutional Law', 'Criminal Law', 'Contract Law', 'Legal Research', 'Jurisprudence'],
+    'Medicine & Health Sciences'    : ['Anatomy', 'Physiology', 'Biochemistry', 'Pharmacology', 'Pathology'],
+    'Arts & Humanities'             : ['English Literature', 'World History', 'Philosophy', 'Linguistics', 'Islamic Studies'],
+    'Education'                     : ['Educational Psychology', 'Teaching Methods', 'Curriculum Development', 'Classroom Management', 'Educational Assessment'],
+    'Social Sciences'               : ['Sociology', 'Psychology', 'Political Science', 'Economics', 'Research Methods'],
+    'Agriculture & Natural Sciences': ['Agronomy', 'Soil Science', 'Botany', 'Zoology', 'Environmental Science'],
+    'Other'                         : ['Study Skills', 'Critical Thinking', 'Communication Skills', 'Research Methods', 'Computer Basics'],
+}
+
+CATEGORY_NAMES = {'primary', 'secondary', 'matriculation', 'matric', 'intermediate', 'university', 'professional'}
+
+
+# ══════════════════════════════════════════════════════════
 # SEARCH QUERY MAP — for YouTube searches
 # ══════════════════════════════════════════════════════════
 TOPIC_SEARCH_QUERIES = {
@@ -151,7 +172,8 @@ TOPIC_SEARCH_QUERIES = {
     'English Basics'          : 'English basics for kids class 1',
     'Urdu Basics'             : 'Urdu basics class 1 for kids',
     'Maths Class 1'           : 'basic maths class 1 addition subtraction',
-    'General Knowledge'       : 'general knowledge for kids primary school',
+    'General Knowledge for Kids': 'general knowledge for kids primary school',
+    'General Knowledge'       : 'general knowledge MCQs for competitive exams Pakistan',
     'English Class 2'         : 'English class 2 grammar basics',
     'Mathematics Class 6'     : 'Mathematics class 6 Pakistan curriculum',
     'General Science'         : 'General science class 6 Pakistan',
@@ -166,7 +188,7 @@ TOPIC_SEARCH_QUERIES = {
     'Computer Science ICS'    : 'ICS Computer Science programming tutorial',
     'Accounting ICom'         : 'ICom Accounting principles tutorial',
     'Pakistan Affairs'        : 'Pakistan affairs CSS preparation',
-    'Current Affairs'         : 'current affairs Pakistan 2024',
+    'Current Affairs'         : 'current affairs Pakistan latest',
     'Biology MDCAT'           : 'MDCAT Biology preparation',
     'IELTS Reading'           : 'IELTS reading skills practice',
 }
@@ -195,16 +217,20 @@ def get_topics_for_field(field):
     - Category names: "Primary", "Secondary", etc.
     Never returns empty for known categories.
     """
-    if not field:
+    if not field or not str(field).strip():
         return _get_general_topics()
+    field = str(field).strip()
 
-    # Exact matches first
+    # Exact matches first (any letter case)
     if field in FIELD_TOPICS:
         return FIELD_TOPICS[field]
     if field in CLASS_TOPICS:
         return CLASS_TOPICS[field]
-
-    field_lower = field.lower().strip()
+    field_lower = field.lower()
+    for table in (DEPARTMENT_TOPICS, FIELD_TOPICS):
+        for key, topics in table.items():
+            if key.lower() == field_lower:
+                return topics
 
     # Label-to-key mappings for school, college, and professional test prep
     label_to_key = {
@@ -216,6 +242,8 @@ def get_topics_for_field(field):
         'class 6': 'class_6',
         'class 7': 'class_7',
         'class 8': 'class_8',
+        'class 9': 'class_9_sci',          # no stream given: science, the most common
+        'class 10': 'class_10_sci',
         'class 9 science': 'class_9_sci',
         'class 9 — science': 'class_9_sci',
         'class 9 - science': 'class_9_sci',
@@ -258,28 +286,94 @@ def get_topics_for_field(field):
     cleaned = ' '.join(cleaned.split())
 
     # 1. Match against predefined mappings using word boundaries (longest pattern first)
-    import re
     sorted_patterns = sorted(label_to_key.items(), key=lambda x: len(x[0]), reverse=True)
     for label_pattern, target_key in sorted_patterns:
         pattern = r'\b' + re.escape(label_pattern) + r'\b'
         if re.search(pattern, cleaned):
             return CLASS_TOPICS[target_key]
 
-    # 2. Case-insensitive substring match in FIELD_TOPICS
-    for key, topics in FIELD_TOPICS.items():
-        k_clean = key.lower().replace('&', ' ').replace('/', ' ')
-        k_clean = ' '.join(k_clean.split())
-        if k_clean in cleaned or cleaned in k_clean:
-            return topics
+    # 2. A known field named inside what the student typed, as whole words
+    #    ("BS Computer Science" -> Computer Science); the longest name wins
+    def words(text):
+        return ' '.join(text.lower().replace('&', ' ').replace('/', ' ').replace('—', ' ').replace('-', ' ').split())
+    best = None
+    for key, topics in list(FIELD_TOPICS.items()) + list(DEPARTMENT_TOPICS.items()):
+        k = words(key)
+        if len(k) >= 4 and re.search(r'\b' + re.escape(k) + r'\b', cleaned):
+            if best is None or len(k) > best[0]:
+                best = (len(k), topics)
+    if best:
+        return best[1]
 
-    # 3. Case-insensitive substring match in CLASS_TOPICS
-    for key, topics in CLASS_TOPICS.items():
-        k_clean = key.replace('_', ' ')
-        if k_clean in cleaned or cleaned in k_clean:
-            return topics
+    # 3. A broad category name ("Primary", "University", ...)
+    if cleaned in CATEGORY_NAMES:
+        return _category_fallback_topics(field)
 
-    # 4. Fallback to category fallback
-    return _category_fallback_topics(field)
+    # 4. Any other field: its main subjects, worked out once and saved
+    return _topics_for_new_field(field)
+
+
+_NEW_FIELD_CACHE = {}
+
+
+def _topics_for_new_field(field):
+    """
+    Topics for a field the maps above don't cover (students can type any field in
+    Settings). Asked from the AI once, then saved in field_topics and reused.
+    """
+    key = ' '.join(field.lower().split())[:100]
+    if key in _NEW_FIELD_CACHE:
+        return _NEW_FIELD_CACHE[key]
+
+    rows = execute_query("SELECT topics FROM field_topics WHERE field=%s", (key,)) or []
+    if rows:
+        try:
+            topics = json.loads(rows[0]['topics'])
+            if topics:
+                _NEW_FIELD_CACHE[key] = topics
+                return topics
+        except ValueError:
+            pass
+
+    topics = _ask_ai_for_field_topics(field)
+    if topics == []:
+        # Not a real field of study (e.g. a typo): general topics, saved so the AI isn't asked again
+        topics = _get_general_topics()
+    if topics:
+        execute_query(
+            """INSERT INTO field_topics (field, topics) VALUES (%s, %s)
+               ON DUPLICATE KEY UPDATE topics = VALUES(topics)""", (key, json.dumps(topics)))
+    else:
+        # AI unavailable: search for the field itself (not saved, so the AI is tried again later)
+        topics = [f'Introduction to {field}', f'{field} Fundamentals', f'{field} Key Concepts',
+                  f'{field} Important Topics']
+    _NEW_FIELD_CACHE[key] = topics
+    return topics
+
+
+def _ask_ai_for_field_topics(field):
+    """5 core subjects of a field, as short YouTube search names; [] if it isn't a field of study, None on failure."""
+    try:
+        from app.ai.quiz_generator import _generate
+        from app.routes.youtube import is_entertainment_query
+        raw = _generate(
+            f"""A student's field of study is: "{field[:100]}"
+List the 5 core subjects a student in this field studies, as short course names that work as
+YouTube search terms for educational lectures (for example "Organic Chemistry", "Contract Law").
+If it isn't a real field of study, return an empty list.
+Return a JSON object: {{"topics": ["...", "...", "...", "...", "..."]}}""",
+            max_tokens=300,
+            system='You are an academic advisor. You reply only with the requested JSON.')
+        topics = json.loads(raw.replace('```json', '').replace('```', '').strip()).get('topics') or []
+        clean = []
+        for t in topics:
+            t = ' '.join(str(t).split())[:60]
+            if len(t) >= 3 and not is_entertainment_query(t) and t not in clean:
+                clean.append(t)
+        return clean[:5]
+    except Exception as e:
+        print(f"[MoE] Could not get topics for field {field!r}: {e}")
+        return None
 
 
 def _label_matches_key(label, key):
@@ -306,7 +400,7 @@ def _category_fallback_topics(category):
     """Return generic topics for a broad category."""
     cat_lower = category.lower()
     if 'primary' in cat_lower:
-        return ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge', 'Science Basics']
+        return ['English Basics', 'Urdu Basics', 'Maths Class 1', 'General Knowledge for Kids', 'Science Basics']
     elif 'secondary' in cat_lower:
         return ['English Class 6', 'Mathematics Class 6', 'General Science', 'Islamiat', 'Pakistan Studies']
     elif 'matric' in cat_lower:

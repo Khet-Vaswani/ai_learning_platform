@@ -274,3 +274,10 @@ CREATE TABLE IF NOT EXISTS chat_conversations (
     UNIQUE KEY uniq_user_chat (user_id, client_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Topics for fields of study the built-in lists don't cover (worked out once by the AI)
+CREATE TABLE IF NOT EXISTS field_topics (
+    field      VARCHAR(100) PRIMARY KEY,
+    topics     TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
