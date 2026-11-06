@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from app.utils.db import SQL_MODE   # same SQL mode as the app (MySQL 8 defaults are stricter)
+
 def _load_sql_file(filepath):
     if not os.path.exists(filepath):
         return []
@@ -27,7 +29,8 @@ def _load_sql_file(filepath):
         if re.match(r'^\s*(USE|CREATE DATABASE)\b', cleaned, re.I):
             continue
         if cleaned.strip():
-            statements.append(stmt + ';')
+            # Comment lines removed, so a statement after a comment is still recognised
+            statements.append(cleaned.strip() + ';')
     return statements
 
 
@@ -58,7 +61,8 @@ def run_migrations():
             port               = int(os.getenv('DB_PORT', 3306)),
             user               = os.getenv('DB_USER',     'root'),
             password           = os.getenv('DB_PASSWORD', ''),
-            connection_timeout = 3
+            connection_timeout = 3,
+            sql_mode           = SQL_MODE
         )
         cursor = conn.cursor()
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}`;")
@@ -134,7 +138,8 @@ def run_migrations():
             user               = os.getenv('DB_USER',     'root'),
             password           = os.getenv('DB_PASSWORD', ''),
             database           = os.getenv('DB_NAME',     'ai_learning_platform'),
-            connection_timeout = 3
+            connection_timeout = 3,
+            sql_mode           = SQL_MODE
         )
         cursor = conn.cursor(dictionary=True)
         

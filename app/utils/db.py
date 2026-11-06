@@ -9,6 +9,11 @@ import mysql.connector.pooling
 
 _db_pool = None
 
+# The app's SQL is written for XAMPP's MariaDB. Hosted MySQL 8 (e.g. Aiven) defaults to
+# ANSI_QUOTES / ONLY_FULL_GROUP_BY / STRICT mode, which rejects some of it, so every
+# connection uses the same mode as local MariaDB.
+SQL_MODE = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION'
+
 def _get_pool():
     global _db_pool
     if _db_pool is None:
@@ -24,6 +29,7 @@ def _get_pool():
                 password=os.getenv('DB_PASSWORD', ''),
                 database=os.getenv('DB_NAME', 'ai_learning_platform'),
                 connection_timeout=10,
+                sql_mode=SQL_MODE,
             )
         except Exception as e:
             print(f"[WARN] Connection pool init warning: {e}")
@@ -44,7 +50,8 @@ def get_db_connection():
             user=os.getenv('DB_USER', 'root'),
             password=os.getenv('DB_PASSWORD', ''),
             database=os.getenv('DB_NAME', 'ai_learning_platform'),
-            connection_timeout=3
+            connection_timeout=3,
+            sql_mode=SQL_MODE,
         )
     except mysql.connector.Error as e:
         print(f"[ERROR] DB connection failed: {e}")
