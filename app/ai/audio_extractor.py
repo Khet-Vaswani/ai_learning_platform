@@ -4,12 +4,15 @@
 # ============================================================
 
 import os
+import tempfile
 import uuid
 import subprocess
 
 
-AUDIO_DIR = os.path.join(os.path.dirname(__file__),
-                         '..', '..', 'temp_audio')
+# Vercel's project folder is read-only; only the system temp folder is writable there
+AUDIO_DIR = (os.path.join(tempfile.gettempdir(), 'learnai_audio') if os.getenv('VERCEL')
+             else os.path.join(os.path.dirname(__file__), '..', '..', 'temp_audio'))
+YT_PROXY_URL = os.getenv('YT_PROXY_URL') or None
 
 
 def ensure_audio_dir():
@@ -37,6 +40,7 @@ def download_audio(video_id: str) -> str | None:
             'noplaylist': True,
             'socket_timeout': 10,
             'retries': 2,
+            **({'proxy': YT_PROXY_URL} if YT_PROXY_URL else {}),
             'extractor_args': {
                 'youtube': {
                     'player_client': ['android', 'ios', 'mweb']

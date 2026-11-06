@@ -23,6 +23,7 @@ def _get_pool():
                 user=os.getenv('DB_USER', 'root'),
                 password=os.getenv('DB_PASSWORD', ''),
                 database=os.getenv('DB_NAME', 'ai_learning_platform'),
+                connection_timeout=10,
             )
         except Exception as e:
             print(f"[WARN] Connection pool init warning: {e}")
@@ -33,7 +34,10 @@ def get_db_connection():
     try:
         pool = _get_pool()
         if pool:
-            return pool.get_connection()
+            conn = pool.get_connection()
+            # Hosted databases close idle connections; reconnect instead of failing the request
+            conn.ping(reconnect=True, attempts=2, delay=0)
+            return conn
         return mysql.connector.connect(
             host=os.getenv('DB_HOST', 'localhost'),
             port=int(os.getenv('DB_PORT', 3306)),

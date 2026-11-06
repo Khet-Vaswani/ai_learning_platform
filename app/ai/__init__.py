@@ -45,6 +45,13 @@ def create_app():
     )
     app.config.from_object(Config)
 
+    # On Vercel the app sits behind a proxy: trust its X-Forwarded-* headers so
+    # request.is_secure and url_for(_external=True) use https and the real host
+    # (OAuth redirect URIs and password-reset links depend on this)
+    if os.getenv('VERCEL'):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     # ── Security Headers ──────────────────────────────────
     @app.after_request
     def add_security_headers(response):

@@ -88,8 +88,9 @@ def get_fallback(query):
 
 
 def is_quota_error(e):
-    """Check if error is quota exceeded"""
-    return '403' in str(e) or 'quota' in str(e).lower()
+    """Check if error is quota exceeded (other 403s, like a blocked key, are not)"""
+    msg = str(e).lower()
+    return 'quota' in msg or 'dailylimitexceeded' in msg or 'ratelimitexceeded' in msg
 
 
 ENTERTAINMENT_KEYWORDS = [

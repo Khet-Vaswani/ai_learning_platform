@@ -249,6 +249,27 @@ They cover transcript validation, quiz grounding, scoring and levels, adaptive d
 
 ---
 
+## Deploying to Vercel
+
+The repository is ready for Vercel (`pyproject.toml` sets the entrypoint `run:app`). Every push to `main` redeploys.
+
+1. **Database:** Vercel does not host MySQL. Create a free MySQL service on [Aiven](https://aiven.io) (or any MySQL 8 host).
+2. **Import** the GitHub repository in Vercel with the **Flask** preset.
+3. **Environment variables** (Settings → Environment Variables), using the values from `.env.example`:
+   - Required: `SECRET_KEY`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `GROQ_API_KEY`, `YOUTUBE_API_KEY`
+   - Recommended: `GEMINI_API_KEY`, `DB_POOL_SIZE=2`
+   - Optional: OAuth client IDs and secrets, `YT_PROXY_URL`
+   - Do not set `OAUTHLIB_INSECURE_TRANSPORT` on the live site.
+4. **Deploy.** The first request creates the tables (later starts skip this unless the SQL files change).
+5. **Admin account:** run `python create_admin.py <email> <password> "<name>"` with the hosted database's `DB_*` values set in your terminal.
+6. **OAuth:** add `https://<your-site>.vercel.app/auth/<google|github|linkedin>/callback` in each provider's console.
+
+**YouTube API key:** set *Application restrictions* to **None** (the app calls YouTube from the server, so a *Websites* restriction blocks it) and *API restrictions* to **YouTube Data API v3**.
+
+**Limits on Vercel:** YouTube often blocks caption requests from cloud servers, so set `YT_PROXY_URL` if many videos show "couldn't get a transcript". Speech-to-text for videos without captions is not available (no FFmpeg). Chat uploads are limited to 3 MB.
+
+---
+
 ## Security notes
 
 - Keep `.env` out of version control, and rotate any key that has been committed.

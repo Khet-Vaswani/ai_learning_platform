@@ -4,7 +4,6 @@
 # ============================================================
 
 import os
-import torch
 
 
 def transcribe_with_whisper(
@@ -33,6 +32,9 @@ def transcribe_with_whisper(
         return ''
 
     try:
+        # Imported here: torch/whisper are large and optional (not installed on
+        # Vercel), and Groq Whisper in this module doesn't need them
+        import torch
         import whisper
 
         print(f"🤖 Loading Whisper model: {model_size}")

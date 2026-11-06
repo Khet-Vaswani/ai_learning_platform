@@ -652,7 +652,8 @@ function onVideoChange() {
 function handleFile(input) {
     var f = input.files[0];
     if (!f) return;
-    if (f.size > 20 * 1024 * 1024) { alert('Max 20MB file size!'); return; }
+    // The hosting limit is 4.5 MB per request, and files are sent as base64 (about a third larger)
+    if (f.size > 3 * 1024 * 1024) { alert('Files can be up to 3 MB.'); input.value = ''; return; }
     fileObj = f;
     var r   = new FileReader();
     r.onload = function(e) {

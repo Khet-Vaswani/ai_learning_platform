@@ -27,6 +27,10 @@ VALID_TRANSCRIPT_SOURCES = {
 
 ENGLISH_CODES = ['en', 'en-US', 'en-GB', 'en-IN', 'en-CA', 'en-AU']
 
+# YouTube often blocks caption requests from cloud servers (Vercel, AWS, ...).
+# Optional: route them through a proxy, e.g. YT_PROXY_URL=http://user:pass@host:port
+YT_PROXY_URL = os.getenv('YT_PROXY_URL') or None
+
 
 def clean_transcript(text: str) -> str:
     """Remove noise, bracketed descriptions, speaker tags, timestamps, and redundant whitespace."""
@@ -134,8 +138,13 @@ def _list_caption_tracks(video_id: str):
     """Return the video's caption track list (1.x instance API, with 0.x fallback)."""
     from youtube_transcript_api import YouTubeTranscriptApi
     if hasattr(YouTubeTranscriptApi, 'list_transcripts'):          # 0.x
-        return YouTubeTranscriptApi.list_transcripts(video_id)
-    return YouTubeTranscriptApi().list(video_id)                  # 1.x
+        proxies = {'http': YT_PROXY_URL, 'https': YT_PROXY_URL} if YT_PROXY_URL else None
+        return YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
+    proxy_config = None                                           # 1.x
+    if YT_PROXY_URL:
+        from youtube_transcript_api.proxies import GenericProxyConfig
+        proxy_config = GenericProxyConfig(http_url=YT_PROXY_URL, https_url=YT_PROXY_URL)
+    return YouTubeTranscriptApi(proxy_config=proxy_config).list(video_id)
 
 
 def extract_youtube_captions(video_id: str) -> dict:
@@ -197,6 +206,7 @@ def extract_ytdlp_subtitles(video_id: str) -> dict:
             'quiet': True,
             'no_warnings': True,
             'socket_timeout': 10,
+            **({'proxy': YT_PROXY_URL} if YT_PROXY_URL else {}),
             'extractor_args': {
                 'youtube': {
                     'player_client': ['android', 'ios', 'mweb', 'web']
@@ -250,7 +260,10 @@ def extract_ytdlp_subtitles(video_id: str) -> dict:
                         fmt_url,
                         headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
                     )
-                    with urllib.request.urlopen(req, timeout=10) as resp:
+                    opener = urllib.request.build_opener(
+                        urllib.request.ProxyHandler({'http': YT_PROXY_URL, 'https': YT_PROXY_URL})
+                        if YT_PROXY_URL else urllib.request.ProxyHandler())
+                    with opener.open(req, timeout=10) as resp:
                         raw_data = resp.read().decode('utf-8', errors='ignore')
 
                     extracted_text = ''
