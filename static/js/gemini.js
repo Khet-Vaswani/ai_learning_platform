@@ -5,7 +5,7 @@
     let currentQuizId    = null;
     let currentAnswers   = {};
     let currentQuestions = [];
-    let currentQuizLevel = null;   // one level for the whole quiz: Easy / Medium / Hard
+    let currentQuizLevel = null;   // which way the quiz's mix leans: Easy / Medium / Hard
     let currentLevelBasis = '';
 
     // AI-generated text is inserted as plain text, never as HTML
@@ -78,31 +78,56 @@
     }
     window.closeQuizModal = closeQuizModal;
 
-    // ── Quiz level label: all three levels, this quiz's level highlighted ──
+    // ── Quiz level label: how many Easy / Medium / Hard questions the quiz mixes ──
     const LEVEL_STYLE = {
         Easy  : {color: '#16a34a', soft: '#dcfce7', icon: 'fa-seedling'},
         Medium: {color: '#d97706', soft: '#fef3c7', icon: 'fa-fire'},
         Hard  : {color: '#dc2626', soft: '#fee2e2', icon: 'fa-bolt'},
     };
 
-    function levelBar(level, basis) {
-        if (!LEVEL_STYLE[level]) return '';
+    function countLevels(questions, fallback) {
+        const counts = {Easy: 0, Medium: 0, Hard: 0};
+        (questions || []).forEach(q => { counts[LEVEL_STYLE[q.level] ? q.level : (fallback || 'Medium')] += 1; });
+        return counts;
+    }
+
+    const LEAN_TEXT = {Easy: 'more Easy questions', Medium: 'a balanced mix', Hard: 'more Hard questions'};
+
+    function levelBar(questions, lean, basis) {
+        const counts = countLevels(questions, lean);
         const pills = Object.keys(LEVEL_STYLE).map(name => {
-            const s = LEVEL_STYLE[name], on = name === level;
-            return `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;
-                        font-size:0.8rem;font-weight:700;border:1px solid ${on ? s.color : '#e2e8f0'};
-                        background:${on ? s.color : '#ffffff'};color:${on ? '#ffffff' : '#94a3b8'};">
-                        <i class="fas ${s.icon}"></i>${name}${on ? ' <i class="fas fa-check" style="font-size:0.7rem;"></i>' : ''}
+            const s = LEVEL_STYLE[name], n = counts[name];
+            return `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+                        font-size:0.8rem;font-weight:700;border:1px solid ${n ? s.color : '#e2e8f0'};
+                        background:${n ? s.soft : '#ffffff'};color:${n ? s.color : '#94a3b8'};">
+                        <i class="fas ${s.icon}"></i>${name}
+                        <span style="background:${n ? s.color : '#e2e8f0'};color:#fff;border-radius:999px;padding:0 7px;font-size:0.72rem;">${n}</span>
                     </span>`;
         }).join('');
+        const why = lean && LEAN_TEXT[lean]
+            ? `This quiz has ${LEAN_TEXT[lean]}${basis ? `, based on ${escQ(basis)}` : ''}. Questions go from easy to hard.`
+            : 'Questions go from easy to hard.';
         return `
             <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                    <span style="font-size:0.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Quiz level</span>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;" role="img" aria-label="Quiz level: ${escQ(level)}">${pills}</div>
+                    <span style="font-size:0.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Question levels</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;" role="img"
+                         aria-label="${counts.Easy} Easy, ${counts.Medium} Medium and ${counts.Hard} Hard questions">${pills}</div>
                 </div>
-                ${basis ? `<div style="font-size:0.74rem;color:#64748b;margin-top:8px;">Every question is ${escQ(level)}, chosen from ${escQ(basis)}.</div>` : ''}
+                <div style="font-size:0.74rem;color:#64748b;margin-top:8px;">${why}</div>
             </div>`;
+    }
+
+    // Score at each level, shown with the results
+    function levelBreakdown(rows) {
+        if (!rows || !rows.length) return '';
+        return `<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;">
+            ${rows.map(r => {
+                const s = LEVEL_STYLE[r.level] || LEVEL_STYLE.Medium;
+                return `<span style="font-size:0.78rem;font-weight:700;color:${s.color};background:#ffffff;border:1px solid ${s.color};
+                            padding:4px 10px;border-radius:999px;"><i class="fas ${s.icon} me-1"></i>${escQ(r.level)}: ${r.correct}/${r.total}</span>`;
+            }).join('')}
+        </div>`;
     }
 
     function levelTag(level) {
@@ -129,13 +154,13 @@
         }
 
         modalBody.innerHTML = `
-            ${levelBar(currentQuizLevel, currentLevelBasis)}
+            ${levelBar(currentQuestions, currentQuizLevel, currentLevelBasis)}
             <div id="modalQuizContainer">
                 ${currentQuestions.map((q, i) => `
                     <div class="quiz-modal-qitem mb-4 p-3" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="badge bg-primary text-white fw-bold">Question ${i + 1} of ${currentQuestions.length}</span>
-                            ${levelTag(currentQuizLevel)}
+                            ${levelTag(q.level || currentQuizLevel)}
                         </div>
                         <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem; line-height:1.5;">${escQ(q.question)}</h6>
                         <div class="quiz-modal-options d-flex flex-column gap-2">
@@ -226,6 +251,7 @@
                             <h3 class="fw-bold mb-1" style="color:${isPass ? '#166534' : '#991b1b'};">Scored ${percentage}%</h3>
                             <p class="mb-2 fw-semibold" style="color:${isPass ? '#15803d' : '#b91c1c'};">${data.score} out of ${data.total} Correct</p>
                             <small class="d-block" style="color:#64748b;">${escQ((data.difficulty_msg && data.difficulty_msg.message) || ('Next quiz level: ' + (data.new_level || 'Medium')))}</small>
+                            ${levelBreakdown(data.level_breakdown)}
                         </div>
 
                         <h6 class="fw-bold mb-3">Question Breakdown & Explanations:</h6>
@@ -234,7 +260,8 @@
                                 <div class="p-3 rounded-3 border" style="background: #ffffff; border-color: ${res.is_correct ? '#bbf7d0' : '#fecaca'} !important;">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
                                         <span class="fw-bold" style="font-size:0.88rem; color:#1e293b;">Q${i+1}. ${escQ(res.question)}</span>
-                                        <span class="badge ${res.is_correct ? 'bg-success' : 'bg-danger'}">${res.is_correct ? 'Correct ✓' : 'Incorrect ✗'}</span>
+                                        <span class="d-flex align-items-center gap-2 flex-shrink-0">${levelTag(res.level)}
+                                        <span class="badge ${res.is_correct ? 'bg-success' : 'bg-danger'}">${res.is_correct ? 'Correct ✓' : 'Incorrect ✗'}</span></span>
                                     </div>
                                     <div class="small mb-2">
                                         Your Answer: <strong class="${res.is_correct ? 'text-success' : 'text-danger'}">${res.user_answer || 'None'}</strong> 

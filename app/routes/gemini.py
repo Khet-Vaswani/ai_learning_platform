@@ -159,7 +159,7 @@ def _student_context(user_id: int) -> str:
         lines.append("Recent quizzes (newest first):")
         for q in recent:
             when = q['created_at'].strftime('%d %b %Y') if q.get('created_at') else ''
-            lvl = f", {q['difficulty']} level" if q.get('difficulty') else ''
+            lvl = f", {q['difficulty']}-leaning mix" if q.get('difficulty') else ''
             lines.append(f"  - {q['topic'] or 'Quiz'}: {q['pct']}% ({q['score']}/{q['total']}{lvl}) on {when}")
         topics = execute_query(
             """SELECT topic, COUNT(*) AS n, ROUND(AVG(score/total*100)) AS avg
@@ -169,7 +169,7 @@ def _student_context(user_id: int) -> str:
             lines.append("Average score by topic (weakest first):")
             for t in topics:
                 nxt = choose_quiz_level(user_id, t['topic'])['level']
-                lines.append(f"  - {t['topic']}: {t['avg']}% over {t['n']} quiz(zes); next quiz on it will be {nxt}")
+                lines.append(f"  - {t['topic']}: {t['avg']}% over {t['n']} quiz(zes); next quiz on it: {nxt}-leaning mix of Easy, Medium and Hard questions")
     else:
         lines.append("Quizzes completed: none yet")
 
@@ -421,8 +421,10 @@ def quiz_page(quiz_id):
     questions = json.loads(q['questions'])
 
     # The level this quiz was created at (older quizzes have none recorded)
-    from app.ai.quiz_generator import DB_TO_LEVEL
+    from app.ai.quiz_generator import DB_TO_LEVEL, level_counts
     difficulty = DB_TO_LEVEL.get(q.get('difficulty') or '', None)
+    for item in questions:                      # older quizzes have no per-question level
+        item.setdefault('level', difficulty or 'Medium')
 
     curve = execute_query(
         "SELECT curve_stage FROM learning_curves WHERE user_id=%s AND topic=%s",
@@ -438,6 +440,7 @@ def quiz_page(quiz_id):
         questions   = questions,
         total       = len(questions),
         difficulty  = difficulty,
+        counts      = level_counts(questions),
         curve_stage = curve_stage,
         source      = q.get('notes_source', 'title'),
     )

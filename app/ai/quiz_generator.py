@@ -21,8 +21,9 @@ from app.ai.transcript_extractor import (
 LANG_NAMES = {'en': 'English', 'ur': 'Urdu', 'hi': 'Hindi', 'sd': 'Sindhi'}
 
 # ── Quiz levels ───────────────────────────────────────────
-# Every quiz has exactly ONE level, chosen from the student's past scores
-# (see choose_quiz_level). All questions in a quiz are written at that level.
+# Every quiz mixes Easy, Medium and Hard questions. The student's past scores
+# (see choose_quiz_level) decide which way the mix leans (QUIZ_MIX), and each
+# question records its own level.
 DIFFICULTY_LEVELS = {
     'Easy': {
         'label'      : 'Easy',
@@ -30,7 +31,7 @@ DIFFICULTY_LEVELS = {
         'description': 'Recall: facts, terms and definitions stated directly in the video.',
         'score_range': 'Average under 50%',
         'question_style': (
-            'EASY: every question tests direct recall of one fact, term or definition the speaker states plainly, '
+            'EASY: the question tests direct recall of one fact, term or definition the speaker states plainly, '
             'answerable from a single sentence of the transcript. '
             'Typical forms: "What is X?", "Which term does the speaker use for ...?", "What is the first step of ...?". '
             'Wrong options are clearly incorrect according to the transcript.'
@@ -42,7 +43,7 @@ DIFFICULTY_LEVELS = {
         'description': 'Understanding: why and how things work, comparing ideas from the video.',
         'score_range': 'Average 50–79%',
         'question_style': (
-            'MEDIUM: every question tests understanding of an explanation, not just a remembered word. '
+            'MEDIUM: the question tests understanding of an explanation, not just a remembered word. '
             'Typical forms: "Why does the speaker say ...?", "How does X work according to the video?", '
             '"What is the difference between X and Y as explained?", "What is the purpose of ...?". '
             'Do not ask simple "What is X?" or "Which phase is X in?" recall questions. '
@@ -55,7 +56,7 @@ DIFFICULTY_LEVELS = {
         'description': 'Analysis: applying ideas, cause and effect, and subtle distinctions from the video.',
         'score_range': 'Average 80% or higher',
         'question_style': (
-            'HARD: every question requires reasoning that combines or applies what the speaker explained. '
+            'HARD: the question requires reasoning that combines or applies what the speaker explained. '
             'Typical forms: a short scenario ("A team has finished X but skipped Y. According to the video, what problem is most likely?"), '
             '"What would happen if ... based on the explanation in the video?", "Which statement best explains why X leads to Y?", '
             'or "Which option correctly connects X with Y as described?". '
@@ -72,6 +73,37 @@ DB_TO_LEVEL = {
     'Beginner': 'Easy', 'Intermediate': 'Medium', 'Advanced': 'Hard',
 }
 LEVEL_TO_DB = {'Easy': 'Easy', 'Medium': 'Medium', 'Hard': 'Hard'}
+
+LEVEL_ORDER = ['Easy', 'Medium', 'Hard']
+
+# Share of each level in a quiz, by the level the student's scores point to
+QUIZ_MIX = {
+    'Easy'  : {'Easy': 0.5, 'Medium': 0.3, 'Hard': 0.2},
+    'Medium': {'Easy': 0.3, 'Medium': 0.4, 'Hard': 0.3},
+    'Hard'  : {'Easy': 0.2, 'Medium': 0.3, 'Hard': 0.5},
+}
+
+
+def mix_counts(level: str, total: int) -> dict:
+    """How many questions of each level a quiz of `total` questions gets (at least one of each)."""
+    shares = QUIZ_MIX.get(level, QUIZ_MIX['Medium'])
+    counts = {name: max(1, round(total * shares[name])) for name in LEVEL_ORDER}
+    # Fix rounding so the counts add up to the total, adjusting the leaning level first
+    order = [level] + [n for n in ('Medium', 'Easy', 'Hard') if n != level]
+    while sum(counts.values()) != total:
+        step = 1 if sum(counts.values()) < total else -1
+        for name in order:
+            if step > 0 or counts[name] > 1:
+                counts[name] += step
+                break
+    return counts
+
+
+def level_counts(questions: list, default: str = 'Medium') -> dict:
+    counts = {name: 0 for name in LEVEL_ORDER}
+    for q in questions:
+        counts[q.get('level') if q.get('level') in counts else default] += 1
+    return counts
 
 # Plain chat models only. Agentic "compound" models are excluded on purpose:
 # they can run web searches, which would bring in knowledge from outside the video.
@@ -238,8 +270,13 @@ def _validate(questions: list, grounding: _Grounding, seen: set) -> tuple:
         if not grounding.supports(evidence):
             dropped += 1; continue
 
+        level = str(q.get('level', '')).strip().capitalize()
+        if level not in DIFFICULTY_LEVELS:
+            level = 'Medium'        # untagged: keep the grounded question rather than waste it
+
         seen.add(question.lower())
         kept.append({
+            'level'      : level,
             'question'   : question,
             'options'    : {k: str(options[k]).strip() for k in ('A', 'B', 'C', 'D')},
             'correct'    : correct,
@@ -295,8 +332,8 @@ def choose_quiz_level(user_id: int, topic: str) -> dict:
 
 
 # ── Prompt ────────────────────────────────────────────────
-def _build_prompt(transcript_text: str, transcript_lang: str, level: str, num_questions: int, avoid: list) -> str:
-    level_cfg = DIFFICULTY_LEVELS.get(level, DIFFICULTY_LEVELS['Medium'])
+def _build_prompt(transcript_text: str, transcript_lang: str, counts: dict, avoid: list) -> str:
+    num_questions = sum(counts.values())
     if transcript_lang == 'en':
         lang_rule = "Write every question, option and explanation in English."
         quote_rule = "copied word for word from the transcript"
@@ -320,11 +357,14 @@ RULES
 5. "evidence": a short passage of 8 to 30 words {quote_rule}, which proves the correct answer. It must appear in the transcript exactly.
 6. "explanation": one or two sentences in English explaining why the answer is correct, based on that passage.
 7. {lang_rule}
-8. ONE LEVEL ONLY. This is a {level_cfg['label'].upper()} quiz. {level_cfg['question_style']}
-   Every question must be at this same level. Do not include any easier or harder questions, and do not label questions with their own difficulty.
+8. MIXED LEVELS. Write exactly {counts['Easy']} Easy, {counts['Medium']} Medium and {counts['Hard']} Hard questions, and give each its "level":
+   - {DIFFICULTY_LEVELS['Easy']['question_style']}
+   - {DIFFICULTY_LEVELS['Medium']['question_style']}
+   - {DIFFICULTY_LEVELS['Hard']['question_style']}
+   Each question must really be at the level you give it.
 {avoid_block}
 Return a JSON object with exactly {num_questions} questions in this shape:
-{{"questions": [{{"question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "correct": "B", "explanation": "...", "evidence": "..."}}]}}
+{{"questions": [{{"level": "Easy", "question": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "correct": "B", "explanation": "...", "evidence": "..."}}]}}
 
 === VIDEO TRANSCRIPT ===
 {transcript_text}
@@ -363,32 +403,41 @@ def generate_quiz(
 
     level_info = choose_quiz_level(user_id, topic) if difficulty is None else \
         {'level': DB_TO_LEVEL.get(difficulty, 'Medium'), 'average': None, 'basis': 'requested level'}
-    difficulty = level_info['level']
+    difficulty = level_info['level']          # which way the mix leans
 
     target = min(max(num_questions, MIN_QUESTIONS), 20)
+    wanted = mix_counts(difficulty, target)
     print(f"\n[QUIZ] video={video_id} | source={source} | transcript_lang={transcript_lang} | "
-          f"level={difficulty} | words={len(transcript.split())}")
+          f"mix={difficulty} {wanted} | words={len(transcript.split())}")
 
     grounding = _Grounding(transcript)      # check quotes against the FULL transcript
     prompt_text = _sample_transcript(transcript)
-    questions, seen, last_error = [], set(), None
+    by_level, seen, last_error = {name: [] for name in LEVEL_ORDER}, set(), None
 
     for attempt in range(3):
-        needed = target - len(questions)
-        if needed <= 0:
+        missing = {name: max(0, wanted[name] - len(by_level[name])) for name in LEVEL_ORDER}
+        if not any(missing.values()):
             break
+        # Ask for one extra of each missing level: some get dropped by the checks
+        ask = {name: (n + 1 if n else 0) for name, n in missing.items()}
         try:
-            raw = _generate(_build_prompt(prompt_text, transcript_lang, difficulty,
-                                          min(needed + 2, 12), [q['question'] for q in questions]))
+            raw = _generate(_build_prompt(prompt_text, transcript_lang, ask,
+                                          [q['question'] for qs in by_level.values() for q in qs]))
             kept, dropped = _validate(_parse_questions(raw), grounding, seen)
-            questions.extend(kept)
+            for q in kept:
+                by_level[q['level']].append(q)
+            have = {n: len(v) for n, v in by_level.items()}
             print(f"[QUIZ] attempt {attempt + 1}: kept {len(kept)}, dropped {dropped} (not grounded or malformed) "
-                  f"| total {len(questions)}/{target}")
+                  f"| have {have} of {wanted}")
         except Exception as e:
             last_error = e
             print(f"[QUIZ] attempt {attempt + 1} failed: {e}")
 
-    questions = questions[:target]
+    # Take each level's share; if a level came up short, fill from the others' extras
+    questions = [q for name in LEVEL_ORDER for q in by_level[name][:wanted[name]]]
+    extras = [q for name in LEVEL_ORDER for q in by_level[name][wanted[name]:]]
+    questions += extras[:max(0, target - len(questions))]
+    questions.sort(key=lambda q: LEVEL_ORDER.index(q['level']))     # easy to hard
     if len(questions) < MIN_QUESTIONS:
         print(f"[QUIZ] Not enough grounded questions ({len(questions)}). Last error: {last_error}")
         return {
@@ -417,7 +466,7 @@ def generate_quiz(
     )
 
     level_cfg = DIFFICULTY_LEVELS[difficulty]
-    print(f"[QUIZ] Saved quiz {quiz_id}: {len(questions)} transcript-grounded questions")
+    print(f"[QUIZ] Saved quiz {quiz_id}: {len(questions)} transcript-grounded questions {level_counts(questions)}")
     return {
         'success'         : True,
         'questions'       : questions,
@@ -427,6 +476,7 @@ def generate_quiz(
         'difficulty_label': level_cfg['label'],
         'difficulty_color': level_cfg['color'],
         'difficulty_basis': level_info['basis'],
+        'level_counts'    : level_counts(questions),
         'source'          : source,
         'language'        : 'en',
         'lang_name'       : 'English',
@@ -470,9 +520,16 @@ def submit_quiz(
             'explanation': q.get('explanation', ''),
             'evidence'   : q.get('evidence', ''),
             'options'    : q.get('options', {}),
+            'level'      : q.get('level') or quiz_level,
         })
 
     total      = len(questions)
+    by_level   = {}
+    for r in results:
+        b = by_level.setdefault(r['level'], {'correct': 0, 'total': 0})
+        b['total'] += 1
+        b['correct'] += 1 if r['is_correct'] else 0
+    level_breakdown = [{'level': name, **by_level[name]} for name in LEVEL_ORDER if name in by_level]
     percentage = round((score / total * 100), 1) if total > 0 else 0
 
     execute_query(
@@ -487,15 +544,20 @@ def submit_quiz(
     new_db_diff = LEVEL_TO_DB[new_level]
     order       = ['Easy', 'Medium', 'Hard']
     change      = order.index(new_level) - order.index(quiz_level)
+    mix = mix_counts(new_level, 10)
+    mix_text = f"{mix['Easy']} Easy, {mix['Medium']} Medium and {mix['Hard']} Hard in 10 questions"
     if change > 0:
         title, color = 'Level up', 'success'
-        message = f"Your next quiz on {topic} will be {new_level}, based on {next_info['basis']} (average {next_info['average']}%)."
+        message = (f"Your next quiz on {topic} will have more Hard questions ({mix_text}), "
+                   f"based on {next_info['basis']} (average {next_info['average']}%).")
     elif change < 0:
         title, color = 'Next quiz will be easier', 'info'
-        message = f"Your next quiz on {topic} will be {new_level}, based on {next_info['basis']} (average {next_info['average']}%)."
+        message = (f"Your next quiz on {topic} will have more Easy questions ({mix_text}), "
+                   f"based on {next_info['basis']} (average {next_info['average']}%).")
     else:
         title, color = f'Staying at {new_level}', 'warning'
-        message = f"Your next quiz on {topic} stays {new_level}, based on {next_info['basis']} (average {next_info['average']}%)."
+        message = (f"Your next quiz on {topic} keeps the same mix ({mix_text}), "
+                   f"based on {next_info['basis']} (average {next_info['average']}%).")
     level_feedback = {'icon': '', 'title': title, 'message': message, 'color': color, 'badge': new_level}
 
     is_weak = percentage < 50
@@ -552,6 +614,7 @@ def submit_quiz(
         'is_weak'        : is_weak,
         'topic'          : topic,
         'quiz_level'     : quiz_level,
+        'level_breakdown': level_breakdown,
         'new_level'      : new_level,
         'new_difficulty' : new_db_diff,
         'difficulty_msg' : level_feedback,
@@ -577,10 +640,12 @@ def get_saved_quiz(user_id: int, video_id: str, level: str = None) -> dict:
         (user_id, video_id, *sources, level, level), fetch=True
     )
     if rows:
+        questions = json.loads(rows[0]['questions'])
         return {
             'success'   : True,
             'quiz_id'   : rows[0]['id'],
-            'questions' : json.loads(rows[0]['questions']),
+            'questions' : questions,
+            'level_counts': level_counts(questions, DB_TO_LEVEL.get(rows[0]['difficulty'] or '', 'Medium')),
             'total'     : rows[0]['total'],
             'source'    : rows[0]['notes_source'],
             'difficulty': rows[0]['difficulty'],
