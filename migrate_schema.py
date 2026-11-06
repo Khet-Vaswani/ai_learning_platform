@@ -4,6 +4,8 @@ Direct SQL execution to create schema
 Run this script to apply all database migrations
 """
 
+import hashlib
+import re
 import mysql.connector
 import os
 from dotenv import load_dotenv
@@ -20,9 +22,32 @@ def _load_sql_file(filepath):
         stmt = stmt.strip()
         # Filter out comments-only or empty statements
         cleaned = '\n'.join([line for line in stmt.splitlines() if not line.strip().startswith('--')])
+        # The database comes from DB_NAME (e.g. "defaultdb" on a hosted database),
+        # so the files' own CREATE DATABASE / USE lines are skipped
+        if re.match(r'^\s*(USE|CREATE DATABASE)\b', cleaned, re.I):
+            continue
         if cleaned.strip():
             statements.append(stmt + ';')
     return statements
+
+
+# MariaDB-only syntax; MySQL 8 (e.g. Aiven) rejects it, so it is run as a check + plain ALTER
+_ADD_COLUMN_IF_MISSING = re.compile(
+    r'^ALTER TABLE\s+`?(\w+)`?\s+ADD COLUMN IF NOT EXISTS\s+`?(\w+)`?\s+(.+?);?$', re.I | re.S)
+
+
+def _execute(cursor, statement):
+    m = _ADD_COLUMN_IF_MISSING.match(statement.strip())
+    if not m:
+        cursor.execute(statement)
+        return
+    table, column, definition = m.groups()
+    cursor.execute(
+        """SELECT 1 FROM information_schema.COLUMNS
+           WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s""",
+        (table, column))
+    if not cursor.fetchall():
+        cursor.execute(f"ALTER TABLE `{table}` ADD COLUMN `{column}` {definition}")
 
 
 def run_migrations():
@@ -50,6 +75,22 @@ def run_migrations():
 
     sql_statements = _load_sql_file(schema_path) + _load_sql_file(updates_path) + _load_sql_file(seed_path)
 
+    # Skip the whole run when the SQL files haven't changed since the last
+    # successful run (keeps every server start fast, especially on hosted databases)
+    files_hash = hashlib.sha256(''.join(sql_statements).encode('utf-8')).hexdigest()
+    try:
+        cursor.execute("""CREATE TABLE IF NOT EXISTS schema_version (
+                              id INT PRIMARY KEY, files_hash VARCHAR(64) NOT NULL)""")
+        cursor.execute("SELECT files_hash FROM schema_version WHERE id = 1")
+        row = cursor.fetchone()
+        if row and row[0] == files_hash:
+            print("[OK] Database schema is up to date")
+            cursor.close()
+            conn.close()
+            return True
+    except mysql.connector.Error as e:
+        print(f"[WARN] Could not read schema version: {e}")
+
     # Execute statements
     try:
         print("\n" + "=" * 60)
@@ -58,7 +99,7 @@ def run_migrations():
         
         for i, statement in enumerate(sql_statements, 1):
             try:
-                cursor.execute(statement)
+                _execute(cursor, statement)
                 print(f"[OK] Step {i}/{len(sql_statements)}")
             except mysql.connector.Error as stmt_err:
                 # Ignore duplicate column / table / constraint errors during re-runs
@@ -66,22 +107,12 @@ def run_migrations():
                     continue
                 print(f"[WARN] Migration step {i} warning: {stmt_err}")
         
-        # Seed default Admin user if none exists
-        try:
-            import bcrypt
-            cursor.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1")
-            admin_user = cursor.fetchone()
-            if not admin_user:
-                admin_pass_hash = bcrypt.hashpw(b'Admin@123', bcrypt.gensalt()).decode('utf-8')
-                cursor.execute("""
-                    INSERT INTO users (full_name, email, password, role, onboarding_done)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE role='admin'
-                """, ('System Administrator', 'admin@platform.com', admin_pass_hash, 'admin', 1))
-                print("[OK] Default Admin account seeded: admin@platform.com / Admin@123")
-        except Exception as seed_err:
-            print(f"[WARN] Failed to auto-seed admin: {seed_err}")
+        # No default admin is created here: a password written in the code is public.
+        # Create one with:  python create_admin.py <email> <password> "<name>"
 
+        cursor.execute(
+            """INSERT INTO schema_version (id, files_hash) VALUES (1, %s)
+               ON DUPLICATE KEY UPDATE files_hash = %s""", (files_hash, files_hash))
         conn.commit()
         print("\n[OK] All migrations executed successfully!")
         print("=" * 60)
@@ -108,7 +139,7 @@ def run_migrations():
         cursor = conn.cursor(dictionary=True)
         
         # Check tables
-        cursor.execute("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'ai_learning_platform'")
+        cursor.execute("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s", (db_name,))
         tables = [row['TABLE_NAME'] for row in cursor.fetchall()]
         
         new_tables = [
