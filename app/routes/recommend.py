@@ -168,8 +168,10 @@ def get_yt():
 
 
 def is_quota_err(e):
+    # Only the daily limit. Other 403s (a blocked or wrong key) are not quota
+    # errors and must show up in the logs instead of silently stopping searches.
     msg = str(e).lower()
-    return '403' in msg or 'quota' in msg or 'quotaexceeded' in msg
+    return 'quota' in msg or 'dailylimitexceeded' in msg or 'ratelimitexceeded' in msg
 
 
 def get_cache(key):
@@ -233,9 +235,9 @@ def search_youtube(yt, query, limit=5):
         return filter_educational_videos(items2) or items2
 
     except Exception as e:
+        print(f"[YouTube Search] Notice: {e}")
         if is_quota_err(e):
             raise e
-        print(f"[YouTube Search] Notice: {e}")
         return []
 
 
@@ -304,6 +306,7 @@ def recommend_videos():
 
     recommendations = []
     quota_exceeded  = False
+    got_real_videos = False   # from YouTube or its saved results, not the backup list
     # Spread the 20 slots across queries/topics so every goal row gets picks
     PER_QUERY, PER_TOPIC = 3, 4
     topic_count = {}
@@ -350,6 +353,7 @@ def recommend_videos():
                 recommendations.append(v)
             continue
 
+        got_real_videos = True
         for v in q_videos:
             if topic_count.get(q_topic, 0) >= PER_TOPIC:
                 break
@@ -382,9 +386,12 @@ def recommend_videos():
     final.sort(key=lambda x: x['final_score'], reverse=True)
     result = final[:20]
 
-    if result:
+    # Don't keep a backup-only list: once YouTube works again, the next visit should use it
+    if result and got_real_videos:
         set_cache(cache_key, result)
         set_cache(f"recw_{user_id}", weights)
+    elif not got_real_videos:
+        print("[Recommend] YouTube returned no videos; showing the backup list (not cached)")
 
     return jsonify({
         'success'        : True,
@@ -472,8 +479,9 @@ def preference_videos():
             'total'      : len(cached),
         })
 
-    videos         = []
-    quota_exceeded = False
+    videos          = []
+    quota_exceeded  = False
+    got_real_videos = False
 
     try:
         yt = get_yt()
@@ -505,7 +513,9 @@ def preference_videos():
                     quota_exceeded = True
 
         # 3. Domain-specific fallback if YouTube API unavailable, empty or failed
-        if not topic_videos:
+        if topic_videos:
+            got_real_videos = True
+        else:
             topic_videos = get_fallback_for_topic(topic, field)
 
         for v in topic_videos:
@@ -523,7 +533,7 @@ def preference_videos():
         for fb in get_fallback_for_topic(field, field):
             final.append({**fb, 'topic': field})
 
-    if final:
+    if final and got_real_videos:
         set_cache(cache_key, final)
 
     return jsonify({
