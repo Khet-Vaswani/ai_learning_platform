@@ -396,7 +396,7 @@ body {
 .ui-auth-sub   { font-size: 0.88rem; color: var(--ui-muted); margin-bottom: 24px; }
 .ui-divider { display: flex; align-items: center; gap: 12px; color: var(--ui-subtle); font-size: 0.75rem; margin: 20px 0; }
 .ui-divider::before, .ui-divider::after { content: ''; flex: 1; height: 1px; background: var(--ui-border); }
-.ui-social { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ui-social { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }   /* equal columns for however many buttons */
 .ui-social a {
   display: flex;
   align-items: center;
