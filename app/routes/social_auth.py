@@ -48,11 +48,14 @@ def login_or_register_social(email, full_name, provider):
         return None
     email = email.strip().lower()   # stored emails are lowercase
 
-    # Check existing user
+    # Check existing user (False means the database couldn't be reached)
     user = execute_query(
         "SELECT * FROM users WHERE email=%s",
         (email,), fetch=True
     )
+    if user is False:
+        print(f"[OAuth] {provider}: database unavailable")
+        return False
 
     if user:
         u = user[0]
@@ -77,7 +80,8 @@ def login_or_register_social(email, full_name, provider):
         (full_name, email, fake_pw)
     )
     if not user_id:
-        return None
+        print(f"[OAuth] {provider}: could not save the new account")
+        return False
 
     session['user_id']         = user_id
     session['user_name']       = full_name
@@ -111,6 +115,8 @@ def google_login():
 @social_bp.route('/auth/google/callback')
 def google_callback():
     code = request.args.get('code')
+    if request.args.get('error'):
+        print(f"[OAuth] Google returned: {request.args.get('error')} - {request.args.get('error_description', '')[:200]}")
     if not code or not _valid_state('google'):
         return redirect('/login?error=google_failed')
 
@@ -128,6 +134,9 @@ def google_callback():
         access_token = token_data.get('access_token')
 
         if not access_token:
+            print(f"[OAuth] Google token exchange failed: {token_data.get('error')} - "
+                  f"{str(token_data.get('error_description', ''))[:200]} | redirect_uri="
+                  f"{url_for('social.google_callback', _external=True)}")
             return redirect('/login?error=google_token_failed')
 
         # Get user info
@@ -141,6 +150,8 @@ def google_callback():
 
         user = login_or_register_social(email, full_name, 'Google')
 
+        if user is False:
+            return redirect('/login?error=signin_unavailable')
         if not user:
             return redirect('/login?error=no_email')
 
@@ -174,6 +185,8 @@ def github_login():
 @social_bp.route('/auth/github/callback')
 def github_callback():
     code = request.args.get('code')
+    if request.args.get('error'):
+        print(f"[OAuth] GitHub returned: {request.args.get('error')} - {request.args.get('error_description', '')[:200]}")
     if not code or not _valid_state('github'):
         return redirect('/login?error=github_failed')
 
@@ -194,6 +207,9 @@ def github_callback():
         access_token = token_data.get('access_token')
 
         if not access_token:
+            print(f"[OAuth] GitHub token exchange failed: {token_data.get('error')} - "
+                  f"{str(token_data.get('error_description', ''))[:200]} | redirect_uri="
+                  f"{url_for('social.github_callback', _external=True)}")
             return redirect('/login?error=github_token_failed')
 
         headers = {
@@ -218,6 +234,8 @@ def github_callback():
 
         user = login_or_register_social(email, full_name, 'GitHub')
 
+        if user is False:
+            return redirect('/login?error=signin_unavailable')
         if not user:
             return redirect('/login?error=no_email')
 
@@ -273,6 +291,9 @@ def linkedin_callback():
         access_token = token_data.get('access_token')
 
         if not access_token:
+            print(f"[OAuth] LinkedIn token exchange failed: {token_data.get('error')} - "
+                  f"{str(token_data.get('error_description', ''))[:200]} | redirect_uri="
+                  f"{url_for('social.linkedin_callback', _external=True)}")
             return redirect('/login?error=linkedin_token_failed')
 
         # Get user info (OpenID Connect)
@@ -288,6 +309,8 @@ def linkedin_callback():
 
         user = login_or_register_social(email, full_name, 'LinkedIn')
 
+        if user is False:
+            return redirect('/login?error=signin_unavailable')
         if not user:
             return redirect('/login?error=no_email')
 

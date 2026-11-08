@@ -12,7 +12,8 @@
   'linkedin_failed': 'LinkedIn sign-in was cancelled or failed. Try again.',
   'linkedin_token_failed': "We couldn't finish signing in with LinkedIn. Try again.",
   'linkedin_error': 'Something went wrong with LinkedIn sign-in. Try again.',
-  'no_email': "We couldn't get a verified email from that account. Use another sign-in method."
+  'no_email': "We couldn't get a verified email from that account. Use another sign-in method.",
+  'signin_unavailable': "Sign-in is temporarily unavailable. Please try again in a few minutes."
 } %}
 {% set msg = error or social_errors.get(request.args.get('error', '')) %}
 
