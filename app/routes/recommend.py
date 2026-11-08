@@ -256,6 +256,48 @@ def get_db_cache(query):
     return None
 
 
+def get_db_cache_many(queries):
+    """Saved results for several searches in one database round trip: {query: videos}."""
+    keys = list({q.lower(): q for q in queries}.items())
+    if not keys:
+        return {}
+    rows = execute_query(
+        f"""SELECT query, results FROM search_cache
+            WHERE expires_at > NOW() AND query IN ({', '.join(['%s'] * len(keys))})""",
+        tuple(k for k, _ in keys), fetch=True) or []
+    original = dict(keys)
+    found = {}
+    for r in rows:
+        try:
+            videos = json.loads(r['results'] or '[]')
+        except ValueError:
+            continue
+        if videos and r['query'] in original:
+            found[original[r['query']]] = videos
+    return found
+
+
+def search_many(queries, limit=5):
+    """
+    YouTube searches run in parallel (they used to run one after another, which made
+    the first recommendations load take several seconds). Returns ({query: videos},
+    quota_exceeded). Each thread builds its own client: the API client isn't thread-safe.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(query):
+        try:
+            return query, search_youtube(get_yt(), query, limit), False
+        except Exception as e:
+            return query, [], is_quota_err(e)
+
+    if not queries:
+        return {}, False
+    with ThreadPoolExecutor(max_workers=min(8, len(queries))) as pool:
+        results = list(pool.map(one, queries))
+    return {q: v for q, v, _ in results if v}, any(quota for _, _, quota in results)
+
+
 def save_db_cache(query, videos):
     if not videos or len(videos) == 0:
         return  # Never cache empty lists
@@ -322,34 +364,23 @@ def recommend_videos():
         quota_exceeded = True
         yt = None
 
-    for q in queries[:8]:
+    # Saved results for all searches in one query, then the missing ones from YouTube in parallel
+    top   = queries[:8]
+    found = {}
+    if yt is not None and not quota_exceeded:
+        found = get_db_cache_many([q['query'] for q in top])
+        missing = [q['query'] for q in top if q['query'] not in found]
+        fresh, quota_exceeded = search_many(missing, 5)
+        for query, videos in fresh.items():
+            found[query] = videos
+            save_db_cache(query, videos)
+
+    for q in top:
         if len(recommendations) >= 20:
             break
 
-        q_topic = q.get('topic', '')
-        q_videos = []
-
-        if quota_exceeded or yt is None:
-            v = fallback_for_query(q['query'], q['reason'], q['expert'], q['final_score'], q_topic)
-            if v['video_id'] not in watched_ids:
-                recommendations.append(v)
-            continue
-
-        # DB cache
-        db_videos = get_db_cache(q['query'])
-        if db_videos and len(db_videos) > 0:
-            q_videos = db_videos[:3]
-
-        # YouTube API
-        if not q_videos and not quota_exceeded:
-            try:
-                yt_videos = search_youtube(yt, q['query'], 5)
-                if yt_videos and len(yt_videos) > 0:
-                    q_videos = yt_videos[:PER_QUERY]
-                    save_db_cache(q['query'], yt_videos)
-            except Exception as e:
-                if is_quota_err(e):
-                    quota_exceeded = True
+        q_topic  = q.get('topic', '')
+        q_videos = (found.get(q['query']) or [])[:PER_QUERY]
 
         # Fallback if YouTube search yielded no videos
         if not q_videos:
@@ -497,28 +528,20 @@ def preference_videos():
         quota_exceeded = True
         yt = None
 
-    for topic in topics[:4]:
+    # 1. Saved results in one query, 2. the missing searches from YouTube in parallel
+    queries = [f"{topic} {suffix}" for topic in topics[:4]]
+    found   = get_db_cache_many(queries)
+    if yt is not None and not quota_exceeded:
+        fresh, quota_exceeded = search_many([q for q in queries if q not in found], 3)
+        for query, vids in fresh.items():
+            found[query] = vids
+            save_db_cache(query, vids)
+
+    for topic, query in zip(topics[:4], queries):
         if len(videos) >= 12:
             break
 
-        query        = f"{topic} {suffix}"
-        topic_videos = []
-
-        # 1. DB cache check (only non-empty results)
-        db_videos = get_db_cache(query)
-        if db_videos and len(db_videos) > 0:
-            topic_videos = [v for v in db_videos if isinstance(v, dict) and v.get('video_id')][:3]
-
-        # 2. YouTube API search
-        if not topic_videos and not quota_exceeded and yt is not None:
-            try:
-                yt_videos = search_youtube(yt, query, 3)
-                if yt_videos and len(yt_videos) > 0:
-                    topic_videos = yt_videos
-                    save_db_cache(query, yt_videos)
-            except Exception as e:
-                if is_quota_err(e):
-                    quota_exceeded = True
+        topic_videos = [v for v in (found.get(query) or []) if isinstance(v, dict) and v.get('video_id')][:3]
 
         # 3. Domain-specific fallback if YouTube API unavailable, empty or failed
         if topic_videos:

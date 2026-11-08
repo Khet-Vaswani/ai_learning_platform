@@ -5,8 +5,14 @@
 from app.utils.db import execute_query
 from datetime import datetime, date
 
+_table_ready = False
+
+
 def ensure_notifications_table():
-    """Ensure user_notifications table exists in database"""
+    """Ensure user_notifications table exists (checked once per server start, not per request)"""
+    global _table_ready
+    if _table_ready:
+        return
     sql = """
     CREATE TABLE IF NOT EXISTS user_notifications (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -21,7 +27,7 @@ def ensure_notifications_table():
     )
     """
     try:
-        execute_query(sql, fetch=False)
+        _table_ready = execute_query(sql, fetch=False) is not False
     except Exception as e:
         print(f"[WARN] Notifications table check: {e}")
 

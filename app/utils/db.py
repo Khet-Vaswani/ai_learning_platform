@@ -22,7 +22,12 @@ def _get_pool():
                 pool_name="ai_platform_pool",
                 # Keep this small on hosted databases: each server copy opens this many
                 pool_size=int(os.getenv('DB_POOL_SIZE', 10)),
-                pool_reset_session=True,
+                # Every query is its own transaction (autocommit), so a connection goes
+                # back to the pool with nothing open: no reads holding locks or seeing
+                # old data. That makes the per-query session reset unnecessary, which
+                # saves a round trip to the database on every query.
+                autocommit=True,
+                pool_reset_session=False,
                 host=os.getenv('DB_HOST', 'localhost'),
                 port=int(os.getenv('DB_PORT', 3306)),
                 user=os.getenv('DB_USER', 'root'),
@@ -40,10 +45,7 @@ def get_db_connection():
     try:
         pool = _get_pool()
         if pool:
-            conn = pool.get_connection()
-            # Hosted databases close idle connections; reconnect instead of failing the request
-            conn.ping(reconnect=True, attempts=2, delay=0)
-            return conn
+            return pool.get_connection()
         return mysql.connector.connect(
             host=os.getenv('DB_HOST', 'localhost'),
             port=int(os.getenv('DB_PORT', 3306)),
@@ -52,10 +54,15 @@ def get_db_connection():
             database=os.getenv('DB_NAME', 'ai_learning_platform'),
             connection_timeout=3,
             sql_mode=SQL_MODE,
+            autocommit=True,
         )
     except mysql.connector.Error as e:
         print(f"[ERROR] DB connection failed: {e}")
         return None
+
+
+# Errors meaning the connection itself was dropped (hosted databases close idle ones)
+_DROPPED = {2006, 2013, 2055}
 
 
 def execute_query(query, params=None, fetch=True):
@@ -65,8 +72,17 @@ def execute_query(query, params=None, fetch=True):
 
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(query, params or ())
-        
+        try:
+            cursor.execute(query, params or ())
+        except (mysql.connector.errors.OperationalError, mysql.connector.errors.InterfaceError) as e:
+            if e.errno not in _DROPPED:
+                raise
+            # Reconnect and retry once, instead of checking the connection before every query
+            cursor.close()
+            conn.reconnect(attempts=2, delay=0)
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(query, params or ())
+
         # If query has no result set (e.g., INSERT, UPDATE, DELETE),
         # commit and return lastrowid (or rowcount or True if lastrowid is not set)
         if cursor.description is None:

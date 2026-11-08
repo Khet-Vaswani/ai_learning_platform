@@ -55,24 +55,37 @@ def _no_transcript_response(source, what='a quiz'):
     body = TRANSCRIPT_BLOCKED if source == 'blocked' else TRANSCRIPT_UNAVAILABLE
     return jsonify({**body, 'message': body['message'].replace('a quiz', what)})
 
-# ── Groq client ───────────────────────────────────────────
-from groq import Groq
-# A missing key must not stop the whole site from starting; only AI replies fail
-groq_client = Groq(api_key=os.getenv('GROQ_API_KEY')) if os.getenv('GROQ_API_KEY') else None
+# ── AI clients ────────────────────────────────────────────
+# Created on first use: importing the Groq and Gemini libraries takes about
+# 3.5 seconds, which slowed every start of the app (each Vercel cold start)
+# even for pages that never use AI. A missing key only disables that provider.
+_ai_clients = {}
+
+
+def _groq():
+    if 'groq' not in _ai_clients:
+        _ai_clients['groq'] = None
+        if os.getenv('GROQ_API_KEY'):
+            from groq import Groq
+            _ai_clients['groq'] = Groq(api_key=os.getenv('GROQ_API_KEY'))
+    return _ai_clients['groq']
+
+
+def _gemini():
+    if 'gemini' not in _ai_clients:
+        _ai_clients['gemini'] = None
+        try:
+            from google import genai
+            _ai_clients['gemini'] = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+        except Exception:
+            pass
+    return _ai_clients['gemini']
 
 GROQ_MODELS = [
     'openai/gpt-oss-120b',
     'qwen/qwen3.8-27b',
     'openai/gpt-oss-20b',
 ]
-
-# ── Gemini client ─────────────────────────────────────────
-try:
-    from google import genai
-    gemini_client    = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-    GEMINI_AVAILABLE = True
-except Exception:
-    GEMINI_AVAILABLE = False
 
 GEMINI_MODELS = [
     'gemini-3.6-flash',
@@ -89,6 +102,7 @@ def _generate_ai(prompt: str, max_tokens: int = 1200) -> str:
     """Groq → Gemini fallback for chatbot."""
     last_error = None
 
+    groq_client = _groq()
     for model in (GROQ_MODELS if groq_client else []):
         try:
             resp = groq_client.chat.completions.create(
@@ -107,7 +121,8 @@ def _generate_ai(prompt: str, max_tokens: int = 1200) -> str:
                 break
             continue
 
-    if GEMINI_AVAILABLE:
+    gemini_client = _gemini()
+    if gemini_client:
         for model in GEMINI_MODELS:
             try:
                 resp = gemini_client.models.generate_content(
@@ -518,7 +533,9 @@ def chatbot_ask():
             fname_lower = (file_name or '').lower()
 
             # 1. Image analysis via Gemini Vision
-            if file_type.startswith('image/') and GEMINI_AVAILABLE:
+            gemini_client = _gemini() if file_type.startswith('image/') or file_type == 'application/pdf' \
+                or fname_lower.endswith('.pdf') else None
+            if file_type.startswith('image/') and gemini_client:
                 from google.genai import types
                 img_part = types.Part.from_bytes(
                     data      = file_bytes,
@@ -570,7 +587,7 @@ Instructions:
                     return jsonify({'success': True, 'reply': reply})
 
                 # If text is empty (scanned image PDF) and Gemini Vision is available
-                if GEMINI_AVAILABLE:
+                if gemini_client:
                     try:
                         from google.genai import types
                         pdf_part = types.Part.from_bytes(data=file_bytes, mime_type='application/pdf')
