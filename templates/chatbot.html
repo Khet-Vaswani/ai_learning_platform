@@ -394,6 +394,10 @@ body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Seg
 .src-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
 .src-video .src-label   { color: var(--c-primary); }
 .src-general .src-label { color: var(--c-muted); }
+.md-table-wrap { overflow-x: auto; margin: 10px 0; }
+.md-table { border-collapse: collapse; font-size: 0.84rem; min-width: 60%; }
+.md-table th, .md-table td { border: 1px solid var(--c-border); padding: 6px 10px; text-align: left; vertical-align: top; }
+.md-table th { background: var(--c-bg); font-weight: 700; color: var(--c-text); }
 .md-quote { border-left: 2px solid #c7d2fe; padding-left: 10px; margin: 6px 0; color: var(--c-muted); font-style: italic; font-size: 0.84rem; }
 .foot-note { text-align: center; font-size: 0.68rem; color: var(--c-subtle); margin-top: 8px; }
 
@@ -865,6 +869,23 @@ function fmtText(text) {
             '<div class="code-body" id="' + cid + '">' + escHtml(code.trim()) + '</div>' +
             '</div>');
         return '\u0000' + (blocks.length - 1) + '\u0000';
+    });
+
+    // Markdown tables become real tables (cells escaped like any other text)
+    text = text.replace(/(^|\n)((?:\|[^\n]*\|[ \t]*(?:\n|$)){2,})/g, function(m, lead, block) {
+        var lines = block.trim().split('\n');
+        if (lines.length < 2 || !/^\|?[\s:|-]+\|?$/.test(lines[1].trim()) || lines[1].indexOf('-') === -1) return m;
+        var cells = function(line) {
+            return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function(c) {
+                return escHtml(c.trim()).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+            });
+        };
+        var head = cells(lines[0]).map(function(c) { return '<th>' + c + '</th>'; }).join('');
+        var body = lines.slice(2).map(function(l) {
+            return '<tr>' + cells(l).map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+        }).join('');
+        blocks.push('<div class="md-table-wrap"><table class="md-table"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>');
+        return lead + '\u0000' + (blocks.length - 1) + '\u0000\n';
     });
 
     // Everything else is plain text from the model: escape it

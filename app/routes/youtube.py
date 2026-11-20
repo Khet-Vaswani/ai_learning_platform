@@ -283,7 +283,7 @@ def video_details():
 
     try:
         res = get_yt().videos().list(
-            part = 'snippet,statistics',
+            part = 'snippet,statistics,status',
             id   = video_id
         ).execute()
 
@@ -304,6 +304,8 @@ def video_details():
             'view_count'   : stats.get('viewCount', '0'),
             'like_count'   : stats.get('likeCount', '0'),
             'comment_count': stats.get('commentCount', '0'),
+            # Some owners block playback on other websites; the player then offers a YouTube link
+            'embeddable'   : item.get('status', {}).get('embeddable', True),
         }
 
         set_cache(cache_key, video_data)

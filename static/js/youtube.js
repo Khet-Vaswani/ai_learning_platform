@@ -43,6 +43,7 @@ async function openVideo(videoId, title, topic) {
     }
 
     // ── Load iframe ───────────────────────────────────────
+    hideWatchOnYouTube();
     const player = document.getElementById('ytPlayer');
     if (player) {
         player.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1`;
@@ -342,6 +343,7 @@ async function loadVideoDetails(videoId, topic) {
 
         if (data.success && data.video) {
             const v = data.video;
+            if (v.embeddable === false && currentVideo.id === videoId) showWatchOnYouTube(videoId, v.title);
             const set = (id, val) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = val;
@@ -367,6 +369,42 @@ async function loadVideoDetails(videoId, topic) {
             }
         }
     } catch(e) {}
+}
+
+
+// The owner blocked playback on other websites: show the thumbnail and a link to
+// YouTube in place of the embedded player. Notes, quizzes and Ask AI still work.
+function showWatchOnYouTube(videoId, title) {
+    const player = document.getElementById('ytPlayer');
+    if (!player) return;
+    const box = player.parentElement;
+    const url = 'https://www.youtube.com/watch?v=' + encodeURIComponent(videoId);
+    const thumb = 'https://img.youtube.com/vi/' + encodeURIComponent(videoId) + '/hqdefault.jpg';
+    player.src = '';
+    player.style.display = 'none';
+    let card = document.getElementById('ytWatchCard');
+    if (!card) {
+        card = document.createElement('div');
+        card.id = 'ytWatchCard';
+        card.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+            'gap:14px;text-align:center;padding:20px;color:#fff;background-size:cover;background-position:center;';
+        box.appendChild(card);
+    }
+    card.style.backgroundImage = 'linear-gradient(rgba(15,23,42,0.72), rgba(15,23,42,0.82)), url("' + thumb + '")';
+    card.style.display = 'flex';
+    card.innerHTML =
+        '<div style="font-size:1rem;font-weight:700;">This video can only be played on YouTube</div>' +
+        '<div style="font-size:0.82rem;opacity:0.85;max-width:420px;">The owner doesn\'t allow playback on other sites. ' +
+        'Study notes, the quiz and Ask AI below still work for it.</div>' +
+        '<a href="' + url + '" target="_blank" rel="noopener" style="background:#ef4444;color:#fff;font-weight:700;' +
+        'padding:10px 18px;border-radius:999px;text-decoration:none;"><i class="fab fa-youtube me-1"></i> Watch on YouTube</a>';
+}
+
+function hideWatchOnYouTube() {
+    const card = document.getElementById('ytWatchCard');
+    if (card) card.style.display = 'none';
+    const player = document.getElementById('ytPlayer');
+    if (player) player.style.display = '';
 }
 
 
